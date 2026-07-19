@@ -5,9 +5,13 @@ export class LoyaltyPolicy implements IPricingPolicy {
     readonly name = "LoyaltyPolicy";
 
     apply(context: IPricingContext): void {
-        if (context.product.loyaltyDiscount) {
-            const multiplier = new Decimal(1).minus(context.product.loyaltyDiscount);
-            const loyaltyPrice = context.product.basePrice.times(multiplier);
+        if (!context.input.allowLoyaltyDiscount) {
+            return;
+        }
+
+        if (context.input.customerDiscount) {
+            const multiplier = new Decimal(1).minus(context.input.customerDiscount);
+            const loyaltyPrice = context.input.basePrice.times(multiplier);
             if (loyaltyPrice.lessThan(context.currentPrice)) {
                 context.currentPrice = loyaltyPrice;
                 context.addAppliedPolicy(this.name);

@@ -1,15 +1,21 @@
 import Decimal from "decimal.js";
 
-export interface Product {
+export interface PricingInput {
     sku: string;
     basePrice: Decimal;
     salePrice?: Decimal;
-    loyaltyDiscount?: Decimal; // percentage as 0.X
-    productLimitDiscount?: Decimal; // percentage as 0.X
+    customerDiscount?: Decimal; // percentage as 0.X
+    productMaxDiscount?: Decimal; // percentage as 0.X
+    manufacturer?: string;
+    category?: string;
+    purchasePrice?: Decimal;
+    currency?: string;
+    vatRate?: Decimal;
+    allowLoyaltyDiscount: boolean;
 }
 
 export interface IPricingContext {
-    product: Product;
+    input: PricingInput;
     currentPrice: Decimal;
     appliedPolicies: string[];
     addAppliedPolicy(policyName: string): void;

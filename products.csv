@@ -1,3 +1,4 @@
-Code;Name;Price;SalePrice;MaxDiscount
-93682;Čelovka DELPHIN Queen;14.94;12.70;15
-12345;Běžný produkt;19.90;;
+code;standardPrice;price;actionPrice;maxDiscount;manufacturer;categoryText;purchasePrice;percentVat;applyLoyaltyDiscount
+93682;14.94;14.94;12.70;15;DELPHIN;Rybaření;10.00;21;1
+12345;19.90;19.90;;25;TEST;Ostatní;12.00;21;1
+88888;100.00;100.00;;50;NO_LOYALTY;Test;50.00;21;0

@@ -1,13 +1,13 @@
 import Decimal from "decimal.js";
-import { IPricingContext, Product } from "./interfaces.js";
+import { IPricingContext, PricingInput } from "./interfaces.js";
 
 export class PricingContext implements IPricingContext {
-    product: Product;
+    input: PricingInput;
     currentPrice: Decimal;
     appliedPolicies: string[];
 
-    constructor(product: Product) {
-        this.product = product;
+    constructor(input: PricingInput) {
+        this.input = input;
         this.currentPrice = new Decimal(0);
         this.appliedPolicies = [];
     }

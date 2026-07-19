@@ -4,7 +4,7 @@ export class BasePricePolicy implements IPricingPolicy {
     readonly name = "BasePricePolicy";
 
     apply(context: IPricingContext): void {
-        context.currentPrice = context.product.basePrice;
+        context.currentPrice = context.input.basePrice;
         context.addAppliedPolicy(this.name);
     }
 }

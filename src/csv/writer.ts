@@ -22,7 +22,7 @@ export async function writeProductsCsv(filePath: string, contexts: IPricingConte
 
         for (const context of contexts) {
             stringifier.write({
-                Code: context.product.sku,
+                Code: context.input.sku,
                 Price: context.currentPrice.toFixed(2)
             });
         }

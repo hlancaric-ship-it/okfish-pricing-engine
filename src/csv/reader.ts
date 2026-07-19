@@ -1,11 +1,11 @@
 import { parse } from 'csv-parse';
 import * as fs from 'fs';
 import Decimal from 'decimal.js';
-import { Product } from '../core/interfaces.js';
+import { PricingInput } from '../core/interfaces.js';
 
-export async function readProductsCsv(filePath: string): Promise<Product[]> {
+export async function readProductsCsv(filePath: string): Promise<PricingInput[]> {
     return new Promise((resolve, reject) => {
-        const results: Product[] = [];
+        const results: PricingInput[] = [];
         fs.createReadStream(filePath)
             .pipe(parse({
                 delimiter: ';',
@@ -13,18 +13,39 @@ export async function readProductsCsv(filePath: string): Promise<Product[]> {
                 trim: true,
                 skip_empty_lines: true
             }))
-            .on('data', (data) => {
-                const product: Product = {
-                    sku: data.Code,
-                    basePrice: new Decimal(data.Price || 0),
+            .on('data', (row) => {
+                const applyLoyalty = row.applyLoyaltyDiscount !== undefined 
+                    ? ['1', 'true', 'yes'].includes(String(row.applyLoyaltyDiscount).toLowerCase())
+                    : true; 
+
+                const basePriceStr = row.standardPrice || row.price || "0";
+
+                const input: PricingInput = {
+                    sku: row.code,
+                    basePrice: new Decimal(basePriceStr),
+                    allowLoyaltyDiscount: applyLoyalty
                 };
-                if (data.SalePrice) {
-                    product.salePrice = new Decimal(data.SalePrice);
+
+                if (row.actionPrice) {
+                    input.salePrice = new Decimal(row.actionPrice);
                 }
-                if (data.MaxDiscount) {
-                    product.productLimitDiscount = new Decimal(data.MaxDiscount).dividedBy(100);
+                if (row.maxDiscount) {
+                    input.productMaxDiscount = new Decimal(row.maxDiscount).dividedBy(100);
                 }
-                results.push(product);
+                if (row.manufacturer) {
+                    input.manufacturer = row.manufacturer;
+                }
+                if (row.categoryText) {
+                    input.category = row.categoryText;
+                }
+                if (row.purchasePrice) {
+                    input.purchasePrice = new Decimal(row.purchasePrice);
+                }
+                if (row.percentVat) {
+                    input.vatRate = new Decimal(row.percentVat);
+                }
+                
+                results.push(input);
             })
             .on('end', () => resolve(results))
             .on('error', (err) => reject(err));

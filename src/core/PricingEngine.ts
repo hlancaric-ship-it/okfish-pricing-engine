@@ -1,4 +1,4 @@
-import { IPricingContext, IPricingPolicy, Product } from "./interfaces.js";
+import { IPricingContext, IPricingPolicy, PricingInput } from "./interfaces.js";
 import { PricingContext } from "./PricingContext.js";
 
 export class PricingEngine {
@@ -8,8 +8,8 @@ export class PricingEngine {
         this.policies = policies;
     }
 
-    calculatePrice(product: Product): IPricingContext {
-        const context = new PricingContext(product);
+    calculatePrice(input: PricingInput): IPricingContext {
+        const context = new PricingContext(input);
         for (const policy of this.policies) {
             policy.apply(context);
         }

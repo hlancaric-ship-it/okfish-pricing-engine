@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "simulate": "tsx src/cli/simulate.ts",
+    "generate": "tsx src/cli/generate.ts",
     "build": "tsc"
   },
   "dependencies": {

@@ -1,0 +1,20 @@
+{
+  "name": "shoptet-pricing-engine",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "simulate": "tsx src/cli/simulate.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6",
+    "csv-stringify": "^6.5.1",
+    "decimal.js": "^10.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

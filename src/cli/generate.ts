@@ -1,5 +1,8 @@
-import { readProductsCsv } from "../csv/reader.js";
-import { writeProductsCsv } from "../csv/writer.js";
+import { parse } from 'csv-parse';
+import { stringify } from 'csv-stringify';
+import * as fs from 'fs';
+import * as path from 'path';
+import Decimal from 'decimal.js';
 import { PricingEngine } from "../core/PricingEngine.js";
 import { BasePricePolicy } from "../policies/BasePricePolicy.js";
 import { HighestDiscountPolicy } from "../policies/HighestDiscountPolicy.js";
@@ -7,27 +10,17 @@ import { ProductMaxDiscountPolicy } from "../policies/ProductMaxDiscountPolicy.j
 import { BrandLimitPolicy } from "../policies/BrandLimitPolicy.js";
 import { CategoryLimitPolicy } from "../policies/CategoryLimitPolicy.js";
 import { RoundingPolicy } from "../policies/RoundingPolicy.js";
-import { ValidatorPolicy } from "../policies/ValidatorPolicy.js";
 import { CustomerTier } from "../core/interfaces.js";
-import * as fs from 'fs';
-import * as path from 'path';
-import Decimal from "decimal.js";
+import { Transform } from 'stream';
 
 async function main() {
-    const policies = [
-        new BasePricePolicy(),
-        new HighestDiscountPolicy(),
-        new ProductMaxDiscountPolicy(),
-        new BrandLimitPolicy(),
-        new CategoryLimitPolicy(),
-        new RoundingPolicy(),
-        new ValidatorPolicy()
-    ];
-    
-    const engine = new PricingEngine(policies);
-    
-    console.log("Reading products.csv...");
-    const baseProducts = await readProductsCsv("products.csv");
+    const engine = new PricingEngine();
+    engine.use(new BasePricePolicy());
+    engine.use(new HighestDiscountPolicy());
+    engine.use(new ProductMaxDiscountPolicy());
+    engine.use(new BrandLimitPolicy({ "Apple": new Decimal("0.05") }));
+    engine.use(new CategoryLimitPolicy({ "Elektronika": new Decimal("0.10") }));
+    engine.use(new RoundingPolicy());
     
     const exportsDir = path.join(process.cwd(), 'exports');
     if (!fs.existsSync(exportsDir)) {
@@ -46,30 +39,72 @@ async function main() {
         console.log("Running for all tiers by default. Use --tier <num> or --all.");
     }
     
-    let totalProducts = baseProducts.length;
-    let totalPriceLists = tiers.length;
-    let changedPrices = 0;
+    let totalProducts = 0;
     
     for (const tier of tiers) {
         console.log(`Generating exports/${tier}.csv...`);
         
-        const results = baseProducts.map(baseProduct => {
-            const input = { ...baseProduct, customerTier: tier };
-            const context = engine.calculatePrice(input);
-            if (!context.currentPrice.equals(baseProduct.basePrice)) {
-                changedPrices++;
-            }
-            return context;
+        await new Promise((resolve, reject) => {
+            const parser = parse({
+                delimiter: ';',
+                columns: true,
+                skip_empty_lines: true
+            });
+            
+            const stringifier = stringify({
+                header: true,
+                delimiter: ';',
+                columns: [
+                    { key: 'Code', header: 'Code' },
+                    { key: 'Price', header: 'Price' }
+                ]
+            });
+
+            const transform = new Transform({
+                objectMode: true,
+                transform(row, encoding, callback) {
+                    if (tier === tiers[0]) totalProducts++;
+                    
+                    const applyLoyalty = row.applyLoyaltyDiscount === "1" || row.applyLoyaltyDiscount === "true" || row.applyLoyaltyDiscount === "yes" || row.applyLoyaltyDiscount === true;
+                    
+                    const input = {
+                        sku: row.code,
+                        basePrice: new Decimal(row.standardPrice || row.price || 0),
+                        salePrice: row.actionPrice ? new Decimal(row.actionPrice) : undefined,
+                        customerTier: tier,
+                        allowLoyaltyDiscount: applyLoyalty,
+                        productMaxDiscount: row.maxDiscount ? new Decimal(row.maxDiscount).dividedBy(100) : undefined,
+                        manufacturer: row.manufacturer,
+                        category: row.categoryText,
+                        purchasePrice: row.purchasePrice ? new Decimal(row.purchasePrice) : undefined,
+                        currency: row.currency
+                    };
+                    
+                    try {
+                        const result = engine.calculatePrice(input);
+                        callback(null, { Code: result.sku, Price: result.finalPrice.toFixed(2) });
+                    } catch (e: any) {
+                        console.error(`Error processing SKU ${input.sku}: ${e.message}`);
+                        callback();
+                    }
+                }
+            });
+
+            const readStream = fs.createReadStream('products.csv');
+            const writeStream = fs.createWriteStream(path.join(exportsDir, `${tier}.csv`));
+
+            readStream.pipe(parser).pipe(transform).pipe(stringifier).pipe(writeStream);
+            
+            writeStream.on('finish', () => resolve(true));
+            writeStream.on('error', reject);
+            readStream.on('error', reject);
         });
-        
-        await writeProductsCsv(path.join(exportsDir, `${tier}.csv`), results);
     }
     
     const report = {
         generatedAt: new Date().toISOString(),
         products: totalProducts,
-        priceLists: totalPriceLists,
-        changedPrices: changedPrices,
+        priceLists: tiers.length,
         warnings: 0,
         errors: 0
     };

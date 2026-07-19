@@ -1,18 +1,22 @@
-import Decimal from "decimal.js";
-import { IPricingContext, PricingInput } from "./interfaces.js";
+import Decimal from 'decimal.js';
+import { PricingInput, PricingCommand } from './interfaces.js';
 
-export class PricingContext implements IPricingContext {
-    input: PricingInput;
-    currentPrice: Decimal;
-    appliedPolicies: string[];
-
-    constructor(input: PricingInput) {
-        this.input = input;
-        this.currentPrice = new Decimal(0);
-        this.appliedPolicies = [];
+export class PricingContext {
+    private _currentPrice: Decimal;
+    public readonly appliedPolicies: string[] = [];
+    
+    constructor(public readonly input: PricingInput) {
+        this._currentPrice = input.basePrice;
     }
-
-    addAppliedPolicy(policyName: string): void {
-        this.appliedPolicies.push(policyName);
+    
+    get currentPrice(): Decimal {
+        return this._currentPrice;
+    }
+    
+    applyCommand(command: PricingCommand) {
+        if (command.type === "SET_PRICE") {
+            this._currentPrice = command.price;
+            this.appliedPolicies.push(command.reason);
+        }
     }
 }

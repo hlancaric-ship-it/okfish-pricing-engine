@@ -7,19 +7,14 @@ import { ProductMaxDiscountPolicy } from "../policies/ProductMaxDiscountPolicy.j
 import { BrandLimitPolicy } from "../policies/BrandLimitPolicy.js";
 import { CategoryLimitPolicy } from "../policies/CategoryLimitPolicy.js";
 import { RoundingPolicy } from "../policies/RoundingPolicy.js";
-import { ValidatorPolicy } from "../policies/ValidatorPolicy.js";
 
-const policies = [
-    new BasePricePolicy(),
-    new HighestDiscountPolicy(),
-    new ProductMaxDiscountPolicy(),
-    new BrandLimitPolicy(),
-    new CategoryLimitPolicy(),
-    new RoundingPolicy(),
-    new ValidatorPolicy()
-];
-
-const engine = new PricingEngine(policies);
+const engine = new PricingEngine();
+engine.use(new BasePricePolicy());
+engine.use(new HighestDiscountPolicy());
+engine.use(new ProductMaxDiscountPolicy());
+engine.use(new BrandLimitPolicy({}));
+engine.use(new CategoryLimitPolicy({}));
+engine.use(new RoundingPolicy());
 
 const input: PricingInput = {
     sku: "93682",
@@ -30,12 +25,9 @@ const input: PricingInput = {
     allowLoyaltyDiscount: true
 };
 
-const context = engine.calculatePrice(input);
+const result = engine.calculatePrice(input);
 
-console.log(`SKU: ${input.sku}`);
-console.log(`Base price: ${input.basePrice.toFixed(2)}`);
-console.log(`Sale price: ${input.salePrice?.toFixed(2)}`);
-console.log(`Tier: ${input.customerTier}`);
-console.log(`Final: ${context.currentPrice.toFixed(2)}`);
-const applied = context.appliedPolicies[context.appliedPolicies.length - 1];
-console.log(`Applied: ${applied}`);
+console.log(`SKU: ${result.sku}`);
+console.log(`Base price: ${result.originalPrice.toFixed(2)}`);
+console.log(`Final: ${result.finalPrice.toFixed(2)}`);
+console.log(`Applied rules: ${result.appliedRules.join(' -> ')}`);

@@ -1,10 +1,14 @@
-import { IPricingContext, IPricingPolicy } from "../core/interfaces.js";
+import { PricingPolicy, PricingCommand } from '../core/interfaces.js';
 
-export class BasePricePolicy implements IPricingPolicy {
-    readonly name = "BasePricePolicy";
+export class BasePricePolicy implements PricingPolicy {
+    name = 'BasePrice';
+    priority = 10;
 
-    apply(context: IPricingContext): void {
-        context.currentPrice = context.input.basePrice;
-        context.addAppliedPolicy(this.name);
+    apply(context: any): PricingCommand | void {
+        return {
+            type: "SET_PRICE",
+            price: context.input.basePrice,
+            reason: this.name
+        };
     }
 }

@@ -7,22 +7,17 @@ import { ProductMaxDiscountPolicy } from '../src/policies/ProductMaxDiscountPoli
 import { BrandLimitPolicy } from '../src/policies/BrandLimitPolicy.js';
 import { CategoryLimitPolicy } from '../src/policies/CategoryLimitPolicy.js';
 import { RoundingPolicy } from '../src/policies/RoundingPolicy.js';
-import { ValidatorPolicy } from '../src/policies/ValidatorPolicy.js';
 import { PricingInput } from '../src/core/interfaces.js';
 
 describe('PricingEngine Integration', () => {
     it('Golden case: SKU 93682 (Should limit discount to 15%)', () => {
-        const policies = [
-            new BasePricePolicy(),
-            new HighestDiscountPolicy(),
-            new ProductMaxDiscountPolicy(),
-            new BrandLimitPolicy(),
-            new CategoryLimitPolicy(),
-            new RoundingPolicy(),
-            new ValidatorPolicy()
-        ];
-        
-        const engine = new PricingEngine(policies);
+        const engine = new PricingEngine();
+        engine.use(new BasePricePolicy());
+        engine.use(new HighestDiscountPolicy());
+        engine.use(new ProductMaxDiscountPolicy());
+        engine.use(new BrandLimitPolicy({}));
+        engine.use(new CategoryLimitPolicy({}));
+        engine.use(new RoundingPolicy());
         
         const input: PricingInput = {
             sku: "93682",
@@ -33,8 +28,8 @@ describe('PricingEngine Integration', () => {
             allowLoyaltyDiscount: true
         };
         
-        const context = engine.calculatePrice(input);
+        const result = engine.calculatePrice(input);
         
-        expect(context.currentPrice.toFixed(2)).toBe("12.70");
+        expect(result.finalPrice.toFixed(2)).toBe("12.70");
     });
 });

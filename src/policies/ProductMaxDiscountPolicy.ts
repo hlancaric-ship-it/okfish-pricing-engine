@@ -1,16 +1,26 @@
-import { IPricingContext, IPricingPolicy } from "../core/interfaces.js";
-import Decimal from "decimal.js";
+import { PricingPolicy, PricingCommand } from '../core/interfaces.js';
 
-export class ProductMaxDiscountPolicy implements IPricingPolicy {
-    readonly name = "ProductMaxDiscountPolicy";
+export class ProductMaxDiscountPolicy implements PricingPolicy {
+    name = 'ProductMaxDiscount';
+    priority = 30;
 
-    apply(context: IPricingContext): void {
-        if (context.input.productMaxDiscount) {
-            const limitPrice = context.input.basePrice.times(new Decimal(1).minus(context.input.productMaxDiscount));
-            if (context.currentPrice.lessThan(limitPrice)) {
-                context.currentPrice = limitPrice;
-                context.addAppliedPolicy(this.name);
-            }
+    apply(context: any): PricingCommand | void {
+        const limit = context.input.productMaxDiscount;
+        if (!limit) return;
+        
+        if (limit.lessThan(0) || limit.greaterThan(1)) {
+            throw new Error(`Invalid maxDiscount ${limit.toString()} for product ${context.input.sku}. Must be between 0 and 1.`);
+        }
+
+        const one = new (context.input.basePrice.constructor)("1");
+        const minAllowedPrice = context.input.basePrice.mul(one.minus(limit));
+
+        if (context.currentPrice.lessThan(minAllowedPrice)) {
+            return {
+                type: "SET_PRICE",
+                price: minAllowedPrice,
+                reason: this.name
+            };
         }
     }
 }

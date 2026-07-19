@@ -1,23 +1,26 @@
-import { IPricingContext, IPricingPolicy } from "../core/interfaces.js";
-import Decimal from "decimal.js";
+import { PricingPolicy, PricingCommand } from '../core/interfaces.js';
 
-export class CategoryLimitPolicy implements IPricingPolicy {
-    readonly name = "CategoryLimitPolicy";
-    private categoryMaxDiscounts: Record<string, Decimal>;
+export class CategoryLimitPolicy implements PricingPolicy {
+    name = 'CategoryLimit';
+    priority = 40;
 
-    constructor(categoryMaxDiscounts: Record<string, Decimal> = {}) {
-        this.categoryMaxDiscounts = categoryMaxDiscounts;
-    }
+    constructor(private categoryLimits: Record<string, any>) {}
 
-    apply(context: IPricingContext): void {
-        if (context.input.category && this.categoryMaxDiscounts[context.input.category]) {
-            const maxDiscount = this.categoryMaxDiscounts[context.input.category];
-            const limitPrice = context.input.basePrice.times(new Decimal(1).minus(maxDiscount));
-            
-            if (context.currentPrice.lessThan(limitPrice)) {
-                context.currentPrice = limitPrice;
-                context.addAppliedPolicy(`${this.name}:${context.input.category}`);
-            }
+    apply(context: any): PricingCommand | void {
+        if (!context.input.category) return;
+        
+        const limit = this.categoryLimits[context.input.category];
+        if (!limit) return;
+
+        const one = new (context.input.basePrice.constructor)("1");
+        const minAllowedPrice = context.input.basePrice.mul(one.minus(limit));
+
+        if (context.currentPrice.lessThan(minAllowedPrice)) {
+            return {
+                type: "SET_PRICE",
+                price: minAllowedPrice,
+                reason: `${this.name} (${context.input.category})`
+            };
         }
     }
 }

@@ -18,9 +18,12 @@ describe('Limits Policies', () => {
             allowLoyaltyDiscount: true
         };
         const context = new PricingContext(input);
-        context.currentPrice = new Decimal("80"); // 20% discount applied previously
         
-        policy.apply(context);
+        // Mock a previous command that set price to 80 (20% discount)
+        context.applyCommand({ type: 'SET_PRICE', price: new Decimal("80"), reason: 'MockSale' });
+        
+        const command = policy.apply(context);
+        if (command) context.applyCommand(command);
         
         // Should limit to 95 (5% discount)
         expect(context.currentPrice.toNumber()).toBe(95);
@@ -38,9 +41,11 @@ describe('Limits Policies', () => {
             allowLoyaltyDiscount: true
         };
         const context = new PricingContext(input);
-        context.currentPrice = new Decimal("80"); // 20% discount
         
-        policy.apply(context);
+        context.applyCommand({ type: 'SET_PRICE', price: new Decimal("80"), reason: 'MockSale' });
+        
+        const command = policy.apply(context);
+        if (command) context.applyCommand(command);
         
         // Should limit to 90 (10% discount)
         expect(context.currentPrice.toNumber()).toBe(90);

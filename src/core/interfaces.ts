@@ -6,24 +6,32 @@ export interface PricingInput {
     sku: string;
     basePrice: Decimal;
     salePrice?: Decimal;
-    customerTier?: CustomerTier; 
-    productMaxDiscount?: Decimal; 
+    customerTier?: CustomerTier;
+    allowLoyaltyDiscount?: boolean;
+    productMaxDiscount?: Decimal;
     manufacturer?: string;
     category?: string;
     purchasePrice?: Decimal;
     currency?: string;
-    vatRate?: Decimal;
-    allowLoyaltyDiscount: boolean;
 }
 
-export interface IPricingContext {
-    input: PricingInput;
-    currentPrice: Decimal;
-    appliedPolicies: string[];
-    addAppliedPolicy(policyName: string): void;
+export type CommandType = "SET_PRICE";
+
+export interface PricingCommand {
+    type: CommandType;
+    price: Decimal;
+    reason: string;
 }
 
-export interface IPricingPolicy {
+export interface PricingPolicy {
     readonly name: string;
-    apply(context: IPricingContext): void;
+    readonly priority: number;
+    apply(context: any): PricingCommand | void;
+}
+
+export interface PricingResult {
+    sku: string;
+    originalPrice: Decimal;
+    finalPrice: Decimal;
+    appliedRules: string[];
 }

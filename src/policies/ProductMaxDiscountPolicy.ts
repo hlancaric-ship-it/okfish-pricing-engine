@@ -1,8 +1,8 @@
 import { IPricingContext, IPricingPolicy } from "../core/interfaces.js";
 import Decimal from "decimal.js";
 
-export class ProductLimitPolicy implements IPricingPolicy {
-    readonly name = "ProductLimitPolicy";
+export class ProductMaxDiscountPolicy implements IPricingPolicy {
+    readonly name = "ProductMaxDiscountPolicy";
 
     apply(context: IPricingContext): void {
         if (context.input.productMaxDiscount) {

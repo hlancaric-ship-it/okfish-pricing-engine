@@ -7,14 +7,21 @@
     "simulate": "tsx src/cli/simulate.ts",
     "generate": "tsx src/cli/generate.ts",
     "test": "vitest run",
+    "admin": "tsx src/server/index.ts",
     "build": "tsc"
   },
   "dependencies": {
+    "archiver": "^8.0.0",
     "csv-parse": "^5.5.6",
     "csv-stringify": "^6.5.1",
-    "decimal.js": "^10.4.3"
+    "decimal.js": "^10.4.3",
+    "express": "^5.2.1",
+    "multer": "^2.2.0"
   },
   "devDependencies": {
+    "@types/archiver": "^8.0.0",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22",
     "tsx": "^4",
     "typescript": "^5",

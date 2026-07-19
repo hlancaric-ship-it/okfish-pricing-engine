@@ -10,17 +10,15 @@ import { ProductMaxDiscountPolicy } from "../policies/ProductMaxDiscountPolicy.j
 import { BrandLimitPolicy } from "../policies/BrandLimitPolicy.js";
 import { CategoryLimitPolicy } from "../policies/CategoryLimitPolicy.js";
 import { RoundingPolicy } from "../policies/RoundingPolicy.js";
+import { EngineBuilder } from "../core/EngineBuilder.js";
 import { CustomerTier } from "../core/interfaces.js";
-import { Transform } from 'stream';
+import { Transform } from "stream"; '../core/EngineBuilder.js';
 
 async function main() {
-    const engine = new PricingEngine();
-    engine.use(new BasePricePolicy());
-    engine.use(new HighestDiscountPolicy());
-    engine.use(new ProductMaxDiscountPolicy());
-    engine.use(new BrandLimitPolicy({ "Apple": new Decimal("0.05") }));
-    engine.use(new CategoryLimitPolicy({ "Elektronika": new Decimal("0.10") }));
-    engine.use(new RoundingPolicy());
+    const engine = EngineBuilder.default()
+        .withBrandLimits({ "Apple": new Decimal("0.05") })
+        .withCategoryLimits({ "Elektronika": new Decimal("0.10") })
+        .build();
     
     const exportsDir = path.join(process.cwd(), 'exports');
     if (!fs.existsSync(exportsDir)) {
@@ -62,7 +60,7 @@ async function main() {
 
             const transform = new Transform({
                 objectMode: true,
-                transform(row, encoding, callback) {
+                transform(row: any, encoding: string, callback: any) {
                     if (tier === tiers[0]) totalProducts++;
                     
                     const applyLoyalty = row.applyLoyaltyDiscount === "1" || row.applyLoyaltyDiscount === "true" || row.applyLoyaltyDiscount === "yes" || row.applyLoyaltyDiscount === true;

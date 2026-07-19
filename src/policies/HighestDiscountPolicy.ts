@@ -1,32 +1,33 @@
-import { PricingPolicy, PricingCommand } from '../core/interfaces.js';
+import Decimal from "decimal.js";
+import { PricingPolicy, PricingCommand, RuleType, ReadonlyPricingContext } from '../core/interfaces.js';
 import { DISCOUNT_MAP } from '../config/discounts.js';
 
 export class HighestDiscountPolicy implements PricingPolicy {
     name = 'HighestDiscount';
     priority = 20;
 
-    apply(context: any): PricingCommand | void {
+    apply(context: ReadonlyPricingContext): PricingCommand | void {
         const salePrice = context.input.salePrice;
         let loyaltyPrice = undefined;
 
         if (context.input.customerTier && context.input.allowLoyaltyDiscount) {
             const discountPercent = DISCOUNT_MAP[context.input.customerTier];
             if (discountPercent) {
-                const one = new (context.input.basePrice.constructor)("1");
+                const one = new Decimal("1");
                 loyaltyPrice = context.input.basePrice.mul(one.minus(discountPercent));
             }
         }
 
         if (salePrice && loyaltyPrice) {
             if (salePrice.lessThan(loyaltyPrice)) {
-                return { type: "SET_PRICE", price: salePrice, reason: `${this.name} (Sale)` };
+                return { type: "SET_PRICE", price: salePrice, rule: RuleType.SALE };
             } else {
-                return { type: "SET_PRICE", price: loyaltyPrice, reason: `${this.name} (Loyalty)` };
+                return { type: "SET_PRICE", price: loyaltyPrice, rule: RuleType.LOYALTY };
             }
         } else if (salePrice) {
-            return { type: "SET_PRICE", price: salePrice, reason: `${this.name} (Sale)` };
+            return { type: "SET_PRICE", price: salePrice, rule: RuleType.SALE };
         } else if (loyaltyPrice) {
-            return { type: "SET_PRICE", price: loyaltyPrice, reason: `${this.name} (Loyalty)` };
+            return { type: "SET_PRICE", price: loyaltyPrice, rule: RuleType.LOYALTY };
         }
     }
 }

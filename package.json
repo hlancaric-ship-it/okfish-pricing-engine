@@ -8,7 +8,11 @@
     "generate": "tsx src/cli/generate.ts",
     "test": "vitest run",
     "admin": "tsx src/server/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "husky",
+    "lint": "eslint src tests",
+    "format": "prettier --write .",
+    "benchmark": "tsx tests/benchmark.ts"
   },
   "dependencies": {
     "archiver": "^8.0.0",
@@ -19,10 +23,18 @@
     "multer": "^2.2.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "@types/archiver": "^8.0.0",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^22",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "eslint": "^10.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.1.0",
+    "prettier": "^3.9.5",
     "tsx": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

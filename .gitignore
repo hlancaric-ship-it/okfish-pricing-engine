@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.DS_Store
-ZR*.csv
-
 exports/
+.env
+.DS_Store
+*.zip

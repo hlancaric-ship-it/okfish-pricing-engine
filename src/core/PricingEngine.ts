@@ -5,33 +5,54 @@ import { ValidatorPolicy } from '../policies/ValidatorPolicy.js';
 export class PricingEngine {
     private policies: PricingPolicy[] = [];
     private validator: ValidatorPolicy;
+    private isFrozen: boolean = false;
 
     constructor() {
         this.validator = new ValidatorPolicy();
     }
 
-    use(policy: PricingPolicy) {
+    use(policy: PricingPolicy): this {
+        if (this.isFrozen) {
+            throw new Error("Cannot add policy to a frozen PricingEngine");
+        }
         this.policies.push(policy);
-        this.policies.sort((a, b) => a.priority - b.priority);
+        return this;
+    }
+
+    freeze(): void {
+        if (!this.isFrozen) {
+            this.policies.sort((a, b) => a.priority - b.priority);
+            this.isFrozen = true;
+        }
     }
 
     calculatePrice(input: PricingInput): PricingResult {
+        if (!this.isFrozen) {
+            this.freeze();
+        }
+
         const context = new PricingContext(input);
 
         for (const policy of this.policies) {
             const command = policy.apply(context);
             if (command) {
                 context.applyCommand(command);
+                if (context.rejected) break;
             }
         }
         
-        this.validator.validate(context);
+        if (!context.rejected) {
+            this.validator.validate(context);
+        }
 
         return {
             sku: input.sku,
             originalPrice: input.basePrice,
             finalPrice: context.currentPrice,
-            appliedRules: context.appliedPolicies
+            appliedRules: context.appliedRules,
+            warnings: context.warnings,
+            rejected: context.rejected,
+            rejectReason: context.rejectReason
         };
     }
 }

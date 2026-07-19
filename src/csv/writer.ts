@@ -1,8 +1,8 @@
 import { stringify } from 'csv-stringify';
 import * as fs from 'fs';
-import { IPricingContext } from '../core/interfaces.js';
+import { PricingResult } from '../core/interfaces.js';
 
-export async function writeProductsCsv(filePath: string, contexts: IPricingContext[]): Promise<void> {
+export async function writeProductsCsv(filePath: string, contexts: PricingResult[]): Promise<void> {
     return new Promise((resolve, reject) => {
         const writableStream = fs.createWriteStream(filePath);
         const stringifier = stringify({
@@ -22,8 +22,8 @@ export async function writeProductsCsv(filePath: string, contexts: IPricingConte
 
         for (const context of contexts) {
             stringifier.write({
-                Code: context.input.sku,
-                Price: context.currentPrice.toFixed(2)
+                Code: context.sku,
+                Price: context.finalPrice.toFixed(2)
             });
         }
         stringifier.end();

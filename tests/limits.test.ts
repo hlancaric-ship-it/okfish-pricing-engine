@@ -3,7 +3,7 @@ import Decimal from 'decimal.js';
 import { PricingContext } from '../src/core/PricingContext.js';
 import { BrandLimitPolicy } from '../src/policies/BrandLimitPolicy.js';
 import { CategoryLimitPolicy } from '../src/policies/CategoryLimitPolicy.js';
-import { PricingInput } from '../src/core/interfaces.js';
+import { PricingInput, RuleType } from '../src/core/interfaces.js';
 
 describe('Limits Policies', () => {
     it('BrandLimitPolicy should limit discount based on manufacturer', () => {

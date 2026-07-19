@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import Decimal from 'decimal.js';
 import { PricingContext } from '../src/core/PricingContext.js';
 import { HighestDiscountPolicy } from '../src/policies/HighestDiscountPolicy.js';
-import { PricingInput } from '../src/core/interfaces.js';
+import { PricingInput, RuleType } from '../src/core/interfaces.js';
 
 describe('HighestDiscountPolicy', () => {
     it('Should choose the highest discount between sale and loyalty', () => {
@@ -21,7 +21,7 @@ describe('HighestDiscountPolicy', () => {
         if (command) context.applyCommand(command);
         
         expect(context.currentPrice.toNumber()).toBe(80);
-        expect(context.appliedPolicies[0]).toContain('Loyalty');
+        expect(context.appliedRules).toEqual(expect.arrayContaining([expect.objectContaining({ rule: RuleType.LOYALTY })]));
     });
 
     it('Should use sale price if loyalty is not allowed', () => {
@@ -40,6 +40,6 @@ describe('HighestDiscountPolicy', () => {
         if (command) context.applyCommand(command);
         
         expect(context.currentPrice.toNumber()).toBe(90);
-        expect(context.appliedPolicies[0]).toContain('Sale');
+        expect(context.appliedRules).toEqual(expect.arrayContaining([expect.objectContaining({ rule: RuleType.SALE })]));
     });
 });

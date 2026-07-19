@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+// @ts-ignore
 import archiver from 'archiver';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +15,7 @@ import { BrandLimitPolicy } from '../policies/BrandLimitPolicy.js';
 import { CategoryLimitPolicy } from '../policies/CategoryLimitPolicy.js';
 import { RoundingPolicy } from '../policies/RoundingPolicy.js';
 import { CustomerTier } from '../core/interfaces.js';
+import { EngineBuilder } from '../core/EngineBuilder.js';
 import Decimal from 'decimal.js';
 
 const app = express();
@@ -44,13 +46,7 @@ app.post('/generate', upload.single('productsCsv'), async (req, res) => {
     fs.mkdirSync(exportsDir, { recursive: true });
 
     try {
-        const engine = new PricingEngine();
-        engine.use(new BasePricePolicy());
-        engine.use(new HighestDiscountPolicy());
-        engine.use(new ProductMaxDiscountPolicy());
-        engine.use(new BrandLimitPolicy({}));
-        engine.use(new CategoryLimitPolicy({}));
-        engine.use(new RoundingPolicy());
+        const engine = EngineBuilder.default().build();
         
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', 'attachment; filename="shoptet-exports.zip"');

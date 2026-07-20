@@ -20,3 +20,7 @@ jobs:
     - run: npm run build
     - run: npm test
     - run: npx eslint src tests
+    - name: Run E2E Benchmark
+      run: |
+        npm run mock:data -- 100000
+        npm run benchmark -- 100000

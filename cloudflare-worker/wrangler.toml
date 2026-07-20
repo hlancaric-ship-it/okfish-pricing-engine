@@ -1,0 +1,10 @@
+name = "shoptet-vip-worker"
+main = "src/index.ts"
+compatibility_date = "2024-07-20"
+
+kv_namespaces = [
+  { binding = "VIP_KV", id = "ce9bb43859b4401e9234045e7743296b" }
+]
+
+# Nezapomeňte přidat secret pro Worker!
+# npx wrangler secret put SECRET_TOKEN

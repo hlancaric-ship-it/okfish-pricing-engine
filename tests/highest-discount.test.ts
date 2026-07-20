@@ -6,7 +6,7 @@ import { PricingInput, RuleType } from '../src/core/interfaces.js';
 
 describe('HighestDiscountPolicy', () => {
     it('Should choose the highest discount between sale and loyalty', () => {
-        const policy = new HighestDiscountPolicy();
+        const policy = new HighestDiscountPolicy({ "ZR20": new Decimal("0.20") });
         
         const input: PricingInput = {
             sku: "123",
@@ -25,7 +25,7 @@ describe('HighestDiscountPolicy', () => {
     });
 
     it('Should use sale price if loyalty is not allowed', () => {
-        const policy = new HighestDiscountPolicy();
+        const policy = new HighestDiscountPolicy({ "ZR20": new Decimal("0.20") });
         
         const input: PricingInput = {
             sku: "123",

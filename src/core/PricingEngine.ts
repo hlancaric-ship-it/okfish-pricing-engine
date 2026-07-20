@@ -1,15 +1,11 @@
 import { PricingPolicy, PricingInput, PricingResult } from './interfaces.js';
 import { PricingContext } from './PricingContext.js';
-import { ValidatorPolicy } from '../policies/ValidatorPolicy.js';
 
 export class PricingEngine {
     private policies: PricingPolicy[] = [];
-    private validator: ValidatorPolicy;
     private isFrozen: boolean = false;
 
-    constructor() {
-        this.validator = new ValidatorPolicy();
-    }
+    constructor() {}
 
     use(policy: PricingPolicy): this {
         if (this.isFrozen) {
@@ -41,10 +37,6 @@ export class PricingEngine {
             }
         }
         
-        if (!context.rejected) {
-            this.validator.validate(context);
-        }
-
         return {
             sku: input.sku,
             originalPrice: input.basePrice,

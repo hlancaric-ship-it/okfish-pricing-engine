@@ -2,10 +2,10 @@ import Decimal from "decimal.js";
 import { PricingInput } from "../core/interfaces.js";
 import { EngineBuilder } from "../core/EngineBuilder.js";
 
-const engine = EngineBuilder.default()
-    .withBrandLimits({})
-    .withCategoryLimits({})
-    .build();
+import { ValidationEngine } from "../core/ValidationEngine.js";
+
+const engine = EngineBuilder.fromConfig('src/config/policies/policy-v1.json').build();
+const validationEngine = new ValidationEngine();
 
 const input: PricingInput = {
     sku: "93682",
@@ -16,7 +16,19 @@ const input: PricingInput = {
     allowLoyaltyDiscount: true
 };
 
+const inputVal = validationEngine.validateInput(input);
+if (!inputVal.valid) {
+    console.error(`Input rejected: ${inputVal.reason}`);
+    process.exit(1);
+}
+
 const result = engine.calculatePrice(input);
+
+const resultVal = validationEngine.validateResult(result);
+if (!resultVal.valid) {
+    console.error(`Result rejected: ${resultVal.reason}`);
+    process.exit(1);
+}
 
 console.log(`SKU: ${result.sku}`);
 console.log(`Base price: ${result.originalPrice.toFixed(2)}`);

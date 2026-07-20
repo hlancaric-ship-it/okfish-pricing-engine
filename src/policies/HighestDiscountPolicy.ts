@@ -6,12 +6,14 @@ export class HighestDiscountPolicy implements PricingPolicy {
     name = 'HighestDiscount';
     priority = 20;
 
+    constructor(private loyaltyTiers: Record<string, Decimal>) {}
+
     apply(context: ReadonlyPricingContext): PricingCommand | void {
         const salePrice = context.input.salePrice;
         let loyaltyPrice = undefined;
 
         if (context.input.customerTier && context.input.allowLoyaltyDiscount) {
-            const discountPercent = DISCOUNT_MAP[context.input.customerTier];
+            const discountPercent = this.loyaltyTiers[context.input.customerTier];
             if (discountPercent) {
                 const one = new Decimal("1");
                 loyaltyPrice = context.input.basePrice.mul(one.minus(discountPercent));

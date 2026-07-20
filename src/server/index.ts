@@ -46,7 +46,7 @@ app.post('/generate', upload.single('productsCsv'), async (req, res) => {
     fs.mkdirSync(exportsDir, { recursive: true });
 
     try {
-        const engine = EngineBuilder.default().build();
+        const engine = EngineBuilder.fromConfig('src/config/policies/policy-v1.json').build();
         
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', 'attachment; filename="shoptet-exports.zip"');

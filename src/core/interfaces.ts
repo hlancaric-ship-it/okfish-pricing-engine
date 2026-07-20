@@ -70,3 +70,11 @@ export interface PricingResult {
     rejected: boolean;
     rejectReason?: string;
 }
+
+export interface EngineConfig {
+    version: string;
+    description?: string;
+    loyaltyTiers: Record<string, number>;
+    brandLimits?: Record<string, number>;
+    categoryLimits?: Record<string, number>;
+}

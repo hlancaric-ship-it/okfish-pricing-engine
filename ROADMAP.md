@@ -21,3 +21,6 @@ Future Shoptet Enterprise clients don't use CSVs. We will introduce:
 - `ShoptetApiReader`
 - `ShoptetApiWriter`
 To sync calculations directly against the Shoptet REST API instead of Zip files.
+
+## V1.1 / V2.0 Optimizations
+- **Parallel Chunk Upload**: The current 47,860 customers chunk upload takes roughly 5+ minutes (safe and stable). For 200k+ databases, update `src/cli/upload.ts` to use parallel `Promise.all()` with a concurrency limit (e.g. `p-limit`) instead of sequential `for` loops to speed up the Worker import.

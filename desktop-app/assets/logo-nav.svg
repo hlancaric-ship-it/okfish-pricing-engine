@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" rx="20" fill="#0A0A0A" />
+  <!-- White Chevron Path -->
+  <path d="M 72 15 L 30 57 L 72 99" stroke="#FFFFFF" stroke-width="11" stroke-linecap="butt" stroke-linejoin="miter" />
+  <!-- Red Laser Accent Path -->
+  <path d="M 27 27 L 72 72 L 100 72" stroke="#E30613" stroke-width="11" stroke-linecap="butt" stroke-linejoin="miter" />
+</svg>

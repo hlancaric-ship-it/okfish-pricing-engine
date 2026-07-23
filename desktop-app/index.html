@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>L-Code Pricing Engine</title>
+<style>
+    body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f5f5f5; color: #222; }
+    header { background: #0A0A0A; color: white; padding: 14px 20px; font-weight: 700; font-size: 1.2em; display: flex; align-items: center; gap: 12px; }
+    header img { height: 28px; width: 28px; }
+    .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; }
+    .tab { padding: 12px 20px; cursor: pointer; border-bottom: 3px solid transparent; }
+    .tab.active { border-bottom-color: #e4002b; font-weight: 700; }
+    .panel { display: none; padding: 20px; }
+    .panel.active { display: block; }
+    .row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    input[type=text] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 16px; border: none; border-radius: 4px; background: #e4002b; color: white; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #666; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    label.checkbox { display: flex; align-items: center; gap: 6px; font-size: 0.95em; }
+    #log { background: #111; color: #0f0; font-family: "SF Mono", Consolas, monospace; font-size: 0.85em; padding: 12px; height: 320px; overflow-y: auto; white-space: pre-wrap; border-radius: 4px; margin-top: 20px; }
+    .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+    .result.ok { background: #e8f5e9; color: #28a745; }
+    .result.error { background: #fdecea; color: #d9534f; }
+</style>
+</head>
+<body>
+<header><img src="assets/logo-nav.svg" alt="L-Code logo"> L-Code Pricing Engine</header>
+
+<div class="tabs">
+    <div class="tab active" data-tab="products">Produkty</div>
+    <div class="tab" data-tab="customers">Zákazníci</div>
+</div>
+
+<div class="panel active" id="panel-products">
+    <div class="row">
+        <input type="text" id="productPath" placeholder="Vyber produktový export (.xlsx)..." readonly>
+        <button id="pickProductFile">Vybrat soubor</button>
+    </div>
+    <label class="checkbox"><input type="checkbox" id="productSyncWorker" checked> Také synchronizovat do Workeru (badge v košíku/katalogu/detailu)</label>
+    <div class="row" style="margin-top:14px;">
+        <button id="runProducts" disabled>Přepočítat ceny</button>
+        <button class="secondary" id="openProductOutput" style="display:none;">Otevřít výsledný soubor</button>
+    </div>
+    <div id="productResult"></div>
+</div>
+
+<div class="panel" id="panel-customers">
+    <div class="row">
+        <input type="text" id="customerPath" placeholder="Vyber zákaznický export (.csv)..." readonly>
+        <button id="pickCustomerFile">Vybrat soubor</button>
+    </div>
+    <label class="checkbox"><input type="checkbox" id="customerSyncWorker" checked> Také synchronizovat do Workeru</label>
+    <div class="row" style="margin-top:14px;">
+        <button id="runCustomers" disabled>Přiřadit tiery</button>
+        <button class="secondary" id="openCustomerOutput" style="display:none;">Otevřít výsledný soubor</button>
+    </div>
+    <div id="customerResult"></div>
+</div>
+
+<div id="log"></div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

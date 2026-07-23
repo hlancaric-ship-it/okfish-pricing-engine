@@ -1,8 +1,51 @@
 # VIP Pricing Engine – Runbook
 
-**Aktuální verze:** 1.0.0
+**Aktuální verze:** 1.1.0 (2026-07-23)
 
 Tento dokument slouží jako provozní manuál pro údržbu, aktualizaci a diagnostiku VIP cenového systému.
+
+## 🧩 Architektura (od 2026-07-23)
+
+Worker (`shoptet-vip-worker.hlancaric.workers.dev`, **ne** `vip.okfish.cz` — ta doména
+na Worker nikdy nemířila a `okfish.cz` ani není zóna na tomto Cloudflare účtu) obsluhuje
+dva nezávislé datové okruhy, oba ve stejném KV namespace, ale s vlastní Blue/Green
+verzí (`active_customer_version` / `active_product_version`), takže se nemůžou navzájem
+ovlivnit:
+
+- **Zákazníci** (`/v1/import/*`, `GET /v1/discount/:hash`) — e-mail (hash) → % sleva
+  věrnostního tieru zákazníka. Plní `npm run generate` (viz níže).
+- **Produkty** (`/v1/products/import/*`, `GET /v1/product-discount/:code/:tier`) —
+  skutečná (per-produkt) cena/sleva pro daný tier, počítaná stejným enginem, co píše
+  finální ceníky. Plní `npm run sync-products` (v `cloudflare-worker/`), nezávisle na
+  existujícím feed-generation cronu (`crons` v `wrangler.toml`) — ten se tímhle vůbec
+  nemění a dál běží jak předtím.
+
+**Frontend** (nahrává se přes FTP, vkládá se přes `<script src="...">` v HTML hlavičce
+Shoptetu):
+- `vip_prices.js` — loader. Zjišťuje e-mail přihlášeného zákazníka, ptá se
+  `/v1/discount/:hash`, plní `window.vipDiscounts` a vysílá event `vipReady`. **Na tomhle
+  závisí úplně všechno ostatní — nikdy ho nenahrazovat obsahem jiného skriptu.**
+- `vip_detail.js`, `vip_cart.js`, `vip_catalog.js` — vizuální dekorace (přeškrtnutá
+  původní cena + %), každý pro jinou část webu. Všechny se ptají
+  `/v1/product-discount/:code/:tier` na **skutečnou** slevu daného produktu — žádný
+  z nich nepočítá slevu jen z ploché % sazby zákazníkova tieru (to byla stará chyba:
+  produkt s `maxDiscount` stropem nebo vypnutou věrnostní slevou — např. dárkové
+  poukazy — má jinou efektivní slevu než je zákazníkova surová sazba).
+- `vip_cart.js` navíc vypisuje "Spolu ušetríte: X €" pod celkovou cenou košíku —
+  dopočítáno ze skutečného rozdílu cen jednotlivých položek, **nikdy nepřepisuje**
+  samotnou celkovou cenu košíku (Shoptet ji už počítá správně sám z ceníku).
+
+## 🔄 Aktualizace produktových dat (Pravidelný proces)
+
+```
+cd cloudflare-worker
+npm run sync-products
+```
+
+Stáhne živý master feed (`MASTER_FEED_URL` z `.env`), streamuje ho stejným parserem
+jako produkční feed-generation, a nahraje do `product` KV cache na Workeru. Bezpečné
+spustit kdykoliv — nezávislé na feed-generation cronu, nic jiného neovlivní. Spouštět
+znovu vždy, když se změní ceny/akce v Shoptetu (badge jinak ukazují stará čísla).
 
 ## 🔄 Aktualizace zákazníků (Pravidelný proces)
 

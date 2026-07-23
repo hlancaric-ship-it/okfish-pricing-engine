@@ -1,6 +1,5 @@
 import Decimal from "decimal.js";
 import { PricingPolicy, PricingCommand, RuleType, ReadonlyPricingContext } from '../core/interfaces.js';
-import { DISCOUNT_MAP } from '../config/discounts.js';
 
 export class HighestDiscountPolicy implements PricingPolicy {
     name = 'HighestDiscount';

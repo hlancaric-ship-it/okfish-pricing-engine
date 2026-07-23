@@ -25,6 +25,7 @@
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.2.0",
+    "sax": "^1.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -34,9 +35,12 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^22",
+    "@types/sax": "^1.2.7",
     "@typescript-eslint/eslint-plugin": "^8.64.0",
     "@typescript-eslint/parser": "^8.64.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
+    "fast-xml-parser": "^5.10.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.1.0",
     "prettier": "^3.9.5",

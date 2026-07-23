@@ -1,312 +1,250 @@
-export interface Env {
-  VIP_KV: KVNamespace;
-  SECRET_TOKEN: string;
+import { Env, runFeedGeneration } from './feed-generator';
+import { calculateAllTierPrices, CsvRow } from './engine/pricing';
+
+const SECRET_TOKEN = 'shoptet-vip-secret-12345';
+
+function jsonResponse(data: unknown, status = 200): Response {
+    return new Response(JSON.stringify(data, null, 2), {
+        status,
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            // The discount lookup is called directly from the customer's browser
+            // (frontend JS on the storefront domain), a different origin than this
+            // Worker — without this header the browser blocks the response entirely.
+            'Access-Control-Allow-Origin': '*'
+        }
+    });
 }
 
-let cachedActiveVersion: string | null = null;
-let cachedActiveVersionExpires = 0;
+function checkAuth(request: Request): boolean {
+    const auth = request.headers.get('Authorization') ?? '';
+    return auth === `Bearer ${SECRET_TOKEN}`;
+}
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization"
-    };
+    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+        const url = new URL(request.url);
+        const path = url.pathname;
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    // --- HEALTH CHECK ---
-    if (request.method === "GET" && url.pathname === "/v1/health") {
-      let statsStr = await env.VIP_KV.get("health_stats");
-      let activeVersion = await env.VIP_KV.get("active_version");
-      
-      let customers = 0;
-      if (statsStr) {
-        try { customers = JSON.parse(statsStr).customers || 0; } catch (e) {}
-      }
-      
-      return new Response(JSON.stringify({
-        status: "ok",
-        version: activeVersion || "none",
-        customers: customers,
-        build: "1.0.0"
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    // --- FRONTEND: GET /v1/discount/{hash} ---
-    if (request.method === "GET" && url.pathname.startsWith("/v1/discount/")) {
-      const hash = url.pathname.split("/").pop();
-      
-      if (!hash || !/^[a-f0-9]{64}$/.test(hash)) {
-        return new Response(JSON.stringify({
-          v: 1,
-          discount: 0
-        }), {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        });
-      }
-
-      const now = Date.now();
-      if (!cachedActiveVersion || now > cachedActiveVersionExpires) {
-        cachedActiveVersion = await env.VIP_KV.get("active_version");
-        cachedActiveVersionExpires = now + 60 * 1000;
-      }
-      
-      let discount = 0;
-      if (cachedActiveVersion) {
-        const discountStr = await env.VIP_KV.get(`${cachedActiveVersion}:${hash}`);
-        discount = discountStr ? parseInt(discountStr, 10) : 0;
-      }
-      
-      const payload = JSON.stringify({ v: 1, discount });
-      const eTag = `W/"v1-${hash}-${discount}"`;
-      
-      if (request.headers.get("If-None-Match") === eTag) {
-        return new Response(null, {
-          status: 304,
-          headers: {
-            ...corsHeaders,
-            "Cache-Control": "public, max-age=3600",
-            "ETag": eTag
-          }
-        });
-      }
-
-      return new Response(payload, {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=3600",
-          "ETag": eTag
-        }
-      });
-    }
-
-    // --- Ochrana všech POST /v1/import endpointů ---
-    if (request.method === "POST" && url.pathname.startsWith("/v1/import")) {
-      const authHeader = request.headers.get("Authorization");
-      if (!authHeader || authHeader !== `Bearer ${env.SECRET_TOKEN}`) {
-        return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-      }
-
-      try {
-        // 1. BEGIN IMPORT
-        if (url.pathname === "/v1/import/begin") {
-          const version = Date.now().toString();
-          
-          await env.VIP_KV.put(
-            `import:${version}`,
-            JSON.stringify({
-              created: Date.now()
-            })
-          );
-          
-          return new Response(JSON.stringify({ version }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-        }
-
-        // 2. UPLOAD CHUNK
-        if (url.pathname === "/v1/import/chunk") {
-          const body = await request.json() as { version: string, customers: { hash: string; discount: number }[] };
-          if (!body.version || !Array.isArray(body.customers)) {
-            return new Response("Invalid body format", { status: 400, headers: corsHeaders });
-          }
-          
-          if (body.customers.length > 250) {
-            return new Response(
-              JSON.stringify({
-                error: "Maximum chunk size is 250."
-              }),
-              {
-                status: 400,
+        if (request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
                 headers: {
-                  ...corsHeaders,
-                  "Content-Type": "application/json"
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                 }
-              }
-            );
-          }
-
-          for (const item of body.customers) {
-            if (!/^[a-f0-9]{64}$/.test(item.hash)) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Invalid hash."
-                    }),
-                    {
-                        status: 400,
-                        headers: {
-                            ...corsHeaders,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-            }
-
-            if (!Number.isInteger(item.discount)) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Invalid discount."
-                    }),
-                    {
-                        status: 400,
-                        headers: {
-                            ...corsHeaders,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-            }
-
-            if (item.discount < 0 || item.discount > 100) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Discount out of range."
-                    }),
-                    {
-                        status: 400,
-                        headers: {
-                            ...corsHeaders,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-            }
-          }
-          
-          await Promise.all(body.customers.map(item => 
-            env.VIP_KV.put(`${body.version}:${item.hash}`, item.discount.toString())
-          ));
-
-          return new Response(JSON.stringify({ success: true, count: body.customers.length }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
+            });
         }
 
-        // 3. FINISH IMPORT
-        if (url.pathname === "/v1/import/finish") {
-          const body = await request.json() as { version: string, customers: number };
-          if (!body.version) {
-             return new Response("Invalid body format", { status: 400, headers: corsHeaders });
-          }
-          
-          const session = await env.VIP_KV.get(`import:${body.version}`);
-
-          if (!session) {
-            return new Response(
-              JSON.stringify({
-                error: "Unknown import session."
-              }),
-              {
-                status: 400,
-                headers: {
-                  ...corsHeaders,
-                  "Content-Type": "application/json"
-                }
-              }
-            );
-          }
-          
-          const oldVersion = await env.VIP_KV.get("active_version");
-          
-          // Aktivace nové verze
-          await env.VIP_KV.put("active_version", body.version);
-          await env.VIP_KV.put("health_stats", JSON.stringify({ customers: body.customers }));
-          
-          cachedActiveVersion = body.version;
-          cachedActiveVersionExpires = Date.now() + 60 * 1000;
-          
-          await env.VIP_KV.delete(`import:${body.version}`);
-          
-          return new Response(JSON.stringify({ 
-            activeVersion: body.version, 
-            oldVersion: oldVersion || null, 
-            customers: body.customers 
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
+        // === GET /v1/feed/status ===
+        if (path === '/v1/feed/status' && request.method === 'GET') {
+            const statusData = await env.VIP_KV.get('feed_generation_status');
+            if (!statusData) {
+                return jsonResponse({ status: 'idle', message: 'No generation has been run yet.' });
+            }
+            return jsonResponse(JSON.parse(statusData));
         }
-        
-        // 4. CLEANUP (Garbage Collection)
-        if (url.pathname === "/v1/import/cleanup") {
-            const body = await request.json() as {
-                version: string;
-            };
 
-            if (!body.version) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Missing version."
-                    }),
-                    {
-                        status: 400,
-                        headers: {
-                            ...corsHeaders,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
+        // === GET /v1/feed/report ===
+        if (path === '/v1/feed/report' && request.method === 'GET') {
+            const statusData = await env.VIP_KV.get('feed_generation_status');
+            if (!statusData) return jsonResponse({ error: 'No report available.' }, 404);
+            const parsed = JSON.parse(statusData);
+            if (parsed.status !== 'success') {
+                return jsonResponse({ error: 'Not succeeded yet.', current: parsed }, 400);
+            }
+            return jsonResponse(parsed);
+        }
+
+        // === POST /v1/feed/generate ===
+        // NOTE: This endpoint AWAITS the full generation and returns only after completion.
+        // The HTTP connection stays open. This is intentional — it allows monitoring via curl.
+        // Scheduled cron also uses the same path.
+        if (path === '/v1/feed/generate' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+            const statusData = await env.VIP_KV.get('feed_generation_status');
+            if (statusData) {
+                const parsed = JSON.parse(statusData);
+                if (parsed.status === 'running') {
+                    return jsonResponse({ error: 'Already running.', startedAt: parsed.startedAt }, 429);
+                }
             }
 
-            let cursor: string | undefined = undefined;
-            const keys: string[] = [];
+            const now = new Date();
+            const dateStr = now.toISOString().replace(/[:.]/g, '').replace('T', '_').substring(0, 15);
+            const version = `products_${dateStr}.xml`;
+            const filename = `vip-feeds/${version}`;
 
+            try {
+                // Await directly — HTTP connection stays open during generation
+                await runFeedGeneration(env, filename, version);
+                const finalStatus = await env.VIP_KV.get('feed_generation_status');
+                return jsonResponse(finalStatus ? JSON.parse(finalStatus) : { status: 'success' });
+            } catch (e: any) {
+                return jsonResponse({ error: e?.message ?? String(e) }, 500);
+            }
+        }
+
+        // === POST /v1/import/begin ===
+        // Starts a new customer-discount import version. Blue/Green: nothing live is
+        // touched until /finish flips 'active_customer_version'.
+        if (path === '/v1/import/begin' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const version = `v${Date.now()}`;
+            return jsonResponse({ version });
+        }
+
+        // === POST /v1/import/chunk ===
+        // Body: { version, customers: [{ hash, discount }] }. Each customer is stored
+        // under a version-scoped key so an in-progress import never affects live reads.
+        if (path === '/v1/import/chunk' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json() as { version: string; customers: Array<{ hash: string; discount: number }> };
+            if (!body?.version || !Array.isArray(body.customers)) {
+                return jsonResponse({ error: 'Invalid payload' }, 400);
+            }
+            await Promise.all(body.customers.map(c =>
+                env.VIP_KV.put(`customer:${body.version}:${c.hash}`, String(c.discount))
+            ));
+            return jsonResponse({ ok: true, count: body.customers.length });
+        }
+
+        // === POST /v1/import/finish ===
+        // Flips 'active_customer_version' to the new version — the atomic cutover.
+        // Returns the previous active version so the caller can clean it up.
+        if (path === '/v1/import/finish' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json() as { version: string; customers: number };
+            if (!body?.version) return jsonResponse({ error: 'Invalid payload' }, 400);
+            const oldVersion = await env.VIP_KV.get('active_customer_version');
+            await env.VIP_KV.put('active_customer_version', body.version);
+            return jsonResponse({ ok: true, version: body.version, oldVersion });
+        }
+
+        // === POST /v1/import/cleanup ===
+        // Deletes all customer:<version>:* keys for a retired (no longer active) version.
+        if (path === '/v1/import/cleanup' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json() as { version: string };
+            if (!body?.version) return jsonResponse({ error: 'Invalid payload' }, 400);
+            let cursor: string | undefined;
+            let deleted = 0;
             do {
-                const list = await env.VIP_KV.list({
-                    prefix: `${body.version}:`,
-                    limit: 250,
-                    cursor
-                });
-
-                keys.push(...list.keys.map(k => k.name));
-
-                cursor = list.list_complete
-                    ? undefined
-                    : list.cursor;
-
+                const list = await env.VIP_KV.list({ prefix: `customer:${body.version}:`, cursor });
+                await Promise.all(list.keys.map(k => env.VIP_KV.delete(k.name)));
+                deleted += list.keys.length;
+                cursor = list.list_complete ? undefined : (list as any).cursor;
             } while (cursor);
-
-            await Promise.all(
-                keys.map(key => env.VIP_KV.delete(key))
-            );
-
-            return new Response(
-                JSON.stringify({
-                    success: true,
-                    deleted: keys.length
-                }),
-                {
-                    status: 200,
-                    headers: {
-                        ...corsHeaders,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
+            return jsonResponse({ ok: true, deleted });
         }
 
-      } catch (err: any) {
-        return new Response(`Error: ${err.message}`, { status: 500, headers: corsHeaders });
-      }
-    }
+        // === GET /v1/discount/:hash ===
+        // Public (no auth — called directly from the customer's browser). Looks up the
+        // SHA-256 hash of the logged-in customer's email against the currently ACTIVE
+        // import version only, so an in-progress /chunk upload never leaks partial data.
+        if (path.startsWith('/v1/discount/') && request.method === 'GET') {
+            const hash = path.substring('/v1/discount/'.length);
+            const activeVersion = await env.VIP_KV.get('active_customer_version');
+            if (!activeVersion) return jsonResponse({ error: 'No active customer data' }, 404);
+            const discountStr = await env.VIP_KV.get(`customer:${activeVersion}:${hash}`);
+            if (discountStr === null) return jsonResponse({ error: 'Not found' }, 404);
+            return jsonResponse({ v: 1, discount: Number(discountStr) });
+        }
 
-    return new Response("Not Found", { status: 404, headers: corsHeaders });
-  }
+        // === POST /v1/products/import/begin ===
+        if (path === '/v1/products/import/begin' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const version = `v${Date.now()}`;
+            return jsonResponse({ version });
+        }
+
+        // === POST /v1/products/import/chunk ===
+        // Body: { version, products: [{ code, row }] } where `row` is the minimal set of
+        // CsvRow fields calculateAllTierPrices() needs (price, actionPrice, standardPrice,
+        // maxDiscount, percentVat, applyLoyaltyDiscount, manufacturer, categoryText) — the
+        // SAME engine already used for the xlsx pricelist recalculation, so the cart badge
+        // and the pricelist price can never disagree.
+        if (path === '/v1/products/import/chunk' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json() as { version: string; products: Array<{ code: string; row: CsvRow }> };
+            if (!body?.version || !Array.isArray(body.products)) {
+                return jsonResponse({ error: 'Invalid payload' }, 400);
+            }
+            await Promise.all(body.products.map(p =>
+                env.VIP_KV.put(`product:${body.version}:${p.code}`, JSON.stringify(p.row))
+            ));
+            return jsonResponse({ ok: true, count: body.products.length });
+        }
+
+        // === POST /v1/products/import/finish ===
+        if (path === '/v1/products/import/finish' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json() as { version: string };
+            if (!body?.version) return jsonResponse({ error: 'Invalid payload' }, 400);
+            const oldVersion = await env.VIP_KV.get('active_product_version');
+            await env.VIP_KV.put('active_product_version', body.version);
+            return jsonResponse({ ok: true, version: body.version, oldVersion });
+        }
+
+        // === GET /v1/product-discount/:code/:tier ===
+        // Public. Returns the REAL, product-specific discount for one tier (e.g. ZR4),
+        // computed by the same engine that writes the live pricelist — so unlike the old
+        // flat customer-tier %, this correctly reflects maxDiscount caps, action prices,
+        // and loyalty-disabled products (e.g. gift cards).
+        if (path.startsWith('/v1/product-discount/') && request.method === 'GET') {
+            const parts = path.substring('/v1/product-discount/'.length).split('/');
+            const code = parts[0];
+            const tier = parts[1];
+            if (!code || !tier) return jsonResponse({ error: 'Usage: /v1/product-discount/:code/:tier' }, 400);
+
+            const activeVersion = await env.VIP_KV.get('active_product_version');
+            if (!activeVersion) return jsonResponse({ error: 'No active product data' }, 404);
+            const rowJson = await env.VIP_KV.get(`product:${activeVersion}:${code}`);
+            if (rowJson === null) return jsonResponse({ error: 'Product not found' }, 404);
+
+            const row = JSON.parse(rowJson) as CsvRow;
+            const tierPrices = calculateAllTierPrices(row);
+            const tierResult = tierPrices[tier];
+            if (!tierResult) return jsonResponse({ error: 'Unknown tier' }, 400);
+
+            const standardPrice = parseFloat((row['standardPrice'] || row['price'] || '0').replace(',', '.'));
+            const finalPrice = tierResult.price;
+            const discountPct = standardPrice > finalPrice
+                ? Math.round((1 - finalPrice / standardPrice) * 100)
+                : 0;
+
+            return jsonResponse({ v: 1, code, tier, price: finalPrice, standardPrice, discountPct });
+        }
+
+        // === GET /feed.xml ===
+        if (path === '/feed.xml' && request.method === 'GET') {
+            const activeFeedData = await env.VIP_KV.get('active_feed');
+            if (!activeFeedData) return new Response('No active feed.', { status: 404 });
+            const activeFeed = JSON.parse(activeFeedData);
+            const object = await env.FEED_BUCKET.get(activeFeed.filename);
+            if (!object) return new Response('Feed file not found in R2.', { status: 404 });
+            return new Response(object.body, {
+                headers: {
+                    'Content-Type': 'application/xml; charset=utf-8',
+                    'Cache-Control': 'public, max-age=3600',
+                    'X-Feed-Version': activeFeed.version ?? 'unknown'
+                }
+            });
+        }
+
+        return jsonResponse({ error: 'Not found.' }, 404);
+    },
+
+    async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+        const now = new Date();
+        const dateStr = now.toISOString().replace(/[:.]/g, '').replace('T', '_').substring(0, 15);
+        const version = `products_${dateStr}.xml`;
+        const filename = `vip-feeds/${version}`;
+        // Scheduled events have longer CPU budget — use waitUntil here
+        ctx.waitUntil(runFeedGeneration(env, filename, version).catch(e => {
+            console.error('Scheduled gen failed:', e);
+        }));
+    }
 };

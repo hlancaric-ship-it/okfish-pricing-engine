@@ -6,5 +6,28 @@ kv_namespaces = [
   { binding = "VIP_KV", id = "ce9bb43859b4401e9234045e7743296b" }
 ]
 
-# Nezapomeňte přidat secret pro Worker!
-# npx wrangler secret put SECRET_TOKEN
+r2_buckets = [
+  { binding = "FEED_BUCKET", bucket_name = "shoptet-feed-bucket" }
+]
+
+[vars]
+MASTER_FEED_URL = "https://www.okfish.sk/export/products.csv?patternId=32&partnerId=4&hash=24ab65131e522fdbf2511f897e7775ef4d412dd18557d1382160d3a826eb4d61"
+
+[triggers]
+crons = ["12 6,10,14,18,22 * * *"]
+
+[env.staging]
+name = "shoptet-vip-worker-staging"
+[env.staging.triggers]
+crons = []
+
+[env.staging.vars]
+MASTER_FEED_URL = "https://www.okfish.sk/export/products.csv?patternId=32&partnerId=4&hash=24ab65131e522fdbf2511f897e7775ef4d412dd18557d1382160d3a826eb4d61"
+
+[[env.staging.kv_namespaces]]
+binding = "VIP_KV"
+id = "82c56cb24323479da290d6d88822515b"
+
+[[env.staging.r2_buckets]]
+binding = "FEED_BUCKET"
+bucket_name = "shoptet-feed-bucket-staging"

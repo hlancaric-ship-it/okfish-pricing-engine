@@ -3,84 +3,74 @@ import { parse } from 'csv-parse';
 import { stringify } from 'csv-stringify';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import Decimal from 'decimal.js';
 import { EngineBuilder } from "../core/EngineBuilder.js";
 import { CustomerTier } from "../core/interfaces.js";
 import { Transform } from "stream";
-import { readFileSync } from 'fs';
 
-import { ValidationEngine } from "../core/ValidationEngine.js";
+const CONFIG_PATH = 'src/config/policies/policy-v1.json';
 
+// Pricelist IDs match src/core/config.ts's LOYALTY_TIERS.priceListId (same single
+// source of truth for the tier -> Shoptet pricelist ID mapping).
 const TIER_MAPPING = [
-    { tier: "ZR4" as CustomerTier, col: "pricelist:2:price" },
-    { tier: "ZR6" as CustomerTier, col: "pricelist:5:price" },
-    { tier: "ZR8" as CustomerTier, col: "pricelist:8:price" },
-    { tier: "ZR10" as CustomerTier, col: "pricelist:11:price" },
-    { tier: "ZR12" as CustomerTier, col: "pricelist:14:price" },
-    { tier: "ZR14" as CustomerTier, col: "pricelist:17:price" },
-    { tier: "ZR16" as CustomerTier, col: "pricelist:20:price" },
-    { tier: "ZR18" as CustomerTier, col: "pricelist:23:price" },
-    { tier: "ZR20" as CustomerTier, col: "pricelist:26:price" },
-    { tier: "ZR25" as CustomerTier, col: "pricelist:29:price" }
-];
+    { tier: "ZR4" as CustomerTier, id: 2 },
+    { tier: "ZR6" as CustomerTier, id: 5 },
+    { tier: "ZR8" as CustomerTier, id: 8 },
+    { tier: "ZR10" as CustomerTier, id: 11 },
+    { tier: "ZR12" as CustomerTier, id: 14 },
+    { tier: "ZR14" as CustomerTier, id: 17 },
+    { tier: "ZR16" as CustomerTier, id: 20 },
+    { tier: "ZR18" as CustomerTier, id: 23 },
+    { tier: "ZR20" as CustomerTier, id: 26 },
+    { tier: "ZR25" as CustomerTier, id: 29 }
+].map(m => ({ ...m, col: `pricelist:${m.id}:price`, includingVatCol: `pricelist:${m.id}:includingVat`, percentVatCol: `pricelist:${m.id}:percentVat` }));
 
-async function main() {
+export interface GenerateProductsImportResult {
+    totalProducts: number;
+    errorsCount: number;
+    durationMs: number;
+}
+
+// Core CSV pricing pipeline: reads a partner products.csv, computes each loyalty tier's
+// price via the shared PricingEngine (EngineBuilder.fromConfig(policy-v1.json) — the
+// single source of truth also used by the Worker and generate-xml.ts), and writes a
+// products_import.csv with one pricelist:<id>:price column per tier. Deliberately
+// separate from customer-tier sync/upload (see the CLI entry point below) so this can
+// be exercised in isolation (e.g. by tests) without ever triggering a real network call.
+export async function generateProductsImportCsv(
+    inputCsvPath: string,
+    outputCsvPath: string,
+    errorsCsvPath: string
+): Promise<GenerateProductsImportResult> {
     const start = performance.now();
-    const configPath = 'src/config/policies/policy-v1.json';
-    const configRaw = JSON.parse(readFileSync(path.resolve(process.cwd(), configPath), 'utf-8'));
-    const policyVersion = configRaw.version || 'unknown';
-    
-    const packageJson = JSON.parse(readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf-8'));
-    const engineVersion = packageJson.version || 'unknown';
-
-    const engine = EngineBuilder.fromConfig(configPath).build();
+    const engine = EngineBuilder.fromConfig(CONFIG_PATH).build();
+    const { ValidationEngine } = await import('../core/ValidationEngine.js');
     const validationEngine = new ValidationEngine();
-    
-    const exportsDir = path.join(process.cwd(), 'exports');
-    if (!fs.existsSync(exportsDir)) {
-        fs.mkdirSync(exportsDir, { recursive: true });
-    }
-    
+
+    const outDir = path.dirname(outputCsvPath);
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
     let totalProducts = 0;
     let errorsCount = 0;
 
-    const errorStream = stringify({
-        header: true,
-        delimiter: ';',
-        columns: ['SKU', 'Reason']
-    });
-    
-    const errorFile = fs.createWriteStream(path.join(exportsDir, 'errors.csv'));
+    const errorStream = stringify({ header: true, delimiter: ';', columns: ['SKU', 'Reason'] });
+    const errorFile = fs.createWriteStream(errorsCsvPath);
     errorStream.pipe(errorFile);
 
-    console.log(`Generating exports/products_import.csv...`);
-    
-    await new Promise((resolve, reject) => {
-        const parser = parse({
-            delimiter: ';',
-            columns: true,
-            skip_empty_lines: true,
-            bom: true
-        });
-        
-        // No explicit columns - infer from the objects passing through
-        const stringifier = stringify({
-            header: true,
-            delimiter: ';'
-        });
+    await new Promise<void>((resolve, reject) => {
+        const parser = parse({ delimiter: ';', columns: true, skip_empty_lines: true, bom: true });
+        const stringifier = stringify({ header: true, delimiter: ';' });
 
         const transform = new Transform({
             objectMode: true,
-            transform(row: any, encoding: string, callback: any) {
+            transform(row: any, _encoding: string, callback: any) {
                 totalProducts++;
-                
-                // Remove empty column caused by trailing semicolon in export
-                if ("" in row) {
-                    delete row[""];
-                }
-                
+
+                if ("" in row) delete row[""];
+
                 const applyLoyalty = row.applyLoyaltyDiscount === "1" || row.applyLoyaltyDiscount === "true" || row.applyLoyaltyDiscount === "yes" || row.applyLoyaltyDiscount === true || row.applyLoyaltyDiscount === undefined;
-                
+
                 const parseNumber = (val: any) => {
                     if (!val) return undefined;
                     if (typeof val === 'string') return val.replace(',', '.');
@@ -91,6 +81,16 @@ async function main() {
                 const parsedSalePrice = parseNumber(row.actionPrice);
                 const parsedMaxDiscount = parseNumber(row.maxDiscount);
                 const parsedPurchasePrice = parseNumber(row.purchasePrice);
+
+                // Same declarative logic as the confirmed-working manual CSV import test
+                // (test_product_46585.csv): tell Shoptet this price already includes VAT
+                // via pricelist:<id>:includingVat / pricelist:<id>:percentVat, per pricelist
+                // if the source row has it, else falling back to the row's top-level
+                // includingVat/percentVat. No VAT math anywhere — values are copied as-is.
+                for (const m of TIER_MAPPING) {
+                    row[m.includingVatCol] = row[m.includingVatCol] ?? row['includingVat'] ?? '';
+                    row[m.percentVatCol] = row[m.percentVatCol] ?? row['percentVat'] ?? '';
+                }
 
                 for (const m of TIER_MAPPING) {
                     const input = {
@@ -105,18 +105,18 @@ async function main() {
                         purchasePrice: parsedPurchasePrice ? new Decimal(parsedPurchasePrice) : undefined,
                         currency: row.currency
                     };
-                    
+
                     try {
                         const inputValidation = validationEngine.validateInput(input);
                         if (!inputValidation.valid) {
                             errorsCount++;
                             errorStream.write({ SKU: input.sku, Reason: inputValidation.reason });
-                            row[m.col] = ""; // Clear or leave empty on error
+                            row[m.col] = "";
                             continue;
                         }
 
                         const result = engine.calculatePrice(input);
-                        
+
                         const resultValidation = validationEngine.validateResult(result);
                         if (!resultValidation.valid) {
                             errorsCount++;
@@ -138,72 +138,70 @@ async function main() {
                         row[m.col] = "";
                     }
                 }
-                
-                const minimalRow: any = {
-                    code: row.code
-                };
+
+                const minimalRow: any = { code: row.code };
                 for (const m of TIER_MAPPING) {
                     minimalRow[m.col] = row[m.col];
+                    minimalRow[m.includingVatCol] = row[m.includingVatCol];
+                    minimalRow[m.percentVatCol] = row[m.percentVatCol];
                 }
-                
+
                 callback(null, minimalRow);
             }
         });
 
-        const readStream = fs.createReadStream('products.csv');
-        const writeStream = fs.createWriteStream(path.join(exportsDir, 'products_import.csv'));
-        
+        const readStream = fs.createReadStream(inputCsvPath);
+        const writeStream = fs.createWriteStream(outputCsvPath);
+
         readStream.pipe(parser).pipe(transform).pipe(stringifier).pipe(writeStream);
-        
-        writeStream.on('finish', () => resolve(true));
+
+        writeStream.on('finish', () => resolve());
         writeStream.on('error', reject);
         readStream.on('error', reject);
     });
-    
+
     errorStream.end();
 
-    const end = performance.now();
-    const durationMs = Math.round(end - start);
-
-    const auditLog = {
-        engineVersion,
-        policyVersion,
-        products: totalProducts,
-        generatedPriceLists: 10,
-        errors: errorsCount,
-        durationMs
-    };
-    fs.writeFileSync(path.join(exportsDir, 'run.json'), JSON.stringify(auditLog, null, 2));
-    
-    console.log(`\nAll 10 price lists appended to exports/products_import.csv successfully!`);
-    console.log(`Total products processed: ${totalProducts}`);
-    console.log(`Duration: ${(durationMs / 1000).toFixed(2)} s`);
-
-    console.log("\n==============================");
-    console.log("Starting customer VIP generation...");
-    console.log("==============================\n");
-
-    await new Promise((resolve, reject) => {
-        const child = spawn(
-            "npx",
-            [
-                "tsx",
-                "src/cli/customers.ts"
-            ],
-            {
-                stdio: "inherit",
-                shell: true
-            }
-        );
-
-        child.on("close", (code) => {
-            if (code === 0) {
-                resolve(true);
-            } else {
-                reject(new Error(`customers.ts failed with code ${code}`));
-            }
-        });
-    });
+    return { totalProducts, errorsCount, durationMs: Math.round(performance.now() - start) };
 }
 
-main().catch(console.error);
+// CLI entry point — only runs when this module is executed directly, never on import
+// (so tests can call generateProductsImportCsv() in isolation without ever spawning the
+// customers.ts step below, which performs a real uploadToWorker() network call).
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+    (async () => {
+        const configRaw = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), CONFIG_PATH), 'utf-8'));
+        const policyVersion = configRaw.version || 'unknown';
+        const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf-8'));
+        const engineVersion = packageJson.version || 'unknown';
+
+        const exportsDir = path.join(process.cwd(), 'exports');
+        console.log(`Generating exports/products_import.csv...`);
+
+        const { totalProducts, errorsCount, durationMs } = await generateProductsImportCsv(
+            'products.csv',
+            path.join(exportsDir, 'products_import.csv'),
+            path.join(exportsDir, 'errors.csv')
+        );
+
+        fs.writeFileSync(path.join(exportsDir, 'run.json'), JSON.stringify({
+            engineVersion, policyVersion, products: totalProducts, generatedPriceLists: 10, errors: errorsCount, durationMs
+        }, null, 2));
+
+        console.log(`\nAll 10 price lists appended to exports/products_import.csv successfully!`);
+        console.log(`Total products processed: ${totalProducts}`);
+        console.log(`Duration: ${(durationMs / 1000).toFixed(2)} s`);
+
+        console.log("\n==============================");
+        console.log("Starting customer VIP generation...");
+        console.log("==============================\n");
+
+        await new Promise<void>((resolve, reject) => {
+            const child = spawn("npx", ["tsx", "src/cli/customers.ts"], { stdio: "inherit", shell: true });
+            child.on("close", (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`customers.ts failed with code ${code}`));
+            });
+        });
+    })().catch(console.error);
+}

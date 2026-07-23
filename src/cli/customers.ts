@@ -1,10 +1,12 @@
 import * as fs from 'fs';
-import * as crypto from 'crypto';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { parse } from 'csv-parse';
 import { stringify } from 'csv-stringify';
 import { CustomerTier } from '../core/interfaces.js';
 import { uploadToWorker } from './upload.js';
+
+export type UploadFn = (vipDiscountsMap: Record<string, number>, upgradedCustomers: number) => Promise<void>;
 
 function determineTier(totalOrderValue: number): CustomerTier | undefined {
     if (totalOrderValue >= 10000) return "ZR25";
@@ -19,7 +21,7 @@ function determineTier(totalOrderValue: number): CustomerTier | undefined {
     return "ZR4"; // 0 - 99.99
 }
 
-async function processCustomers(inputPath: string, outputPath: string) {
+export async function processCustomers(inputPath: string, outputPath: string, upload: UploadFn = uploadToWorker): Promise<void> {
     if (!fs.existsSync(inputPath)) {
         console.error(`❌ Soubor nenalezen: ${inputPath}`);
         process.exit(1);
@@ -74,9 +76,10 @@ async function processCustomers(inputPath: string, outputPath: string) {
         const newNormalized = newTier.toUpperCase();
 
         if (oldNormalized !== newNormalized) {
-            row.pricelistName = newTier;
             upgradedCustomers++;
         }
+        row.pricelistName = newTier;
+        row.customerGroup = newTier;
 
         // Statistiky
         stats[newTier] = (stats[newTier] || 0) + 1;
@@ -84,7 +87,7 @@ async function processCustomers(inputPath: string, outputPath: string) {
         records.push(row);
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const stringifier = stringify({
             header: true,
             delimiter: ';'
@@ -96,7 +99,7 @@ async function processCustomers(inputPath: string, outputPath: string) {
         writableStream.on('error', reject);
         writableStream.on('finish', () => {
             const sortedKeys = Object.keys(vipDiscountsMap).sort();
-            const sortedMap = {};
+            const sortedMap: Record<string, number> = {};
             for (const key of sortedKeys) {
                 sortedMap[key] = vipDiscountsMap[key];
             }
@@ -127,7 +130,7 @@ async function processCustomers(inputPath: string, outputPath: string) {
             console.log();
             
             // Odeslání do Cloudflare Worker
-            uploadToWorker(vipDiscountsMap, upgradedCustomers).then(() => resolve(true)).catch(reject);
+            upload(vipDiscountsMap, upgradedCustomers).then(() => resolve()).catch(reject);
         });
 
         stringifier.pipe(writableStream);
@@ -139,13 +142,17 @@ async function processCustomers(inputPath: string, outputPath: string) {
     });
 }
 
-const inputPath = process.argv[2] || path.join(process.cwd(), 'customers.csv');
-const exportsDir = path.join(process.cwd(), 'exports');
+// Only run as a CLI when this module is the entry point — importing it (e.g. from
+// tests) must never trigger a real run or a real uploadToWorker() network call.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+    const inputPath = process.argv[2] || path.join(process.cwd(), 'customers.csv');
+    const exportsDir = path.join(process.cwd(), 'exports');
 
-if (!fs.existsSync(exportsDir)) {
-    fs.mkdirSync(exportsDir, { recursive: true });
+    if (!fs.existsSync(exportsDir)) {
+        fs.mkdirSync(exportsDir, { recursive: true });
+    }
+
+    const outputPath = path.join(exportsDir, 'customers_import.csv');
+
+    processCustomers(inputPath, outputPath).catch(console.error);
 }
-
-const outputPath = path.join(exportsDir, 'customers_import.csv');
-
-processCustomers(inputPath, outputPath).catch(console.error);

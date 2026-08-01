@@ -1,0 +1,12 @@
+[
+  {
+    "customerGuid": "667e4630-8d51-11f1-b4c0-bc2411162930",
+    "originalTier": "Koncový zákazník",
+    "originalPricelistId": null
+  },
+  {
+    "customerGuid": "d175107e-63b7-4cd1-affa-f4f7cb51e2ea",
+    "originalTier": "ZR6",
+    "originalPricelistId": 5
+  }
+]

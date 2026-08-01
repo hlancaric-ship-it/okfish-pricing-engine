@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Stránka nenalezena - Shoptet Developers</title>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="pingback" href="https://developers.shoptet.com/xmlrpc.php" />
+    
+                    <script type="text/javascript">
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push();
+            var load_gtm = (function(e) {
+                var loaded = false;
+                return function() {
+                    if (!loaded) {
+                        loaded = true;
+
+                        (function(w, d, s, l, i) {
+                            w[l] = w[l] || [];
+                            w[l].push({
+                                'gtm.start': new Date().getTime(),
+                                event: 'gtm.js'
+                            });
+                            var f = d.getElementsByTagName(s)[0],
+                                j = d.createElement(s),
+                                dl = l != 'dataLayer' ? '&l=' + l : '';
+                            j.async = true;
+                            j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+                            f.parentNode.insertBefore(j, f);
+                        })(window, document, 'script', 'dataLayer', "GTM-P4JDVX7");
+
+                        dataLayer.push({
+                            'event': 'loaded_gtm',
+                            'timestampGtm': new Date().getTime()
+                        });
+                    }
+                };
+            })();
+
+            var _iub = _iub || [];
+            _iub.csConfiguration = {
+                                "cookiePolicyInOtherWindow": true,
+                "floatingPreferencesButtonCaptionColor": "#FFFFFF",
+                "floatingPreferencesButtonColor": "#FFFFFF",
+                "floatingPreferencesButtonDisplay": "anchored-bottom-left",
+                "googleConsentMode": false,
+                "perPurposeConsent": true,
+                "purposes": "5,1,4,3",
+                "siteId": 4323983,
+                "storage": {
+                    "useSiteId": true
+                },
+                "whitelabel": true,
+                "banner": {"acceptButtonCaptionColor":"#000000","acceptButtonColor":"#00E25A","acceptButtonDisplay":true,"backgroundColor":"#FFFFFF","backgroundOverlay":true,"brandBackgroundColor":"#FFFFFF","brandTextColor":"#000000","closeButtonDisplay":false,"customizeButtonCaptionColor":"#FFFFFF","customizeButtonColor":"#FCAF00","customizeButtonDisplay":true,"explicitWithdrawal":true,"howToWithdraw":false,"linksColor":"#3B88FF","logo":"https://developers.shoptet.com/wp-content/uploads/2023/08/developers-1.svg","position":"float-center","rejectButtonCaptionColor":"#FFFFFF","rejectButtonColor":"#FCAF00","rejectButtonDisplay":true,"showTitle":false,"textColor":"#000000"},
+                "callback": {
+                    "onReady": function() {
+                        window.dataLayer = window.dataLayer || [];
+                        window.dataLayer.push({
+                            "event": "iubenda_ready"
+                        });
+                        load_gtm();
+                        window.dataLayer.push({
+                            "event": "gtm_loaded_via_iubenda"
+                        });
+                    },
+                    "onBannerShown": function() {
+                        window.dataLayer = window.dataLayer || [];
+                        window.dataLayer.push({
+                            "event": "iubenda_visible"
+                        });
+                    },
+                    "on2ndLayerShown": function() {
+                        window.dataLayer = window.dataLayer || [];
+                        window.dataLayer.push({
+                            "event": "iubenda_details"
+                        });
+                    }
+                }
+            };
+            _iub.csLangConfiguration = {"en":{"cookiePolicyId":24319850,"cookiePolicyUrl":"https://www.shoptet.cz/privacy-policy/"}};
+
+            window.addEventListener('DOMContentLoaded', function() { setTimeout(function() { load_gtm(); }, 5000); }, false);
+        </script>
+        <script type="text/javascript" src="//cs.iubenda.com/sync/4323983.js"></script>
+        <script type="text/javascript" src="//cdn.iubenda.com/cs/iubenda_cs.js" charset="UTF-8" async></script>
+        <style>
+            @media (max-width: 500px) {
+                #iubenda-iframe .iub-consent-buttons.purposes-buttons {
+                    display: grid !important;
+                    gap: 12px;
+                }
+            }
+        </style>
+    
+    <meta name='robots' content='noindex, follow' />
+
+		<!-- Meta Tag Manager -->
+		<meta name="google-site-verification" content="Lhqq3_RIAEcI87plUUiiP2rpM5An5DvVE-wczOWGOtY" />
+		<!-- / Meta Tag Manager -->
+
+	<!-- This site is optimized with the Yoast SEO plugin v24.7 - https://yoast.com/wordpress/plugins/seo/ -->
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:title" content="Stránka nenalezena - Shoptet Developers" />
+	<meta property="og:site_name" content="Shoptet Developers" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://developers.shoptet.com/#website","url":"https://developers.shoptet.com/","name":"Shoptet Developers","description":"Offer your service to [projectCount] e-shops driven by Shoptet","publisher":{"@id":"https://developers.shoptet.com/#organization"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://developers.shoptet.com/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"},{"@type":"Organization","@id":"https://developers.shoptet.com/#organization","name":"Shoptet s.r.o.","url":"https://developers.shoptet.com/","logo":{"@type":"ImageObject","inLanguage":"en-US","@id":"https://developers.shoptet.com/#/schema/logo/image/","url":"https://developers.shoptet.com/wp-content/uploads/2019/10/Snímek-obrazovky-2019-10-29-v-15.17.38.png","contentUrl":"https://developers.shoptet.com/wp-content/uploads/2019/10/Snímek-obrazovky-2019-10-29-v-15.17.38.png","width":486,"height":174,"caption":"Shoptet s.r.o."},"image":{"@id":"https://developers.shoptet.com/#/schema/logo/image/"},"sameAs":["https://www.facebook.com/shoptet","https://x.com/Shoptet","https://www.instagram.com/shoptet.cz/","https://cz.linkedin.com/company/shoptet","https://www.youtube.com/channel/UCrmFOFsJ7Nd3viUS_Kf5jsg"]}]}</script>
+	<!-- / Yoast SEO plugin. -->
+
+
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link rel='stylesheet' id='shoptet-css' href='https://developers.shoptet.com/wp-content/themes/shoptet-wp-theme/scaffolding/shoptet.css?ver=7.0.2' media='all' />
+<link rel='stylesheet' id='default-css' href='https://developers.shoptet.com/wp-content/themes/shoptet-wp-theme/src/dist/css/main.css?ver=7.0.2' media='all' />
+<style id="cookiebot-style-inline-css">
+
+      a#CybotCookiebotDialogPoweredbyCybot,
+      div#CybotCookiebotDialogPoweredByText {
+        display: none;
+      }
+      #CookiebotWidget .CookiebotWidget-body .CookiebotWidget-main-logo {
+        display: none;
+      }
+    
+/*# sourceURL=cookiebot-style-inline-css */
+</style>
+<style id="wp-emoji-styles-inline-css">
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}:root .has-text-align-center{text-align:center}:root .has-text-align-left{text-align:left}:root .has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{word-wrap:normal!important;border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-color]){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
+</style>
+<style id="classic-theme-styles-inline-css">
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+/*# sourceURL=/wp-includes/css/classic-themes.min.css */
+</style>
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:where(body) { margin: 0; }:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='contact-form-7-css' href='https://developers.shoptet.com/wp-content/plugins/contact-form-7/includes/css/styles.css?ver=6.1.6' media='all' />
+<script id="shp-jquery-js-extra">
+var global = {"post":{"id":false,"title":""}};
+var dl = {"page":{"currency":"EUR","category":"not_available_DL","subCategory":"not_available_DL","subSubCategory":"not_available_DL","environment":"live","language":"en","hostname":"developers.shoptet.com","title":"","path":"not_available_DL","url":"not_available_DL","params":"# / ?","type":"other"},"user":{"accountHash":"not_available_DL","email":"not_available_DL","accountId":"not_available_DL","name":"not_available_DL","surname":"not_available_DL"}};
+//# sourceURL=shp-jquery-js-extra
+</script>
+<script id="shp-jquery-js" src="https://developers.shoptet.com/wp-content/themes/shoptet-wp-theme/src/dist/js/build.js?ver=7.0.2"></script>
+<link rel="https://api.w.org/" href="https://developers.shoptet.com/wp-json/" /><link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://developers.shoptet.com/xmlrpc.php?rsd" />
+<meta name="generator" content="WordPress 7.0.2" />
+<link rel="icon" href="https://developers.shoptet.com/wp-content/uploads/2023/08/cropped-shoptet-32x32.png" sizes="32x32" />
+<link rel="icon" href="https://developers.shoptet.com/wp-content/uploads/2023/08/cropped-shoptet-192x192.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://developers.shoptet.com/wp-content/uploads/2023/08/cropped-shoptet-180x180.png" />
+<meta name="msapplication-TileImage" content="https://developers.shoptet.com/wp-content/uploads/2023/08/cropped-shoptet-270x270.png" />
+	</head>
+
+  <body class="error404 wp-custom-logo wp-theme-shoptet-wp-theme">
+
+    
+    
+    <header id="header" class="header">
+        <div class="header-inner container">
+            <div id="shp_header">
+            <a href="/" class="shp_logo"><img src="https://developers.shoptet.com/wp-content/uploads/2023/08/developers-1.svg"></a>            </div>
+            <div class="search header-search">
+                <form action="https://developers.shoptet.com/" method="get" role="search" data-search>
+    <fieldset>
+        <div class="input-group">
+            <input type="search" name="s" class="form-control" value="" placeholder="Enter search term..." />
+            <div class="input-group-append">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+            </div>
+                    </div>
+    </header>
+
+    <div id="navigation">
+        <div class="container">
+            <div id="shp_navigation_wrapper" class="responsive-nav">
+               <ul id="shp_navigation" class="visible-links"><li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/news-from-shoptet-forge/" class="shp_menu-item-link">News from the Shoptet forge</a></li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children has-dropdown shp_menu-item"><a href="https://developers.shoptet.com/addons/" class="shp_menu-item-link">Addons</a><span class="caret dropdown-toggle" data-target="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></span>
+<ul class="shp_navigation-submenu dropdown-menu dropdown-menu-right" aria-labelledby="categoriesDropdown">
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/basic-information/" class="shp_menu-item-link">Basic information</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/which-new-addons-you-can-create/" class="shp_menu-item-link">Which new addons you could create?</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children has-dropdown shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/" class="shp_menu-item-link">Documentation</a><span class="caret dropdown-toggle" data-target="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></span>
+	<ul class="shp_navigation-submenu dropdown-menu dropdown-menu-right" aria-labelledby="categoriesDropdown">
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/shoptet-api-starters-guide/" class="shp_menu-item-link">Shoptet API Starter’s guide</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/basic-information-about-api/" class="shp_menu-item-link">Basic information about API</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/creating-the-addon/" class="shp_menu-item-link">Creating the addon</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/installing-the-addon/" class="shp_menu-item-link">Installing the addon</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/getting-api-access-token/" class="shp_menu-item-link">Getting the API access token</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/product-images/" class="shp_menu-item-link">Product images</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/inserting-html-codes/" class="shp_menu-item-link">Inserting HTML codes</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/webhooks/" class="shp_menu-item-link">Webhooks</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/creating-order/" class="shp_menu-item-link">Creating an order</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/uninstalling-the-addon/" class="shp_menu-item-link">Uninstalling the addon</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/pausing-and-resuming-addon/" class="shp_menu-item-link">Pausing and resuming the add-ons</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/addon-settings-in-shoptet-administration/" class="shp_menu-item-link">Placing the addon settings into Shoptet administration</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/eshop-verification-using-oauth/" class="shp_menu-item-link">E-shop verification using OAuth</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/asynchronous-requests/" class="shp_menu-item-link">Asynchronous Requests</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/documentation/payment-gateways/" class="shp_menu-item-link">Payment gateways</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shipping-addons/" class="shp_menu-item-link">Shipping Addons</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/correct-api-usage/" class="shp_menu-item-link">Correct API usage</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/addons-for-premium-eshops/" class="shp_menu-item-link">Addons for Premium Eshops</a></li>
+	</ul>
+</li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/api/technical-specifications/" class="shp_menu-item-link">Technical specifications</a></li>
+	<li class="menu-item menu-item-type-custom menu-item-object-custom shp_menu-item"><a href="https://salesforce-eu.123formbuilder.com/form-62354/eng-nabidka-noveho-doplnku" class="shp_menu-item-link">Create a new add-on</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children has-dropdown shp_menu-item"><a href="https://developers.shoptet.com/premium/" class="shp_menu-item-link">Premium</a><span class="caret dropdown-toggle" data-target="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></span>
+<ul class="shp_navigation-submenu dropdown-menu dropdown-menu-right" aria-labelledby="categoriesDropdown">
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/home/premium/private-api/" class="shp_menu-item-link">Private API</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/home/premium/private-api-tokens-maintenance/" class="shp_menu-item-link">Private API tokens maintenance</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/home/premium/advanced-topics/" class="shp_menu-item-link">Advanced topics</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/correct-api-usage/" class="shp_menu-item-link">Correct API usage</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/blank-template-mode/" class="shp_menu-item-link">Blank template mode</a></li>
+	<li class="menu-item menu-item-type-custom menu-item-object-custom shp_menu-item"><a href="https://api.docs.shoptet.com/" class="shp_menu-item-link">Technical documentation</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children has-dropdown shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/" class="shp_menu-item-link">Shoptet Tools</a><span class="caret dropdown-toggle" data-target="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></span>
+<ul class="shp_navigation-submenu dropdown-menu dropdown-menu-right" aria-labelledby="categoriesDropdown">
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/data-export/" class="shp_menu-item-link">Data export</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/data-import/" class="shp_menu-item-link">Data import</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children has-dropdown shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/" class="shp_menu-item-link">Editing templates</a><span class="caret dropdown-toggle" data-target="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></span>
+	<ul class="shp_navigation-submenu dropdown-menu dropdown-menu-right" aria-labelledby="categoriesDropdown">
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/how-to-edit-templates/" class="shp_menu-item-link">How to edit templates</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/things-to-be-careful-about/" class="shp_menu-item-link">Things to be careful about</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/placeholders-not-only-for-template-colors/" class="shp_menu-item-link">Tags and CSS variables not only for template colors</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/information-on-design-in-the-page-code/" class="shp_menu-item-link">Information on design in the page code</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/editing-templates/shoptet-developers-tools/" class="shp_menu-item-link">Shoptet Developers Tools</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/home/shoptet-tools/editing-templates/how-to-properly-add-product-to-cart-with-javascript/" class="shp_menu-item-link">How to properly add product to cart with JavaScript</a></li>
+		<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/home/shoptet-tools/editing-templates/structured-data/" class="shp_menu-item-link">Structured data</a></li>
+	</ul>
+</li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/shoptet-xml-specification/" class="shp_menu-item-link">Shoptet XML specification</a></li>
+	<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/shoptet-tools/data-layer/" class="shp_menu-item-link">Data Layer</a></li>
+</ul>
+</li>
+<li class="menu-item menu-item-type-post_type menu-item-object-page shp_menu-item"><a href="https://developers.shoptet.com/contact/" class="shp_menu-item-link">Contact</a></li>
+<li class="menu-item menu-item-type-custom menu-item-object-custom shp_menu-item"><a href="https://kariera.shoptet.cz/#o-shoptetu" class="shp_menu-item-link">Careers</a></li>
+</ul>            </div>
+        </div>
+    </div>
+
+<section class="section section-perex">
+    <div class="section-inner container text-center">
+        <h1>404</h1>
+        <p>We are sorry, but the requested page was not found.</p>
+    </div>
+</section>
+
+<section class="section section-primary">
+    <div class="section-inner container">
+        <div class="row search">
+            <div class="col-sm-12 col-md-8 col-lg-6 align-self-center">
+                <form action="https://developers.shoptet.com/" method="get" role="search" data-search>
+    <fieldset>
+        <div class="input-group">
+            <input type="search" name="s" class="form-control" value="" placeholder="Enter search term..." />
+            <div class="input-group-append">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/shoptet-wp-theme/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+<script id="wp-hooks-js" src="https://developers.shoptet.com/wp-includes/js/dist/hooks.min.js?ver=7496969728ca0f95732d"></script>
+<script id="wp-i18n-js" src="https://developers.shoptet.com/wp-includes/js/dist/i18n.min.js?ver=781d11515ad3d91786ec"></script>
+<script id="wp-i18n-js-after">
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+//# sourceURL=wp-i18n-js-after
+</script>
+<script id="swv-js" src="https://developers.shoptet.com/wp-content/plugins/contact-form-7/includes/swv/js/index.js?ver=6.1.6"></script>
+<script id="contact-form-7-js-before">
+var wpcf7 = {
+    "api": {
+        "root": "https:\/\/developers.shoptet.com\/wp-json\/",
+        "namespace": "contact-form-7\/v1"
+    },
+    "cached": 1
+};
+//# sourceURL=contact-form-7-js-before
+</script>
+<script id="contact-form-7-js" src="https://developers.shoptet.com/wp-content/plugins/contact-form-7/includes/js/index.js?ver=6.1.6"></script>
+<script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://developers.shoptet.com/wp-includes/js/wp-emoji-release.min.js?ver=7.0.2"}}
+</script>
+<script type="module">
+/*! This file is auto-generated */
+const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(window._wpemojiSettings=a,"wpEmojiSettingsSupports"),s=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const a=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===a[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\u1fac8")}return!1}function f(e,t,n,a){let r;const o=(r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),s=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(e=>{s[e]=t(o,e,n,a)}),s}function r(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}a.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),c.toString(),p.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"});const r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=e=>{i(n=e.data),r.terminate(),t(n)})}catch(e){}i(n=f(s,u,c,p))}t(n)}).then(e=>{for(const n in e)a.supports[n]=e[n],a.supports.everything=a.supports.everything&&a.supports[n],"flag"!==n&&(a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&a.supports[n]);var t;a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&!a.supports.flag,a.supports.everything||((t=a.source||{}).concatemoji?r(t.concatemoji):t.wpemoji&&t.twemoji&&(r(t.twemoji),r(t.wpemoji)))});
+//# sourceURL=https://developers.shoptet.com/wp-includes/js/wp-emoji-loader.min.js
+</script>
+</div> <!-- close main container -->
+
+<div id="footer">
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700&amp;subset=latin-ext&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Libre+Franklin:300,400,700&amp;subset=latin-ext&amp;display=swap" rel="stylesheet">
+<style>
+/* for basic width 1140px */
+.shp_footer * { box-sizing: border-box; }
+.shp_footer { width: 100%; background: #fff; font-family: 'Source Sans Pro', sans-serif; font-size: 14px; font-weight: 400; text-align: left; color: #1f1f1f; border-top: 1px solid #e7e7e7; }
+.shp_footer h2, .shp_footer h3 { font-family: 'Libre Franklin', sans-serif; color: #1f1f1f; margin: 0; }
+.shp_footer h2 { font-size: 24px; padding: 35px 0; line-height: 24px; font-weight: 300; letter-spacing: 1px; text-align: center; }
+.shp_footer h3 { font-size: 16px; padding: 10px 0 10px; line-height: 18px; font-weight: 700; letter-spacing: 0; }
+.shp_footer a, .shp_footer ul li a { color: #14b1ef; text-decoration: none; display: inline; }
+.shp_footer a:hover, .shp_footer ul li a:hover { color: #0F9AD2; }
+.shp_footer p { margin: 5px 0; line-height: 20px; color: #1f1f1f; font-family: 'Source Sans Pro', sans-serif; font-size: 14px; font-weight: 400; text-align: left; color: #1f1f1f; }
+.shp_footer ul { list-style-type: none; list-style-image: url('https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/li.png'); padding: 5px 0 0 15px; margin: 0; }
+.shp_footer ul li { padding: 0 0 5px; margin: 0; line-height: 18px; background: none; }
+.shp_footer .mr-15 { margin-right: 15px; }
+/* grid design */
+.shp_footer .shp_container { width: 100%; padding-right: 20px; padding-left: 20px; margin-right: auto; margin-left: auto; max-width: 1170px; }
+.shp_footer .shp_row { clear: both; margin-left: -15px; margin-right: -15px; display: flex; flex-flow: row nowrap; }
+.shp_footer .shp_row:after { clear: both; display: block; height: 0; content: ""; }
+.shp_footer .shp_col { display: block; padding: 15px 20px; flex-basis: 0; flex-grow: 1; }
+.shp_footer .shp_footer-main .shp_col { padding-top: 50px; }
+.shp_footer .text-right { text-align: right; }
+.shp_footer .text-center { text-align: center; }
+/* social icons */
+.shp_footer .social-icons { display: flex; align-items: center; align-content: center; justify-content: flex-start; flex-wrap: nowrap; }
+.shp_footer .social-icons a { opacity: 0.8; margin: 5px; }
+.shp_footer .social-icons a:first-child { margin-left: 0; }
+.shp_footer .social-icons a:hover { opacity: 1; }
+.shp_footer .social-icons a img { border: none; width: 30px; }
+/* basic form styles */
+.shp_footer form { padding-bottom: 30px; position: relative; display: block; }
+.shp_footer form .fieldset { display: flex; align-items: center; align-content: center; flex-wrap: nowrap; min-width: 0; }
+.shp_footer form .form-protection { display: none; }
+.shp_footer form input, .shp_footer form button { font-family: 'Source Sans Pro', sans-serif; font-size: 16px; line-height: 20px; font-weight: 400; border-radius: 5px !important; padding: 0 10px; outline: none; height: 42px; margin: 0; box-shadow: none; text-transform: none; width: auto; }
+.shp_footer form .footer-privacy-policy { font-size: 12px; margin: 8px 0 0; padding: 0; line-height: 15px; color: #1f1f1f; }
+.shp_footer form .footer-privacy-policy a { font-size: 12px; }
+/* try us form */
+.shp_footer .shp_footer-try-us { padding: 10px 0; font-size: 15px; background: #f6f6f6; text-align: center; }
+.shp_footer form.shp_footer-try-us-form .fieldset { margin: 0 auto; padding: 10px; background: #fff; border: 1px solid #e7e7e7; border-radius: 5px; justify-content: center; width: -moz-fit-content; width: fit-content; display: table; }
+.shp_footer form.shp_footer-try-us-form input, .shp_footer form.shp_footer-try-us-form button { height: 50px; }
+.shp_footer form.shp_footer-try-us-form input[type="email"] { background: #fff;  color: #1f1f1f; border: 1px solid transparent; min-width: 400px; font-size: 16px; }
+.shp_footer form.shp_footer-try-us-form button[type="submit"] { background: #f7a12b; color: #fff; border: 1px solid #f7a12b; cursor: pointer; white-space: nowrap; margin: 0; text-transform: uppercase; margin: 0 0 0 5px; font-size: 12px; line-height: 16px; }
+.shp_footer form.shp_footer-try-us-form button[type="submit"] strong { font-size: 18px; }
+/* newsletter form */
+.shp_footer form.newsletter-form .fieldset { border: none; padding: 0; justify-content: flex-start; width: 100%; }
+.shp_footer form.newsletter-form input[type="email"] { background: #fff;  color: #1f1f1f; border: 1px solid #e7e7e7; min-width: 10%; }
+.shp_footer form.newsletter-form button[type="submit"] { background: #f7a12b; color: #fff; border: 1px solid #f7a12b; cursor: pointer; white-space: nowrap; margin: 0 0 0 5px; }
+/* terms */
+.shp_footer .shp_footer-terms { display: flex; flex-wrap: wrap; }
+.shp_footer-terms-bottom { display: block; width: 100%; }
+/* copyright */
+.shp_footer .shp_footer-copyright { border-top: 1px solid #e7e7e7; padding: 10px 0 20px; color: #999999; font-weight: 300; font-size: 15px; }
+.shp_footer .shp_footer-copyright img { vertical-align: middle; }
+/* cookies */
+.shp_footer-cookies { position: fixed; z-index: 10000001; top: auto; bottom: 0; left: 0; right: 0; background-color: #FDE5C4; color: #000; padding: 8px 0; text-align: center; font-size: 12px; opacity: 0; }
+.shp_footer-cookies form { padding: 0; margin: 0; }
+.shp_footer-cookies form button { display: inline-block; color: #fff; background: #f7a12b; border: 1px solid #fb0; padding: 0 10px; margin: 0 0 0 5px; height: 18px; font-size: 12px; font-weight: 400; line-height: 16px; text-align: center; text-decoration: none; text-transform: uppercase; white-space: normal; cursor: pointer; outline: 0; }
+.shp_footer-cookies form button:hover { background: #f37e00; }
+.shp_footer-cookies a { color: #1f1f1f; text-decoration: underline; }
+.shp_footer-cookies a:hover { color: #1f1f1f; text-decoration: none; }
+/* footer form notice */
+#shp_footer-notice { position: fixed; top: 20%; width: 80%; display: block; color: #000; margin: 0 10%; z-index: 1000; }
+#shp_footer-notice > div { padding: 10px; margin: 10px; }
+#shp_footer-notice .notice { border: #138700 solid 1px; background-color: #e3f2e1; }
+#shp_footer-notice .warning { border: #000 solid 1px; background-color: #f8f9c1; }
+#shp_footer-notice .error { border: #c30f18 solid 1px; background-color: #f8e3e2; }
+
+/* media styles */
+@media (min-width: 768px) {
+    .shp_footer .shp_footer-description { order: 1; flex-grow: 2; }
+    .shp_footer .shp_footer-information-links { order: 2; flex-grow: 1; }
+    .shp_footer .shp_footer-recommended-links { order: 3; flex-grow: 1; }
+    .shp_footer .shp_footer-newsletter { order: 4; flex-grow: 3; }
+}
+@media (max-width: 991px) {
+    .shp_footer .shp_row { flex-flow: row wrap; }
+    .shp_footer .hide-sm { display: none; }
+    .shp_footer .shp_footer-recommended-links { display: none; }
+    .shp_footer form { padding-bottom: 10px; }
+    .shp_footer-cookies form { padding-bottom: 0; }
+    .shp_footer .social-icons { padding-bottom: 0; }
+    .shp_footer .shp_footer-copyright .shp_col { flex-basis: 100%; width: 100%; padding: 0; }
+    .shp_footer .shp_footer-copyright .text-right { text-align: center; }
+}
+@media (max-width: 767px) {
+    .shp_footer h2 { padding: 0 0 20px; }
+    .shp_footer ul { display: flex; flex-flow: row wrap; }
+    .shp_footer ul li { padding: 5px 25px 5px 0; }
+    .shp_footer .shp_row { flex-flow: column wrap; margin-left: 0; margin-right: 0; }
+    .shp_footer .shp_col { padding-left: 0; padding-right: 0; }
+    .shp_footer .shp_footer-main .shp_col { padding-top: 15px; }
+    .shp_footer .shp_footer-information-links { order: 3; }
+    .shp_footer form.shp_footer-try-us-form .fieldset { flex-flow: column; width: 100%; }
+    .shp_footer form.shp_footer-try-us-form input, .shp_footer form.shp_footer-try-us-form button { width: 100%; text-align: center; }
+    .shp_footer form.shp_footer-try-us-form button[type="submit"] { margin: 5px 0 0; }
+    .shp_footer form.shp_footer-try-us-form input[type="email"] { min-width: 200px; }
+    .shp_footer-cookies { font-size: 10px; padding: 5px 0; }
+    .shp_footer-cookies form button { font-size: 10px; }
+    .shp_footer form.newsletter-form .fieldset { flex-wrap: wrap; }
+    .shp_footer form.newsletter-form input[type="email"] { flex-basis: 100%; text-align: center; }
+    .shp_footer form.newsletter-form button[type="submit"] { flex-basis: 100%; margin: 5px 0 0; }
+    .shp_footer .mb-15{ margin-bottom: 15px; }
+}
+</style>
+<footer class="shp_footer">
+    <div class="shp_footer-try-us">
+        <div class="shp_container">
+            <div class="shp_row">
+                <div class="shp_col">
+                <h2>Create your own test e-shop on Shoptet with no commitment</h2>
+                    <form action="https://www.shoptet.cz/projectAction/ShoptetTrial/CreateTrialProject/" method="post" class="shp_footer-try-us-form" name="shp_footer-try-us-form">
+                        <div>
+                            <input type="hidden" name="formId" value="2">
+                            <input type="hidden" name="language" value="cs">
+                            <input type="hidden" name="googleAnalyticsClientId" class="js-shp_footer-googleAnalyticsClientId" value="" />
+                            <span class="form-protection">Do not fill out this field:</span>
+                            <input type="text" name="surname" class="form-protection" autocomplete="off">
+                        </div>
+                         <div class="fieldset">
+                            <input type="email" name="email" placeholder="Enter e-mail" class="shp_footer-try-us-form-email" required>
+                            <button type="submit"><strong>Try for free</strong></button>
+                        </div>
+                        <div class="footer-privacy-policy">By submitting an e-mail you agree to the <a href="https://www.shoptet.cz/podminky-ochrany-osobnich-udaju/" target="_blank">privacy policy</a> and the <a href="https://www.shoptet.cz/obchodni-podminky/" target="_blank">general terms and conditions</a></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+            <div class="shp_footer-main shp_container">
+            <div class="shp_row">
+                <div class="shp_col shp_footer-description">
+                    <a href="https://www.shoptet.cz/" target="_blank"><img src="https://cdn.myshoptet.com/tpl/f6163e58/shoptet_responsive/master/templates/frontend_templates/shoptet_responsive/img/logo.svg" width="200"></a>
+<p>We are presenting detailed technical specifications to maintain Shoptet data and to provide new services for Shoptet eshops.</p>
+                </div>
+                <div class="shp_col shp_footer-information-links">
+                    <h3>Information</h3>
+                    <ul>
+                                                    <li><a href="/news/">News</a></li>
+                                                    <li><a href="/shoptet-api/">Shoptet API</a></li>
+                                                    <li><a href="/shoptet-tools/">Shoptet Tools</a></li>
+                                                    <li><a href="/contact/">Contact</a></li>
+                                            </ul>
+                </div>
+                <div class="shp_col shp_footer-recommended-links">
+                    <h3>Shoptet Group</h3>
+                    <ul>
+                                                    <li><a href="https://www.shoptet.cz/" target="_blank">Shoptet</a></li>
+                                                    <li><a href="https://www.shoptetpremium.cz/" target="_blank">Shoptet Premium</a></li>
+                                                    <li><a href="https://www.shoptet.cz/shoptet-univerzita/" target="_blank">Shoptet University</a></li>
+                                                    <li><a href="https://podpora.shoptet.cz/" target="_blank">Shoptet Podpora</a></li>
+                                                    <li><a href="https://www.facebook.com/groups/shoptetporadna/" target="_blank">Shoptet Poradna</a></li>
+                                                    <li><a href="https://doplnky.shoptet.cz/" target="_blank">Shoptet Doplňky</a></li>
+                                                    <li><a href="https://partneri.shoptet.cz/" target="_blank">Shoptet Partneři</a></li>
+                                                    <li><a href="https://www.shoptetstatus.com/" target="_blank">Shoptet Status</a></li>
+                                                    <li><a href="https://blog.shoptet.cz/" target="_blank">Shoptet Blog</a></li>
+                                                    <li><a href="https://www.mujprvnieshop.cz/" target="_blank">Můj první e-shop</a></li>
+                                                    <li><a href="https://www.youtube.com/playlist?list=PLVWymy7oK7490JlrI3htF8MKy7Zqrda2d" target="_blank">Shoptet.TV</a></li>
+                                                    <li><a href="https://www.obchodiste.cz/" target="_blank">Obchodiště</a></li>
+                                                    <li><a href="https://www.eshopiste.cz/" target="_blank">Eshopiště</a></li>
+                                                    <li><a href="https://ceska-ecommerce.cz/" target="_blank">Česká e-commerce</a></li>
+                                            </ul>
+                </div>
+                <div class="shp_col shp_footer-newsletter">
+                    <h3>News subscription</h3>
+                    <p>1-2 times a month we will keep you posted on industry news</p>
+                    <form action="https://www.shoptet.cz/action/MailForm/subscribeToNewsletters/" method="post" class="newsletter-form js-shp-newsletter-subscription" name="newsletter-form" data-testid="formNewsletter">
+                        <div>
+                            <input type="hidden" name="controllerReferer" value="" class="shp_newsletter-controllerReferer" />
+                            <input type="hidden" name="controllerRefererWithMessages" value="true" class="shp_newsletter-controllerRefererWithMessages" />
+                            <input type="hidden" name="formId" value="2">
+                            <span class="form-protection">Do not fill out this field:</span>
+                            <input type="text" name="surname" class="form-protection" autocomplete="off">
+                        </div>
+                        <div class="fieldset">
+                            <input type="email" name="email" placeholder="Enter e-mail" data-testid="inputEmail" required>
+                            <button type="submit">Subscribe</button>
+                        </div>
+                        <div class="footer-privacy-policy">By submitting an e-mail you agree to the <a href="https://www.shoptet.cz/podminky-ochrany-osobnich-udaju/" target="_blank">personal data protection conditions</a></div>
+                    </form>
+                    <h3>Where to find us</h3>
+                    <div class="social-icons" itemscope itemtype="http://schema.org/Organization">
+                        <meta itemprop="name" content="Shoptet, a.s." />
+                        <div itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
+                            <meta itemprop="streetAddress" content="Dvořeckého 628/8" />
+                            <meta itemprop="postalCode" content="169 00">
+                            <meta itemprop="addressLocality" content="Praha 6, Česká republika">
+                        </div>
+                        <meta itemprop="telephone" content="+420 604 600 444" />
+                        <meta itemprop="email" content="info@shoptet.cz" />
+                        <link itemprop="url" href="https://www.shoptet.cz/">
+                                                    <a itemprop="sameAs" href="https://www.facebook.com/shoptet/" target="_blank"><img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-facebook.svg" alt=""></a>
+                            <a itemprop="sameAs" href="https://twitter.com/shoptet" target="_blank"><img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-x.svg" alt=""></a>
+                            <a itemprop="sameAs" href="https://www.instagram.com/shoptet.cz/" target="_blank"><img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-instagram.svg" alt=""></a>
+                            <a itemprop="sameAs" href="https://www.youtube.com/channel/UCrmFOFsJ7Nd3viUS_Kf5jsg" target="_blank"><img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-youtube.svg" alt=""></a>
+                            <a itemprop="sameAs" href="https://cz.linkedin.com/company/shoptet" target="_blank"><img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-linkedin.svg" alt=""></a>
+                                            </div>
+                    <p class="shp_footer-terms">
+                                                    <span class="mr-15"><a href="https://www.shoptet.cz/obchodni-podminky/" target="_blank" >Terms and conditions</a></span>
+                                                    <span class="mr-15"><a href="https://www.shoptet.cz/podminky-ochrany-osobnich-udaju/" target="_blank" >Personal data protection conditions</a></span>
+                                                    <span class="mr-15"><a href="https://www.shoptet.cz/zasady-pouzivani-souboru-cookies/" target="_blank" >Cookies policy</a></span>
+                                                    <span class="mr-15"><a href="https://www.iubenda.com/whistleblowing-form/cs/b7992e75-b226-478e-aa7c-8510d99b53eb"  class="iubenda-nostyle iubenda-embed iubenda-noiframe">Whistleblower Form</a></span>
+                                            </p>
+
+                </div>
+            </div>
+        </div>
+        <div class="shp_footer-copyright">
+            <div class="shp_container">
+                <div class="shp_row">
+                    <div class="shp_col hide-sm">&nbsp;</div>
+                    <div class="shp_col text-center">with&nbsp;<img src="https://cdn.myshoptet.com/prj/dist/master/cms/templates/frontend_templates/shoptet_responsive/img/ico-hearth.png" width="17" height="14" alt="_LOVE_INSTRUMENTAL">&nbsp;Shoptet</div>
+                    <div class="shp_col text-right">2008–2026 &copy; Shoptet, a.s. All rights reserved</div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+        
+            /* SET TRY US FORM DATALAYER */
+            if (typeof dataLayer === 'undefined') {
+                var dataLayer = [];
+            }
+            /* !SET TRY US FORM DATALAYER */
+
+            (function() {
+
+                /* TRY US FORM */
+                var forms = document.querySelectorAll(".shp_footer-try-us-form");
+                for (var i = 0; i < forms.length; i++) {
+                    forms[i].addEventListener('submit', function(e) {
+                        var email = e.target.querySelector(".shp_footer-try-us-form-email").value;
+                        if ((email.length > 0) && emailIsValid(email)) {
+                            if (email.indexOf('email@shoptet.') !== -1) {
+                                e.preventDefault();
+                                alert('Tento e-mail slouží jako příklad.');
+                                e.target.querySelector(".shp_footer-try-us-form-email").focus();
+                            }
+                            dataLayer.push({'event': 'vyzkousetZdarma'});
+                            setGoogleAnalyticsClientId(e.target.querySelector('.js-shp_footer-googleAnalyticsClientId'));
+                        } else {
+                            e.preventDefault();
+                            alert('The email is not valid. Valid format is eg email@shoptet.cz.');
+                            e.target.querySelector(".shp_footer-try-us-form-email").focus();
+                        }
+                    });
+                }
+                /* !TRY US FORM */
+
+                function emailIsValid(email) {
+                    var emailRegEx = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+                    return emailRegEx.test(email);
+                }
+
+                /* NEWSLETTER FORM */
+                var newsletterForms = document.querySelectorAll('.js-shp-newsletter-subscription');
+                for (var i = 0; i < newsletterForms.length; i++) {
+                    newsletterForms[i].addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        var form = e.target;
+                        var email = form.querySelector('input[name="email"]').value;
+                        if (email.length > 0 && emailIsValid(email)) {
+                            if (email.indexOf('email@shoptet.') !== -1) {
+                                alert('Tento e-mail slouží jako příklad.');
+                                form.querySelector('input[name="email"]').focus();
+                                return false;
+                            }
+                            if (window.google_tag_manager) {
+                                var submitted = false;
+                                var checkSubmit = function() {
+                                    if (!submitted) {
+                                        submitted = true;
+                                        form.submit();
+                                    }
+                                }
+                                dataLayer.push({
+                                    'event': 'newsletter',
+                                    'eventCallback': checkSubmit
+                                });
+                                setTimeout(checkSubmit, 2000);
+                            } else {
+                                form.submit();
+                            }
+                        } else {
+                            alert('The email is not valid. Valid format is eg email@shoptet.cz.');
+                            form.querySelector('input[name="email"]').focus();
+                            return false;
+                        }
+                    });
+                }
+
+                var refererInputs = document.querySelectorAll('.shp_newsletter-controllerReferer');
+                for (var i = 0; i < refererInputs.length; i++) {
+                    refererInputs[i].value = [location.protocol, '//', location.host, location.pathname].join('');
+                }
+                /* ! NEWSLETTER FORM */
+
+                /* DISPLAY NOTICE MESSAGE IF ANY */
+                var queryString = getRequests();
+                var requestTypes = new Array("notice", "warning", "error");
+                var notices = '';
+                for (var i = 0; i < requestTypes.length; i++) {
+                    var notice = queryString[requestTypes[i]];
+                    if (notice && notice !== 'undefined') {
+                        notices += '<div class="' + requestTypes[i] + '">' + escapeHTML(notice) + '</div>';
+                    }
+                }
+                if (notices !== '') {
+                    noticeHolder = document.createElement('div');
+                    noticeHolder.setAttribute("id", "shp_footer-notice");
+                    noticeHolder.innerHTML = notices;
+                    document.body.appendChild(noticeHolder);
+
+                    setTimeout(function() {
+                        fadeOutAndRemove("shp_footer-notice");
+                    }, 3000);
+
+                    removeRequests(requestTypes);
+                }
+
+                function decodeUrlParameter(str) {
+                    return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+                }
+
+                function escapeHTML(html) {
+                    return document.createElement('div').appendChild(document.createTextNode(html)).parentNode.innerHTML;
+                }
+
+                function getRequests() {
+                    var s1 = location.search.substring(1, location.search.length).split('&'),
+                        r = {}, s2, i;
+                    for (i = 0; i < s1.length; i += 1) {
+                        s2 = s1[i].split('=');
+                        try {
+                            r[decodeURIComponent(s2[0]).toLowerCase()] = decodeUrlParameter(s2[1]);
+                        } catch(e) {
+                            console.error(e);
+                        }
+
+                    }
+                    return r;
+                }
+
+                function removeRequests(requestTypes) {
+                    var s1 = location.search.substring(1, location.search.length).split('&'),
+                        r = {}, s2, i, pre;
+                    for (i = 0; i < s1.length; i += 1) {
+                        if(i > 0) { pre = '&'; } else { pre = ''; }
+                        s2 = s1[i].split('=');
+                        r[s2[0]] = pre + s1[i];
+                    }
+                    var locationSearchString = location.search;
+                    for (i = 0; i < requestTypes.length; i++) {
+                        locationSearchString = locationSearchString.replace(r[requestTypes[i]], "");
+                    }
+                    if (locationSearchString == '?') { locationSearchString = ''; }
+                    var baseUrl = [location.protocol, '//', location.host, location.pathname].join('');
+                    window.history.replaceState({}, "", baseUrl + locationSearchString);
+                }
+                /* !DISPLAY NOTICE MESSAGE IF ANY */
+
+                function fadeOutAndRemove(elementID) {
+                    var fadeTarget = document.getElementById(elementID);
+                    var fadeEffect = setInterval(function () {
+                        if (!fadeTarget.style.opacity) {
+                            fadeTarget.style.opacity = 1;
+                        }
+                        if (fadeTarget.style.opacity < 0.1) {
+                            clearInterval(fadeEffect);
+                        } else {
+                            fadeTarget.style.opacity -= 0.1;
+                        }
+                    }, 100);
+                    setTimeout(function() {
+                        var deleteTarget = document.getElementById(elementID);
+                        deleteTarget.parentNode.removeChild(deleteTarget);
+                    }, 2000);
+                }
+
+                function setGoogleAnalyticsClientId(input) {
+                    if (window.location.hostname.indexOf('shoptet.') === -1
+                        || typeof ga !== 'function'
+                        || !input
+                    ) {
+                        return;
+                    }
+
+                    ga.getAll().forEach(function(tracker) {
+                        var clientId = tracker.get('clientId');
+                        if (clientId) {
+                            input.value = clientId;
+                        }
+                    });
+                }
+
+            })();
+        
+    </script>
+
+        <script type="text/javascript">
+        
+            (function (w,d) {var loader = function () {var s = d.createElement("script"), tag = d.getElementsByTagName("script")[0]; s.src="https://cdn.iubenda.com/iubenda.js"; tag.parentNode.insertBefore(s,tag);}; if(w.addEventListener){w.addEventListener("load", loader, false);}else if(w.attachEvent){w.attachEvent("onload", loader);}else{w.onload = loader;}})(window, document);
+        
+    </script>
+</footer>
+
+<script async src="https://cdn.hub-prod.team.blue/loader/widget-loader.js" data-email="" data-language="en"></script>
+</div>
+</body>
+</html>
+<!--
+Performance optimized by W3 Total Cache. Learn more: https://www.boldgrid.com/w3-total-cache/
+
+Page Caching using Disk: Enhanced (Page is 404) 
+
+Served from: developers.shoptet.com @ 2026-08-01 03:58:39 by W3 Total Cache
+-->

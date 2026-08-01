@@ -111,6 +111,13 @@ export default {
             return jsonResponse({ ok: true, count: body.customers.length });
         }
 
+        // === GET /v1/import/active ===
+        if (path === '/v1/import/active' && request.method === 'GET') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const version = await env.VIP_KV.get('active_customer_version');
+            return jsonResponse({ version });
+        }
+
         // === POST /v1/import/finish ===
         // Flips 'active_customer_version' to the new version — the atomic cutover.
         // Returns the previous active version so the caller can clean it up.

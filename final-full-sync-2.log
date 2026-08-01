@@ -1,0 +1,704 @@
+◇ injected env (5) from .env // tip: ⌘ suppress logs { quiet: true }
+=== SPUŠTĚNÍ OSTRÉ SYNCHRONIZACE (LIVE: Zápis povolen) ===
+
+
+=== SPUŠTĚNÍ SYNCHRONIZACE (DryRun: false) ===
+
+1. Stahování seznamu ceníků ze Shoptet API...
+2. Vytváření dynamické mapy ceníků v paměti...
+   Nalezeno 11 ceníků. Mapa inicializována.
+
+3. Stahování produktů ze základního ceníku (ID: 1)...
+ProductsReader: Stahování produktů pro ceník ID 1...
+[Paginator] Fetching /pricelists/1 - Stránka 1 / 167
+[Paginator] Fetching /pricelists/1 - Stránka 50 / 167
+[Paginator] Fetching /pricelists/1 - Stránka 100 / 167
+[Paginator] Fetching /pricelists/1 - Stránka 150 / 167
+[Paginator] Fetching /pricelists/1 - Stránka 167 / 167
+ProductsReader: Staženo 16624 produktů z ceníku ID 1.
+
+4. Stahování objednávek a výpočet obratu zákazníků...
+[CustomerAdapter] Stahuji seznam všech objednávek pro výpočet obratu...
+[Paginator] Fetching /orders - Stránka 1 / 3830
+[Paginator] Fetching /orders - Stránka 50 / 3830
+[Paginator] Fetching /orders - Stránka 100 / 3830
+[Paginator] Fetching /orders - Stránka 150 / 3830
+[Paginator] Fetching /orders - Stránka 200 / 3830
+[Paginator] Fetching /orders - Stránka 250 / 3830
+[Paginator] Fetching /orders - Stránka 300 / 3830
+[Paginator] Fetching /orders - Stránka 350 / 3830
+[Paginator] Fetching /orders - Stránka 400 / 3830
+[Paginator] Fetching /orders - Stránka 450 / 3830
+[Paginator] Fetching /orders - Stránka 500 / 3830
+[Paginator] Fetching /orders - Stránka 550 / 3830
+[Paginator] Fetching /orders - Stránka 600 / 3830
+[Paginator] Fetching /orders - Stránka 650 / 3830
+[Paginator] Fetching /orders - Stránka 700 / 3830
+[Paginator] Fetching /orders - Stránka 750 / 3830
+[Paginator] Fetching /orders - Stránka 800 / 3830
+[Paginator] Fetching /orders - Stránka 850 / 3830
+[Paginator] Fetching /orders - Stránka 900 / 3830
+[Paginator] Fetching /orders - Stránka 950 / 3830
+[Paginator] Fetching /orders - Stránka 1000 / 3830
+[Paginator] Fetching /orders - Stránka 1050 / 3830
+[Paginator] Fetching /orders - Stránka 1100 / 3830
+[Paginator] Fetching /orders - Stránka 1150 / 3830
+[Paginator] Fetching /orders - Stránka 1200 / 3830
+[Paginator] Fetching /orders - Stránka 1250 / 3830
+[Paginator] Fetching /orders - Stránka 1300 / 3830
+[Paginator] Fetching /orders - Stránka 1350 / 3830
+[Paginator] Fetching /orders - Stránka 1400 / 3830
+[Paginator] Fetching /orders - Stránka 1450 / 3830
+[Paginator] Fetching /orders - Stránka 1500 / 3830
+[Paginator] Fetching /orders - Stránka 1550 / 3830
+[Paginator] Fetching /orders - Stránka 1600 / 3830
+[Paginator] Fetching /orders - Stránka 1650 / 3830
+[Paginator] Fetching /orders - Stránka 1700 / 3830
+[Paginator] Fetching /orders - Stránka 1750 / 3830
+[Paginator] Fetching /orders - Stránka 1800 / 3830
+[Paginator] Fetching /orders - Stránka 1850 / 3830
+[Paginator] Fetching /orders - Stránka 1900 / 3830
+[Paginator] Fetching /orders - Stránka 1950 / 3830
+[Paginator] Fetching /orders - Stránka 2000 / 3830
+[Paginator] Fetching /orders - Stránka 2050 / 3830
+[Paginator] Fetching /orders - Stránka 2100 / 3830
+[Paginator] Fetching /orders - Stránka 2150 / 3830
+[Paginator] Fetching /orders - Stránka 2200 / 3830
+[Paginator] Fetching /orders - Stránka 2250 / 3830
+[Paginator] Fetching /orders - Stránka 2300 / 3830
+[Paginator] Fetching /orders - Stránka 2350 / 3830
+[Paginator] Fetching /orders - Stránka 2400 / 3830
+[Paginator] Fetching /orders - Stránka 2450 / 3830
+[Paginator] Fetching /orders - Stránka 2500 / 3830
+[Paginator] Fetching /orders - Stránka 2550 / 3830
+[Paginator] Fetching /orders - Stránka 2600 / 3830
+[Paginator] Fetching /orders - Stránka 2650 / 3830
+[Paginator] Fetching /orders - Stránka 2700 / 3830
+[Paginator] Fetching /orders - Stránka 2750 / 3830
+[Paginator] Fetching /orders - Stránka 2800 / 3830
+[Paginator] Fetching /orders - Stránka 2850 / 3830
+[Paginator] Fetching /orders - Stránka 2900 / 3830
+[Paginator] Fetching /orders - Stránka 2950 / 3830
+[Paginator] Fetching /orders - Stránka 3000 / 3830
+[Paginator] Fetching /orders - Stránka 3050 / 3830
+[Paginator] Fetching /orders - Stránka 3100 / 3830
+[Paginator] Fetching /orders - Stránka 3150 / 3830
+[Paginator] Fetching /orders - Stránka 3200 / 3830
+[Paginator] Fetching /orders - Stránka 3250 / 3830
+[Paginator] Fetching /orders - Stránka 3300 / 3830
+[Paginator] Fetching /orders - Stránka 3350 / 3830
+[Paginator] Fetching /orders - Stránka 3400 / 3830
+[Paginator] Fetching /orders - Stránka 3450 / 3830
+[Paginator] Fetching /orders - Stránka 3500 / 3830
+[Paginator] Fetching /orders - Stránka 3550 / 3830
+[Paginator] Fetching /orders - Stránka 3600 / 3830
+[Paginator] Fetching /orders - Stránka 3650 / 3830
+[Paginator] Fetching /orders - Stránka 3700 / 3830
+[Paginator] Fetching /orders - Stránka 3750 / 3830
+[Paginator] Fetching /orders - Stránka 3800 / 3830
+[Paginator] Fetching /orders - Stránka 3830 / 3830
+[CustomerAdapter] Zpracovávám 191489 objednávek...
+[CustomerAdapter] Stahuji detaily zákazníků pro zjištění aktuální skupiny...
+[Paginator] Fetching /customers - Stránka 1 / 479
+[Paginator] Fetching /customers - Stránka 50 / 479
+[Paginator] Fetching /customers - Stránka 100 / 479
+[Paginator] Fetching /customers - Stránka 150 / 479
+[Paginator] Fetching /customers - Stránka 200 / 479
+[Paginator] Fetching /customers - Stránka 250 / 479
+[Paginator] Fetching /customers - Stránka 300 / 479
+[Paginator] Fetching /customers - Stránka 350 / 479
+[Paginator] Fetching /customers - Stránka 400 / 479
+[Paginator] Fetching /customers - Stránka 450 / 479
+[Paginator] Fetching /customers - Stránka 479 / 479
+[CustomerAdapter] Zpracováno zákazníků: 100/47889
+[CustomerAdapter] Zpracováno zákazníků: 200/47889
+[CustomerAdapter] Zpracováno zákazníků: 300/47889
+[CustomerAdapter] Zpracováno zákazníků: 400/47889
+[CustomerAdapter] Zpracováno zákazníků: 500/47889
+[CustomerAdapter] Zpracováno zákazníků: 600/47889
+[CustomerAdapter] Zpracováno zákazníků: 700/47889
+[CustomerAdapter] Zpracováno zákazníků: 800/47889
+[CustomerAdapter] Zpracováno zákazníků: 900/47889
+[CustomerAdapter] Zpracováno zákazníků: 1000/47889
+[CustomerAdapter] Zpracováno zákazníků: 1100/47889
+[CustomerAdapter] Zpracováno zákazníků: 1200/47889
+[CustomerAdapter] Zpracováno zákazníků: 1300/47889
+[CustomerAdapter] Zpracováno zákazníků: 1400/47889
+[CustomerAdapter] Zpracováno zákazníků: 1500/47889
+[CustomerAdapter] Zpracováno zákazníků: 1600/47889
+[CustomerAdapter] Zpracováno zákazníků: 1700/47889
+[CustomerAdapter] Zpracováno zákazníků: 1800/47889
+[CustomerAdapter] Zpracováno zákazníků: 1900/47889
+[CustomerAdapter] Zpracováno zákazníků: 2000/47889
+[CustomerAdapter] Zpracováno zákazníků: 2100/47889
+[CustomerAdapter] Zpracováno zákazníků: 2200/47889
+[CustomerAdapter] Zpracováno zákazníků: 2300/47889
+[CustomerAdapter] Zpracováno zákazníků: 2400/47889
+[CustomerAdapter] Zpracováno zákazníků: 2500/47889
+[CustomerAdapter] Zpracováno zákazníků: 2600/47889
+[CustomerAdapter] Zpracováno zákazníků: 2700/47889
+[CustomerAdapter] Zpracováno zákazníků: 2800/47889
+[CustomerAdapter] Zpracováno zákazníků: 2900/47889
+[CustomerAdapter] Zpracováno zákazníků: 3000/47889
+[CustomerAdapter] Zpracováno zákazníků: 3100/47889
+[CustomerAdapter] Zpracováno zákazníků: 3200/47889
+[CustomerAdapter] Zpracováno zákazníků: 3300/47889
+[CustomerAdapter] Zpracováno zákazníků: 3400/47889
+[CustomerAdapter] Zpracováno zákazníků: 3500/47889
+[CustomerAdapter] Zpracováno zákazníků: 3600/47889
+[CustomerAdapter] Zpracováno zákazníků: 3700/47889
+[CustomerAdapter] Zpracováno zákazníků: 3800/47889
+[CustomerAdapter] Zpracováno zákazníků: 3900/47889
+[CustomerAdapter] Zpracováno zákazníků: 4000/47889
+[CustomerAdapter] Zpracováno zákazníků: 4100/47889
+[CustomerAdapter] Zpracováno zákazníků: 4200/47889
+[CustomerAdapter] Zpracováno zákazníků: 4300/47889
+[CustomerAdapter] Zpracováno zákazníků: 4400/47889
+[CustomerAdapter] Zpracováno zákazníků: 4500/47889
+[CustomerAdapter] Zpracováno zákazníků: 4600/47889
+[CustomerAdapter] Zpracováno zákazníků: 4700/47889
+[CustomerAdapter] Zpracováno zákazníků: 4800/47889
+[CustomerAdapter] Zpracováno zákazníků: 4900/47889
+[CustomerAdapter] Zpracováno zákazníků: 5000/47889
+[CustomerAdapter] Zpracováno zákazníků: 5100/47889
+[CustomerAdapter] Zpracováno zákazníků: 5200/47889
+[CustomerAdapter] Zpracováno zákazníků: 5300/47889
+[CustomerAdapter] Zpracováno zákazníků: 5400/47889
+[CustomerAdapter] Zpracováno zákazníků: 5500/47889
+[CustomerAdapter] Zpracováno zákazníků: 5600/47889
+[CustomerAdapter] Zpracováno zákazníků: 5700/47889
+[CustomerAdapter] Zpracováno zákazníků: 5800/47889
+[CustomerAdapter] Zpracováno zákazníků: 5900/47889
+[CustomerAdapter] Zpracováno zákazníků: 6000/47889
+[CustomerAdapter] Zpracováno zákazníků: 6100/47889
+[CustomerAdapter] Zpracováno zákazníků: 6200/47889
+[CustomerAdapter] Zpracováno zákazníků: 6300/47889
+[CustomerAdapter] Zpracováno zákazníků: 6400/47889
+[CustomerAdapter] Zpracováno zákazníků: 6500/47889
+[CustomerAdapter] Zpracováno zákazníků: 6600/47889
+[CustomerAdapter] Zpracováno zákazníků: 6700/47889
+[CustomerAdapter] Zpracováno zákazníků: 6800/47889
+[CustomerAdapter] Zpracováno zákazníků: 6900/47889
+[CustomerAdapter] Zpracováno zákazníků: 7000/47889
+[CustomerAdapter] Zpracováno zákazníků: 7100/47889
+[CustomerAdapter] Zpracováno zákazníků: 7200/47889
+[CustomerAdapter] Zpracováno zákazníků: 7300/47889
+[CustomerAdapter] Zpracováno zákazníků: 7400/47889
+[CustomerAdapter] Zpracováno zákazníků: 7500/47889
+[CustomerAdapter] Zpracováno zákazníků: 7600/47889
+[CustomerAdapter] Zpracováno zákazníků: 7700/47889
+[CustomerAdapter] Zpracováno zákazníků: 7800/47889
+[CustomerAdapter] Zpracováno zákazníků: 7900/47889
+[CustomerAdapter] Zpracováno zákazníků: 8000/47889
+[CustomerAdapter] Zpracováno zákazníků: 8100/47889
+[CustomerAdapter] Zpracováno zákazníků: 8200/47889
+[CustomerAdapter] Zpracováno zákazníků: 8300/47889
+[CustomerAdapter] Zpracováno zákazníků: 8400/47889
+[CustomerAdapter] Zpracováno zákazníků: 8500/47889
+[CustomerAdapter] Zpracováno zákazníků: 8600/47889
+[CustomerAdapter] Zpracováno zákazníků: 8700/47889
+[CustomerAdapter] Zpracováno zákazníků: 8800/47889
+[CustomerAdapter] Zpracováno zákazníků: 8900/47889
+[CustomerAdapter] Zpracováno zákazníků: 9000/47889
+[CustomerAdapter] Zpracováno zákazníků: 9100/47889
+[CustomerAdapter] Zpracováno zákazníků: 9200/47889
+[CustomerAdapter] Zpracováno zákazníků: 9300/47889
+[CustomerAdapter] Zpracováno zákazníků: 9400/47889
+[CustomerAdapter] Zpracováno zákazníků: 9500/47889
+[CustomerAdapter] Zpracováno zákazníků: 9600/47889
+[CustomerAdapter] Zpracováno zákazníků: 9700/47889
+[CustomerAdapter] Zpracováno zákazníků: 9800/47889
+[CustomerAdapter] Zpracováno zákazníků: 9900/47889
+[CustomerAdapter] Zpracováno zákazníků: 10000/47889
+[CustomerAdapter] Zpracováno zákazníků: 10100/47889
+[CustomerAdapter] Zpracováno zákazníků: 10200/47889
+[CustomerAdapter] Zpracováno zákazníků: 10300/47889
+[CustomerAdapter] Zpracováno zákazníků: 10400/47889
+[CustomerAdapter] Zpracováno zákazníků: 10500/47889
+[CustomerAdapter] Zpracováno zákazníků: 10600/47889
+[CustomerAdapter] Zpracováno zákazníků: 10700/47889
+[CustomerAdapter] Zpracováno zákazníků: 10800/47889
+[CustomerAdapter] Zpracováno zákazníků: 10900/47889
+[CustomerAdapter] Zpracováno zákazníků: 11000/47889
+[CustomerAdapter] Zpracováno zákazníků: 11100/47889
+[CustomerAdapter] Zpracováno zákazníků: 11200/47889
+[CustomerAdapter] Zpracováno zákazníků: 11300/47889
+[CustomerAdapter] Zpracováno zákazníků: 11400/47889
+[CustomerAdapter] Zpracováno zákazníků: 11500/47889
+[CustomerAdapter] Zpracováno zákazníků: 11600/47889
+[CustomerAdapter] Zpracováno zákazníků: 11700/47889
+[CustomerAdapter] Zpracováno zákazníků: 11800/47889
+[CustomerAdapter] Zpracováno zákazníků: 11900/47889
+[CustomerAdapter] Zpracováno zákazníků: 12000/47889
+[CustomerAdapter] Zpracováno zákazníků: 12100/47889
+[CustomerAdapter] Zpracováno zákazníků: 12200/47889
+[CustomerAdapter] Zpracováno zákazníků: 12300/47889
+[CustomerAdapter] Zpracováno zákazníků: 12400/47889
+[CustomerAdapter] Zpracováno zákazníků: 12500/47889
+[CustomerAdapter] Zpracováno zákazníků: 12600/47889
+[CustomerAdapter] Zpracováno zákazníků: 12700/47889
+[CustomerAdapter] Zpracováno zákazníků: 12800/47889
+[CustomerAdapter] Zpracováno zákazníků: 12900/47889
+[CustomerAdapter] Zpracováno zákazníků: 13000/47889
+[CustomerAdapter] Zpracováno zákazníků: 13100/47889
+[CustomerAdapter] Zpracováno zákazníků: 13200/47889
+[CustomerAdapter] Zpracováno zákazníků: 13300/47889
+[CustomerAdapter] Zpracováno zákazníků: 13400/47889
+[CustomerAdapter] Zpracováno zákazníků: 13500/47889
+[CustomerAdapter] Zpracováno zákazníků: 13600/47889
+[CustomerAdapter] Zpracováno zákazníků: 13700/47889
+[CustomerAdapter] Zpracováno zákazníků: 13800/47889
+[CustomerAdapter] Zpracováno zákazníků: 13900/47889
+[CustomerAdapter] Zpracováno zákazníků: 14000/47889
+[CustomerAdapter] Zpracováno zákazníků: 14100/47889
+[CustomerAdapter] Zpracováno zákazníků: 14200/47889
+[CustomerAdapter] Zpracováno zákazníků: 14300/47889
+[CustomerAdapter] Zpracováno zákazníků: 14400/47889
+[CustomerAdapter] Zpracováno zákazníků: 14500/47889
+[CustomerAdapter] Zpracováno zákazníků: 14600/47889
+[CustomerAdapter] Zpracováno zákazníků: 14700/47889
+[CustomerAdapter] Zpracováno zákazníků: 14800/47889
+[CustomerAdapter] Zpracováno zákazníků: 14900/47889
+[CustomerAdapter] Zpracováno zákazníků: 15000/47889
+[CustomerAdapter] Zpracováno zákazníků: 15100/47889
+[CustomerAdapter] Zpracováno zákazníků: 15200/47889
+[CustomerAdapter] Zpracováno zákazníků: 15300/47889
+[CustomerAdapter] Zpracováno zákazníků: 15400/47889
+[CustomerAdapter] Zpracováno zákazníků: 15500/47889
+[CustomerAdapter] Zpracováno zákazníků: 15600/47889
+[CustomerAdapter] Zpracováno zákazníků: 15700/47889
+[CustomerAdapter] Zpracováno zákazníků: 15800/47889
+[CustomerAdapter] Zpracováno zákazníků: 15900/47889
+[CustomerAdapter] Zpracováno zákazníků: 16000/47889
+[CustomerAdapter] Zpracováno zákazníků: 16100/47889
+[CustomerAdapter] Zpracováno zákazníků: 16200/47889
+[CustomerAdapter] Zpracováno zákazníků: 16300/47889
+[CustomerAdapter] Zpracováno zákazníků: 16400/47889
+[CustomerAdapter] Zpracováno zákazníků: 16500/47889
+[CustomerAdapter] Zpracováno zákazníků: 16600/47889
+[CustomerAdapter] Zpracováno zákazníků: 16700/47889
+[CustomerAdapter] Zpracováno zákazníků: 16800/47889
+[CustomerAdapter] Zpracováno zákazníků: 16900/47889
+[CustomerAdapter] Zpracováno zákazníků: 17000/47889
+[CustomerAdapter] Zpracováno zákazníků: 17100/47889
+[CustomerAdapter] Zpracováno zákazníků: 17200/47889
+[CustomerAdapter] Zpracováno zákazníků: 17300/47889
+[CustomerAdapter] Zpracováno zákazníků: 17400/47889
+[CustomerAdapter] Zpracováno zákazníků: 17500/47889
+[CustomerAdapter] Zpracováno zákazníků: 17600/47889
+[CustomerAdapter] Zpracováno zákazníků: 17700/47889
+[CustomerAdapter] Zpracováno zákazníků: 17800/47889
+[CustomerAdapter] Zpracováno zákazníků: 17900/47889
+[CustomerAdapter] Zpracováno zákazníků: 18000/47889
+[CustomerAdapter] Zpracováno zákazníků: 18100/47889
+[CustomerAdapter] Zpracováno zákazníků: 18200/47889
+[CustomerAdapter] Zpracováno zákazníků: 18300/47889
+[CustomerAdapter] Zpracováno zákazníků: 18400/47889
+[CustomerAdapter] Zpracováno zákazníků: 18500/47889
+[CustomerAdapter] Zpracováno zákazníků: 18600/47889
+[CustomerAdapter] Zpracováno zákazníků: 18700/47889
+[CustomerAdapter] Zpracováno zákazníků: 18800/47889
+[CustomerAdapter] Zpracováno zákazníků: 18900/47889
+[CustomerAdapter] Zpracováno zákazníků: 19000/47889
+[CustomerAdapter] Zpracováno zákazníků: 19100/47889
+[CustomerAdapter] Zpracováno zákazníků: 19200/47889
+[CustomerAdapter] Zpracováno zákazníků: 19300/47889
+[CustomerAdapter] Zpracováno zákazníků: 19400/47889
+[CustomerAdapter] Zpracováno zákazníků: 19500/47889
+[CustomerAdapter] Zpracováno zákazníků: 19600/47889
+[CustomerAdapter] Zpracováno zákazníků: 19700/47889
+[CustomerAdapter] Zpracováno zákazníků: 19800/47889
+[CustomerAdapter] Zpracováno zákazníků: 19900/47889
+[CustomerAdapter] Zpracováno zákazníků: 20000/47889
+[CustomerAdapter] Zpracováno zákazníků: 20100/47889
+[CustomerAdapter] Zpracováno zákazníků: 20200/47889
+[CustomerAdapter] Zpracováno zákazníků: 20300/47889
+[CustomerAdapter] Zpracováno zákazníků: 20400/47889
+[CustomerAdapter] Zpracováno zákazníků: 20500/47889
+[CustomerAdapter] Zpracováno zákazníků: 20600/47889
+[CustomerAdapter] Zpracováno zákazníků: 20700/47889
+[CustomerAdapter] Zpracováno zákazníků: 20800/47889
+[CustomerAdapter] Zpracováno zákazníků: 20900/47889
+[CustomerAdapter] Zpracováno zákazníků: 21000/47889
+[CustomerAdapter] Zpracováno zákazníků: 21100/47889
+[CustomerAdapter] Zpracováno zákazníků: 21200/47889
+[CustomerAdapter] Zpracováno zákazníků: 21300/47889
+[CustomerAdapter] Zpracováno zákazníků: 21400/47889
+[CustomerAdapter] Zpracováno zákazníků: 21500/47889
+[CustomerAdapter] Zpracováno zákazníků: 21600/47889
+[CustomerAdapter] Zpracováno zákazníků: 21700/47889
+[CustomerAdapter] Zpracováno zákazníků: 21800/47889
+[CustomerAdapter] Zpracováno zákazníků: 21900/47889
+[CustomerAdapter] Zpracováno zákazníků: 22000/47889
+[CustomerAdapter] Zpracováno zákazníků: 22100/47889
+[CustomerAdapter] Zpracováno zákazníků: 22200/47889
+[CustomerAdapter] Zpracováno zákazníků: 22300/47889
+[CustomerAdapter] Zpracováno zákazníků: 22400/47889
+[CustomerAdapter] Zpracováno zákazníků: 22500/47889
+[CustomerAdapter] Zpracováno zákazníků: 22600/47889
+[CustomerAdapter] Zpracováno zákazníků: 22700/47889
+[CustomerAdapter] Zpracováno zákazníků: 22800/47889
+[CustomerAdapter] Zpracováno zákazníků: 22900/47889
+[CustomerAdapter] Zpracováno zákazníků: 23000/47889
+[CustomerAdapter] Zpracováno zákazníků: 23100/47889
+[CustomerAdapter] Zpracováno zákazníků: 23200/47889
+[CustomerAdapter] Zpracováno zákazníků: 23300/47889
+[CustomerAdapter] Zpracováno zákazníků: 23400/47889
+[CustomerAdapter] Zpracováno zákazníků: 23500/47889
+[CustomerAdapter] Zpracováno zákazníků: 23600/47889
+[CustomerAdapter] Zpracováno zákazníků: 23700/47889
+[CustomerAdapter] Zpracováno zákazníků: 23800/47889
+[CustomerAdapter] Zpracováno zákazníků: 23900/47889
+[CustomerAdapter] Zpracováno zákazníků: 24000/47889
+[CustomerAdapter] Zpracováno zákazníků: 24100/47889
+[CustomerAdapter] Zpracováno zákazníků: 24200/47889
+[CustomerAdapter] Zpracováno zákazníků: 24300/47889
+[CustomerAdapter] Zpracováno zákazníků: 24400/47889
+[CustomerAdapter] Zpracováno zákazníků: 24500/47889
+[CustomerAdapter] Zpracováno zákazníků: 24600/47889
+[CustomerAdapter] Zpracováno zákazníků: 24700/47889
+[CustomerAdapter] Zpracováno zákazníků: 24800/47889
+[CustomerAdapter] Zpracováno zákazníků: 24900/47889
+[CustomerAdapter] Zpracováno zákazníků: 25000/47889
+[CustomerAdapter] Zpracováno zákazníků: 25100/47889
+[CustomerAdapter] Zpracováno zákazníků: 25200/47889
+[CustomerAdapter] Zpracováno zákazníků: 25300/47889
+[CustomerAdapter] Zpracováno zákazníků: 25400/47889
+[CustomerAdapter] Zpracováno zákazníků: 25500/47889
+[CustomerAdapter] Zpracováno zákazníků: 25600/47889
+[CustomerAdapter] Zpracováno zákazníků: 25700/47889
+[CustomerAdapter] Zpracováno zákazníků: 25800/47889
+[CustomerAdapter] Zpracováno zákazníků: 25900/47889
+[CustomerAdapter] Zpracováno zákazníků: 26000/47889
+[CustomerAdapter] Zpracováno zákazníků: 26100/47889
+[CustomerAdapter] Zpracováno zákazníků: 26200/47889
+[CustomerAdapter] Zpracováno zákazníků: 26300/47889
+[CustomerAdapter] Zpracováno zákazníků: 26400/47889
+[CustomerAdapter] Zpracováno zákazníků: 26500/47889
+[CustomerAdapter] Zpracováno zákazníků: 26600/47889
+[CustomerAdapter] Zpracováno zákazníků: 26700/47889
+[CustomerAdapter] Zpracováno zákazníků: 26800/47889
+[CustomerAdapter] Zpracováno zákazníků: 26900/47889
+[CustomerAdapter] Zpracováno zákazníků: 27000/47889
+[CustomerAdapter] Zpracováno zákazníků: 27100/47889
+[CustomerAdapter] Zpracováno zákazníků: 27200/47889
+[CustomerAdapter] Zpracováno zákazníků: 27300/47889
+[CustomerAdapter] Zpracováno zákazníků: 27400/47889
+[CustomerAdapter] Zpracováno zákazníků: 27500/47889
+[CustomerAdapter] Zpracováno zákazníků: 27600/47889
+[CustomerAdapter] Zpracováno zákazníků: 27700/47889
+[CustomerAdapter] Zpracováno zákazníků: 27800/47889
+[CustomerAdapter] Zpracováno zákazníků: 27900/47889
+[CustomerAdapter] Zpracováno zákazníků: 28000/47889
+[CustomerAdapter] Zpracováno zákazníků: 28100/47889
+[CustomerAdapter] Zpracováno zákazníků: 28200/47889
+[CustomerAdapter] Zpracováno zákazníků: 28300/47889
+[CustomerAdapter] Zpracováno zákazníků: 28400/47889
+[CustomerAdapter] Zpracováno zákazníků: 28500/47889
+[CustomerAdapter] Zpracováno zákazníků: 28600/47889
+[CustomerAdapter] Zpracováno zákazníků: 28700/47889
+[CustomerAdapter] Zpracováno zákazníků: 28800/47889
+[CustomerAdapter] Zpracováno zákazníků: 28900/47889
+[CustomerAdapter] Zpracováno zákazníků: 29000/47889
+[CustomerAdapter] Zpracováno zákazníků: 29100/47889
+[CustomerAdapter] Zpracováno zákazníků: 29200/47889
+[CustomerAdapter] Zpracováno zákazníků: 29300/47889
+[CustomerAdapter] Zpracováno zákazníků: 29400/47889
+[CustomerAdapter] Zpracováno zákazníků: 29500/47889
+[CustomerAdapter] Zpracováno zákazníků: 29600/47889
+[CustomerAdapter] Zpracováno zákazníků: 29700/47889
+[CustomerAdapter] Zpracováno zákazníků: 29800/47889
+[CustomerAdapter] Zpracováno zákazníků: 29900/47889
+[CustomerAdapter] Zpracováno zákazníků: 30000/47889
+[CustomerAdapter] Zpracováno zákazníků: 30100/47889
+[CustomerAdapter] Zpracováno zákazníků: 30200/47889
+[CustomerAdapter] Zpracováno zákazníků: 30300/47889
+[CustomerAdapter] Zpracováno zákazníků: 30400/47889
+[CustomerAdapter] Zpracováno zákazníků: 30500/47889
+[CustomerAdapter] Zpracováno zákazníků: 30600/47889
+[CustomerAdapter] Zpracováno zákazníků: 30700/47889
+[CustomerAdapter] Zpracováno zákazníků: 30800/47889
+[CustomerAdapter] Zpracováno zákazníků: 30900/47889
+[CustomerAdapter] Zpracováno zákazníků: 31000/47889
+[CustomerAdapter] Zpracováno zákazníků: 31100/47889
+[CustomerAdapter] Zpracováno zákazníků: 31200/47889
+[CustomerAdapter] Zpracováno zákazníků: 31300/47889
+[CustomerAdapter] Zpracováno zákazníků: 31400/47889
+[CustomerAdapter] Zpracováno zákazníků: 31500/47889
+[CustomerAdapter] Zpracováno zákazníků: 31600/47889
+[CustomerAdapter] Zpracováno zákazníků: 31700/47889
+[CustomerAdapter] Zpracováno zákazníků: 31800/47889
+[CustomerAdapter] Zpracováno zákazníků: 31900/47889
+[CustomerAdapter] Zpracováno zákazníků: 32000/47889
+[CustomerAdapter] Zpracováno zákazníků: 32100/47889
+[CustomerAdapter] Zpracováno zákazníků: 32200/47889
+[CustomerAdapter] Zpracováno zákazníků: 32300/47889
+[CustomerAdapter] Zpracováno zákazníků: 32400/47889
+[CustomerAdapter] Zpracováno zákazníků: 32500/47889
+[CustomerAdapter] Zpracováno zákazníků: 32600/47889
+[CustomerAdapter] Zpracováno zákazníků: 32700/47889
+[CustomerAdapter] Zpracováno zákazníků: 32800/47889
+[CustomerAdapter] Zpracováno zákazníků: 32900/47889
+[CustomerAdapter] Zpracováno zákazníků: 33000/47889
+[CustomerAdapter] Zpracováno zákazníků: 33100/47889
+[CustomerAdapter] Zpracováno zákazníků: 33200/47889
+[CustomerAdapter] Zpracováno zákazníků: 33300/47889
+[CustomerAdapter] Zpracováno zákazníků: 33400/47889
+[CustomerAdapter] Zpracováno zákazníků: 33500/47889
+[CustomerAdapter] Zpracováno zákazníků: 33600/47889
+[CustomerAdapter] Zpracováno zákazníků: 33700/47889
+[CustomerAdapter] Zpracováno zákazníků: 33800/47889
+[CustomerAdapter] Zpracováno zákazníků: 33900/47889
+[CustomerAdapter] Zpracováno zákazníků: 34000/47889
+[CustomerAdapter] Zpracováno zákazníků: 34100/47889
+[CustomerAdapter] Zpracováno zákazníků: 34200/47889
+[CustomerAdapter] Zpracováno zákazníků: 34300/47889
+[CustomerAdapter] Zpracováno zákazníků: 34400/47889
+[CustomerAdapter] Zpracováno zákazníků: 34500/47889
+[CustomerAdapter] Zpracováno zákazníků: 34600/47889
+[CustomerAdapter] Zpracováno zákazníků: 34700/47889
+[CustomerAdapter] Zpracováno zákazníků: 34800/47889
+[CustomerAdapter] Zpracováno zákazníků: 34900/47889
+[CustomerAdapter] Zpracováno zákazníků: 35000/47889
+[CustomerAdapter] Zpracováno zákazníků: 35100/47889
+[CustomerAdapter] Zpracováno zákazníků: 35200/47889
+[CustomerAdapter] Zpracováno zákazníků: 35300/47889
+[CustomerAdapter] Zpracováno zákazníků: 35400/47889
+[CustomerAdapter] Zpracováno zákazníků: 35500/47889
+[CustomerAdapter] Zpracováno zákazníků: 35600/47889
+[CustomerAdapter] Zpracováno zákazníků: 35700/47889
+[CustomerAdapter] Zpracováno zákazníků: 35800/47889
+[CustomerAdapter] Zpracováno zákazníků: 35900/47889
+[CustomerAdapter] Zpracováno zákazníků: 36000/47889
+[CustomerAdapter] Zpracováno zákazníků: 36100/47889
+[CustomerAdapter] Zpracováno zákazníků: 36200/47889
+[CustomerAdapter] Zpracováno zákazníků: 36300/47889
+[CustomerAdapter] Zpracováno zákazníků: 36400/47889
+[CustomerAdapter] Zpracováno zákazníků: 36500/47889
+[CustomerAdapter] Zpracováno zákazníků: 36600/47889
+[CustomerAdapter] Zpracováno zákazníků: 36700/47889
+[CustomerAdapter] Zpracováno zákazníků: 36800/47889
+[CustomerAdapter] Zpracováno zákazníků: 36900/47889
+[CustomerAdapter] Zpracováno zákazníků: 37000/47889
+[CustomerAdapter] Zpracováno zákazníků: 37100/47889
+[CustomerAdapter] Zpracováno zákazníků: 37200/47889
+[CustomerAdapter] Zpracováno zákazníků: 37300/47889
+[CustomerAdapter] Zpracováno zákazníků: 37400/47889
+[CustomerAdapter] Zpracováno zákazníků: 37500/47889
+[CustomerAdapter] Zpracováno zákazníků: 37600/47889
+[CustomerAdapter] Zpracováno zákazníků: 37700/47889
+[CustomerAdapter] Zpracováno zákazníků: 37800/47889
+[CustomerAdapter] Zpracováno zákazníků: 37900/47889
+[CustomerAdapter] Zpracováno zákazníků: 38000/47889
+[CustomerAdapter] Zpracováno zákazníků: 38100/47889
+[CustomerAdapter] Zpracováno zákazníků: 38200/47889
+[CustomerAdapter] Zpracováno zákazníků: 38300/47889
+[CustomerAdapter] Zpracováno zákazníků: 38400/47889
+[CustomerAdapter] Zpracováno zákazníků: 38500/47889
+[CustomerAdapter] Zpracováno zákazníků: 38600/47889
+[CustomerAdapter] Zpracováno zákazníků: 38700/47889
+[CustomerAdapter] Zpracováno zákazníků: 38800/47889
+[CustomerAdapter] Zpracováno zákazníků: 38900/47889
+[CustomerAdapter] Zpracováno zákazníků: 39000/47889
+[CustomerAdapter] Zpracováno zákazníků: 39100/47889
+[CustomerAdapter] Zpracováno zákazníků: 39200/47889
+[CustomerAdapter] Zpracováno zákazníků: 39300/47889
+[CustomerAdapter] Zpracováno zákazníků: 39400/47889
+[CustomerAdapter] Zpracováno zákazníků: 39500/47889
+[CustomerAdapter] Zpracováno zákazníků: 39600/47889
+[CustomerAdapter] Zpracováno zákazníků: 39700/47889
+[CustomerAdapter] Zpracováno zákazníků: 39800/47889
+[CustomerAdapter] Zpracováno zákazníků: 39900/47889
+[CustomerAdapter] Zpracováno zákazníků: 40000/47889
+[CustomerAdapter] Zpracováno zákazníků: 40100/47889
+[CustomerAdapter] Zpracováno zákazníků: 40200/47889
+[CustomerAdapter] Zpracováno zákazníků: 40300/47889
+[CustomerAdapter] Zpracováno zákazníků: 40400/47889
+[CustomerAdapter] Zpracováno zákazníků: 40500/47889
+[CustomerAdapter] Zpracováno zákazníků: 40600/47889
+[CustomerAdapter] Zpracováno zákazníků: 40700/47889
+[CustomerAdapter] Zpracováno zákazníků: 40800/47889
+[CustomerAdapter] Zpracováno zákazníků: 40900/47889
+[CustomerAdapter] Zpracováno zákazníků: 41000/47889
+[CustomerAdapter] Zpracováno zákazníků: 41100/47889
+[CustomerAdapter] Zpracováno zákazníků: 41200/47889
+[CustomerAdapter] Zpracováno zákazníků: 41300/47889
+[CustomerAdapter] Zpracováno zákazníků: 41400/47889
+[CustomerAdapter] Zpracováno zákazníků: 41500/47889
+[CustomerAdapter] Zpracováno zákazníků: 41600/47889
+[CustomerAdapter] Zpracováno zákazníků: 41700/47889
+[CustomerAdapter] Zpracováno zákazníků: 41800/47889
+[CustomerAdapter] Zpracováno zákazníků: 41900/47889
+[CustomerAdapter] Zpracováno zákazníků: 42000/47889
+[CustomerAdapter] Zpracováno zákazníků: 42100/47889
+[CustomerAdapter] Zpracováno zákazníků: 42200/47889
+[CustomerAdapter] Zpracováno zákazníků: 42300/47889
+[CustomerAdapter] Zpracováno zákazníků: 42400/47889
+[CustomerAdapter] Zpracováno zákazníků: 42500/47889
+[CustomerAdapter] Zpracováno zákazníků: 42600/47889
+[CustomerAdapter] Zpracováno zákazníků: 42700/47889
+[CustomerAdapter] Zpracováno zákazníků: 42800/47889
+[CustomerAdapter] Zpracováno zákazníků: 42900/47889
+[CustomerAdapter] Zpracováno zákazníků: 43000/47889
+[CustomerAdapter] Zpracováno zákazníků: 43100/47889
+[CustomerAdapter] Zpracováno zákazníků: 43200/47889
+[CustomerAdapter] Zpracováno zákazníků: 43300/47889
+[CustomerAdapter] Zpracováno zákazníků: 43400/47889
+[CustomerAdapter] Zpracováno zákazníků: 43500/47889
+[CustomerAdapter] Zpracováno zákazníků: 43600/47889
+[CustomerAdapter] Zpracováno zákazníků: 43700/47889
+[CustomerAdapter] Zpracováno zákazníků: 43800/47889
+[CustomerAdapter] Zpracováno zákazníků: 43900/47889
+[CustomerAdapter] Zpracováno zákazníků: 44000/47889
+[CustomerAdapter] Zpracováno zákazníků: 44100/47889
+[CustomerAdapter] Zpracováno zákazníků: 44200/47889
+[CustomerAdapter] Zpracováno zákazníků: 44300/47889
+[CustomerAdapter] Zpracováno zákazníků: 44400/47889
+[CustomerAdapter] Zpracováno zákazníků: 44500/47889
+[CustomerAdapter] Zpracováno zákazníků: 44600/47889
+[CustomerAdapter] Zpracováno zákazníků: 44700/47889
+[CustomerAdapter] Zpracováno zákazníků: 44800/47889
+[CustomerAdapter] Zpracováno zákazníků: 44900/47889
+[CustomerAdapter] Zpracováno zákazníků: 45000/47889
+[CustomerAdapter] Zpracováno zákazníků: 45100/47889
+[CustomerAdapter] Zpracováno zákazníků: 45200/47889
+[CustomerAdapter] Zpracováno zákazníků: 45300/47889
+[CustomerAdapter] Zpracováno zákazníků: 45400/47889
+[CustomerAdapter] Zpracováno zákazníků: 45500/47889
+[CustomerAdapter] Zpracováno zákazníků: 45600/47889
+[CustomerAdapter] Zpracováno zákazníků: 45700/47889
+[CustomerAdapter] Zpracováno zákazníků: 45800/47889
+[CustomerAdapter] Zpracováno zákazníků: 45900/47889
+[CustomerAdapter] Zpracováno zákazníků: 46000/47889
+[CustomerAdapter] Zpracováno zákazníků: 46100/47889
+[CustomerAdapter] Zpracováno zákazníků: 46200/47889
+[CustomerAdapter] Zpracováno zákazníků: 46300/47889
+[CustomerAdapter] Zpracováno zákazníků: 46400/47889
+[CustomerAdapter] Zpracováno zákazníků: 46500/47889
+[CustomerAdapter] Zpracováno zákazníků: 46600/47889
+[CustomerAdapter] Zpracováno zákazníků: 46700/47889
+[CustomerAdapter] Zpracováno zákazníků: 46800/47889
+[CustomerAdapter] Zpracováno zákazníků: 46900/47889
+[CustomerAdapter] Zpracováno zákazníků: 47000/47889
+[CustomerAdapter] Zpracováno zákazníků: 47100/47889
+[CustomerAdapter] Zpracováno zákazníků: 47200/47889
+[CustomerAdapter] Zpracováno zákazníků: 47300/47889
+[CustomerAdapter] Zpracováno zákazníků: 47400/47889
+[CustomerAdapter] Zpracováno zákazníků: 47500/47889
+[CustomerAdapter] Zpracováno zákazníků: 47600/47889
+[CustomerAdapter] Zpracováno zákazníků: 47700/47889
+[CustomerAdapter] Zpracováno zákazníků: 47800/47889
+
+5. Spouštění výpočtu Pricing Engine...
+
+6. Výpočet změn (Diff)...
+
+7. Spouštění aplikace změn (Writers)...
+CustomerWriter: Nalezeno 11 zákazníků s novým věrnostním tierem. (DryRun: false)
+[DIFF] Zákazník: N/A (cda5d27c-79a8-46c6-b999-8041ec7cfef0) | Ceník ID: 20 -> 2 (ZR16 -> ZR4)
+[SNAPSHOT] Vytvořen rollback snapshot pro zákazníky: /Users/lucky/Bez názvu/shoptet-pricing-engine/.snapshots/customer_rollback_1785530051033.json
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.116Z | entity: Customer | id: cda5d27c-79a8-46c6-b999-8041ec7cfef0 | endpoint: /customers/cda5d27c-79a8-46c6-b999-8041ec7cfef0 | requestId: 019fb9e2-6b2b-7115-bcee-d035cea7955d | HTTP status: 200 | duration: 88ms | attempt: 1 | oldValue: ZR16 | newValue: ZR4
+[DIFF] Zákazník: N/A (7f8c9213-41c8-40de-8c1e-e6eec2bdf76b) | Ceník ID: 26 -> 2 (ZR20 -> ZR4)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.201Z | entity: Customer | id: 7f8c9213-41c8-40de-8c1e-e6eec2bdf76b | endpoint: /customers/7f8c9213-41c8-40de-8c1e-e6eec2bdf76b | requestId: 019fb9e2-6b7e-70cd-aecf-4a9a8ce61f65 | HTTP status: 200 | duration: 79ms | attempt: 1 | oldValue: ZR20 | newValue: ZR4
+[DIFF] Zákazník: N/A (75b74b6a-4ee1-4bd1-a525-e774b839ac22) | Ceník ID: 2 -> 20 (ZR4 -> ZR16)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.345Z | entity: Customer | id: 75b74b6a-4ee1-4bd1-a525-e774b839ac22 | endpoint: /customers/75b74b6a-4ee1-4bd1-a525-e774b839ac22 | requestId: 019fb9e2-6bcf-7091-b453-c665012e9456 | HTTP status: 200 | duration: 144ms | attempt: 1 | oldValue: ZR4 | newValue: ZR16
+[DIFF] Zákazník: N/A (fd4cdc22-e841-4318-beb2-9602d6cf3967) | Ceník ID: 2 -> 17 (ZR4 -> ZR14)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.442Z | entity: Customer | id: fd4cdc22-e841-4318-beb2-9602d6cf3967 | endpoint: /customers/fd4cdc22-e841-4318-beb2-9602d6cf3967 | requestId: 019fb9e2-6c5e-7163-9183-2b74a25c7f3d | HTTP status: 200 | duration: 97ms | attempt: 1 | oldValue: ZR4 | newValue: ZR14
+[DIFF] Zákazník: N/A (35b98757-68fe-4bda-85c4-3132e3169acf) | Ceník ID: 2 -> 17 (ZR4 -> ZR14)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.583Z | entity: Customer | id: 35b98757-68fe-4bda-85c4-3132e3169acf | endpoint: /customers/35b98757-68fe-4bda-85c4-3132e3169acf | requestId: 019fb9e2-6cbe-7384-a28f-c9e8590ee3b1 | HTTP status: 200 | duration: 141ms | attempt: 1 | oldValue: ZR4 | newValue: ZR14
+[DIFF] Zákazník: N/A (3d333dee-9cd0-46ef-a76c-1d4e138fe330) | Ceník ID: 20 -> 11 (ZR16 -> ZR10)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.723Z | entity: Customer | id: 3d333dee-9cd0-46ef-a76c-1d4e138fe330 | endpoint: /customers/3d333dee-9cd0-46ef-a76c-1d4e138fe330 | requestId: 019fb9e2-6d56-715c-8279-5adafda53feb | HTTP status: 200 | duration: 133ms | attempt: 1 | oldValue: ZR16 | newValue: ZR10
+[DIFF] Zákazník: N/A (b78bec84-7001-4522-9cd4-c92baf01dcca) | Ceník ID: 17 -> 2 (ZR14 -> ZR4)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.818Z | entity: Customer | id: b78bec84-7001-4522-9cd4-c92baf01dcca | endpoint: /customers/b78bec84-7001-4522-9cd4-c92baf01dcca | requestId: 019fb9e2-6dd8-702e-915d-16015362f834 | HTTP status: 200 | duration: 95ms | attempt: 1 | oldValue: ZR14 | newValue: ZR4
+[DIFF] Zákazník: N/A (f5425f1a-79d5-405e-b53c-e7c232047efc) | Ceník ID: 2 -> 5 (ZR4 -> ZR6)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:11.918Z | entity: Customer | id: f5425f1a-79d5-405e-b53c-e7c232047efc | endpoint: /customers/f5425f1a-79d5-405e-b53c-e7c232047efc | requestId: 019fb9e2-6e3a-72b2-ac1f-a0842553d223 | HTTP status: 200 | duration: 100ms | attempt: 1 | oldValue: ZR4 | newValue: ZR6
+[DIFF] Zákazník: N/A (658c330c-b6f1-4be7-86c3-2d2091ee4cf8) | Ceník ID: 5 -> 2 (ZR6 -> ZR4)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:12.020Z | entity: Customer | id: 658c330c-b6f1-4be7-86c3-2d2091ee4cf8 | endpoint: /customers/658c330c-b6f1-4be7-86c3-2d2091ee4cf8 | requestId: 019fb9e2-6e9f-72b2-a8d5-a9212d561c68 | HTTP status: 200 | duration: 102ms | attempt: 1 | oldValue: ZR6 | newValue: ZR4
+[DIFF] Zákazník: N/A (02293b08-85aa-11f1-9a8f-bc24112d90c2) | Ceník ID: 14 -> 2 (ZR12 -> ZR4)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:12.138Z | entity: Customer | id: 02293b08-85aa-11f1-9a8f-bc24112d90c2 | endpoint: /customers/02293b08-85aa-11f1-9a8f-bc24112d90c2 | requestId: 019fb9e2-6f1b-72d0-9674-cbb3dac7be6c | HTTP status: 200 | duration: 118ms | attempt: 1 | oldValue: ZR12 | newValue: ZR4
+[DIFF] Zákazník: N/A (dcc2d930-8a88-11f1-a48b-bc2411162930) | Ceník ID: 26 -> 2 (ZR20 -> ZR4)
+[AUDIT LOG] timestamp: 2026-07-31T20:34:12.230Z | entity: Customer | id: dcc2d930-8a88-11f1-a48b-bc2411162930 | endpoint: /customers/dcc2d930-8a88-11f1-a48b-bc2411162930 | requestId: 019fb9e2-6f77-7154-9e6d-80212ba2e0ee | HTTP status: 200 | duration: 91ms | attempt: 1 | oldValue: ZR20 | newValue: ZR4
+CustomerWriter dokončen. Zpracováno: 11, Přeskočeno: 0, Selhalo: 0
+PricelistWriter: Nalezeno 1 změn cen pro ceník 'ZR4' (ID: 2). (DryRun: false)
+[DIFF - ZR4] Kód: 1 | Cena: 123.45 -> 3.84
+[SNAPSHOT] Vytvořen rollback snapshot pro ceník ZR4: /Users/lucky/Bez názvu/shoptet-pricing-engine/.snapshots/pricelist_2_rollback_1785530052231.json
+[AUDIT LOG] timestamp: 2026-07-31T20:34:12.297Z | entity: PricelistItem | id: 1 | endpoint: /pricelists/2 | requestId: 019fb9e2-6fd7-7143-b984-885e9859cf70 | HTTP status: 200 | duration: 65ms | attempt: 1 | oldValue: 123.45 | newValue: 3.84
+[WRITE] Dávka 1 úspěšně zapsána pro ceník ZR4.
+PricelistWriter dokončen pro 'ZR4'. Zpracováno: 1, Selhalo: 0
+PricelistWriter: Žádné změny pro ceník 'ZR6' (ID: 5).
+PricelistWriter: Žádné změny pro ceník 'ZR8' (ID: 8).
+PricelistWriter: Žádné změny pro ceník 'ZR10' (ID: 11).
+PricelistWriter: Žádné změny pro ceník 'ZR12' (ID: 14).
+PricelistWriter: Žádné změny pro ceník 'ZR14' (ID: 17).
+PricelistWriter: Žádné změny pro ceník 'ZR16' (ID: 20).
+PricelistWriter: Žádné změny pro ceník 'ZR18' (ID: 23).
+PricelistWriter: Žádné změny pro ceník 'ZR20' (ID: 26).
+PricelistWriter: Žádné změny pro ceník 'ZR25' (ID: 29).
+
+==========================
+FULL SYNC REPORT
+==========================
+
+Start: 2026-07-31T19:46:47.271Z
+End: 2026-07-31T20:34:12.401Z
+Duration: 2845.1s
+
+Products loaded: 16624
+Products processed: 1
+Products updated: 1
+Products skipped: 0
+Products failed: 0
+
+Pricelists processed: 10
+Batch requests: 1
+Average batch size: 1.0
+
+Customers loaded: 47889
+Customers processed: 11
+Customers updated: 11
+Customers skipped: 0
+Customers failed: 0
+
+Orders loaded: 191489
+Turnover calculated: 1989789.91
+
+API requests:
+GET: 52372
+PATCH: 12
+
+HTTP responses:
+200: 52378
+204: 0
+400: 0
+401: 0
+403: 0
+404: 0
+409: 0
+413: 0
+422: 0
+423: 0
+429: 6
+500: 0
+503: 0
+504: 0
+
+Retries:
+429: 6
+500: 0
+503: 0
+504: 0
+
+Audit logs generated: 12
+Rollback snapshots created: 2
+
+Peak memory: 93 MB
+Execution time: 2845.1s
+
+FINAL RESULT:
+SUCCESS
+
+READY FOR PRODUCTION:
+YES
+
+
+[OK] E2E LIVE Run úspěšně dokončen.

@@ -1,0 +1,57 @@
+[
+  {
+    "customerGuid": "cda5d27c-79a8-46c6-b999-8041ec7cfef0",
+    "originalTier": "ZR16",
+    "originalPricelistId": 20
+  },
+  {
+    "customerGuid": "7f8c9213-41c8-40de-8c1e-e6eec2bdf76b",
+    "originalTier": "ZR20",
+    "originalPricelistId": 26
+  },
+  {
+    "customerGuid": "75b74b6a-4ee1-4bd1-a525-e774b839ac22",
+    "originalTier": "ZR4",
+    "originalPricelistId": 2
+  },
+  {
+    "customerGuid": "fd4cdc22-e841-4318-beb2-9602d6cf3967",
+    "originalTier": "ZR4",
+    "originalPricelistId": 2
+  },
+  {
+    "customerGuid": "35b98757-68fe-4bda-85c4-3132e3169acf",
+    "originalTier": "ZR4",
+    "originalPricelistId": 2
+  },
+  {
+    "customerGuid": "3d333dee-9cd0-46ef-a76c-1d4e138fe330",
+    "originalTier": "ZR16",
+    "originalPricelistId": 20
+  },
+  {
+    "customerGuid": "b78bec84-7001-4522-9cd4-c92baf01dcca",
+    "originalTier": "ZR14",
+    "originalPricelistId": 17
+  },
+  {
+    "customerGuid": "f5425f1a-79d5-405e-b53c-e7c232047efc",
+    "originalTier": "ZR4",
+    "originalPricelistId": 2
+  },
+  {
+    "customerGuid": "658c330c-b6f1-4be7-86c3-2d2091ee4cf8",
+    "originalTier": "ZR6",
+    "originalPricelistId": 5
+  },
+  {
+    "customerGuid": "02293b08-85aa-11f1-9a8f-bc24112d90c2",
+    "originalTier": "ZR12",
+    "originalPricelistId": 14
+  },
+  {
+    "customerGuid": "dcc2d930-8a88-11f1-a48b-bc2411162930",
+    "originalTier": "ZR20",
+    "originalPricelistId": 26
+  }
+]

@@ -4,3 +4,7 @@ exports/
 .env
 .DS_Store
 *.zip
+orig_xlsx/
+gen_xlsx/
+*.xlsx
+products_mock_*.csv

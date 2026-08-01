@@ -6,7 +6,11 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "vitest run",
-    "sync-products": "tsx src/cli/sync-products.ts"
+    "sync-products": "tsx src/cli/sync-products.ts",
+    "sync-coupon-fields": "tsx src/cli/sync-coupon-fields.ts",
+    "sync-coupon-fields-live": "tsx src/cli/sync-coupon-fields-live.ts",
+    "sync-coupon-fields-diff": "tsx src/cli/sync-coupon-fields-diff.ts",
+    "sync-coupon-fields-diff-live": "tsx src/cli/sync-coupon-fields-diff.ts --live"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240718.0",

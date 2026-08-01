@@ -363,6 +363,97 @@ export class ShoptetApiClient {
     }
 
     /**
+     * Uloží dávku sales polí (discountCoupon, minPriceRatio) do ceníku (WRITE).
+     * Samostatná metoda od updatePricelistBatch — posílá jen `sales`, ne `price`,
+     * takže cenová pole zůstávají nedotčená (viz Shoptet docs: "Send only fields
+     * you want to change, the others will stay untouched").
+     */
+    public async updatePricelistSalesBatch(
+        pricelistId: number,
+        items: Array<{ code: string, discountCoupon: boolean, minPriceRatio: string }>
+    ): Promise<{ requestId: string, response: string, timestamp: string, status: number, endpoint: string }> {
+        const endpointPath = `/pricelists/${pricelistId}`;
+        const url = `${this.baseUrl}${endpointPath}`;
+        const body = {
+            data: items.map(item => ({
+                code: item.code,
+                sales: {
+                    discountCoupon: item.discountCoupon,
+                    minPriceRatio: item.minPriceRatio
+                }
+            }))
+        };
+
+        return await this.rateLimiter.execute(
+            async () => {
+                GlobalStats.apiRequests.PATCH++;
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(body)
+                });
+                GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
+                return res;
+            },
+            async (res) => {
+                const json = await res.json() as any;
+                if (json.errors && json.errors.length > 0) {
+                    throw new Error(`API chyba při zápisu sales polí ceníku ${pricelistId}: ${JSON.stringify(json.errors)}`);
+                }
+                const reqId = res.headers.get('x-request-id') || res.headers.get('cf-ray') || 'N/A';
+                return {
+                    requestId: reqId,
+                    response: JSON.stringify(json.data || {}),
+                    timestamp: new Date().toISOString(),
+                    status: res.status,
+                    endpoint: endpointPath
+                };
+            }
+        );
+    }
+
+    /**
+     * Nastaví, zda lze variantu objednat i do záporného skladu (negativeStockAllowed).
+     * PATCH /api/products/code/{code} — samostatná metoda, nezávislá na cenových
+     * ani sales zápisech výše.
+     */
+    public async updateNegativeStockAllowed(
+        code: string,
+        allowed: boolean
+    ): Promise<{ requestId: string, status: number, endpoint: string }> {
+        const endpointPath = `/products/code/${encodeURIComponent(code)}`;
+        const url = `${this.baseUrl}${endpointPath}`;
+        const body = {
+            data: {
+                variants: [
+                    { code, negativeStockAllowed: allowed }
+                ]
+            }
+        };
+
+        return await this.rateLimiter.execute(
+            async () => {
+                GlobalStats.apiRequests.PATCH++;
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(body)
+                });
+                GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
+                return res;
+            },
+            async (res) => {
+                const json = await res.json() as any;
+                if (json.errors && json.errors.length > 0) {
+                    throw new Error(`API chyba při zápisu negativeStockAllowed pro ${code}: ${JSON.stringify(json.errors)}`);
+                }
+                const reqId = res.headers.get('x-request-id') || res.headers.get('cf-ray') || 'N/A';
+                return { requestId: reqId, status: res.status, endpoint: endpointPath };
+            }
+        );
+    }
+
+    /**
      * Aktualizuje zařazení zákazníka do ceníku a zákaznické skupiny.
      * @param guid GUID zákazníka
      * @param pricelistId ID nového ceníku

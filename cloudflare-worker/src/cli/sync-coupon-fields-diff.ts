@@ -137,14 +137,17 @@ async function main() {
 
     console.log(`=== COUPON FIELDS DIFF SYNC (${isLive ? 'ŽIVÝ ZÁPIS' : 'DRY RUN'}) ===`);
 
-    // Validate the pricelist mapping BEFORE touching the feed or computing anything,
-    // so a drifted mapping fails fast without wasting the feed download.
+    // Construct the client (fails fast on missing token) but deliberately DON'T call
+    // validatePricelistMap() yet — that's a real Shoptet API request, and on a "0
+    // changes" run (the common case, twice a day) there's nothing to protect: no
+    // write is going to happen anyway. Validation runs later, only once we know
+    // there's actually something to write, keeping no-op runs down to zero Shoptet
+    // API calls (the feed fetch itself is a public CDN export, not the Private API).
     let client: ShoptetApiClient | null = null;
     if (isLive) {
         const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
         if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set in .env');
         client = new ShoptetApiClient(token);
-        await validatePricelistMap(client);
     }
 
     const state = loadState();
@@ -248,6 +251,12 @@ async function main() {
         console.log('\nDRY RUN — žádný zápis neproběhl, coupon-state.json nebyl aktualizován.');
         return;
     }
+
+    // Only now — right before the first real write — spend the one extra Shoptet API
+    // request to validate the pricelist mapping. Every check above this point was
+    // free (local feed math), so a run that ends up with nothing to write costs the
+    // Shoptet API nothing at all.
+    await validatePricelistMap(client!);
 
     const writer = new CouponSalesWriter(client!, { dryRun: false });
 

@@ -5,6 +5,7 @@ export interface ShoptetProduct {
     code: string;
     price: Decimal;
     actionPrice?: Decimal;
+    productMaxDiscount?: Decimal;
 }
 
 export class ProductsReader {
@@ -55,10 +56,19 @@ export class ProductsReader {
                 // Pro zachování plné kompatibility s getPricelistProducts 
                 // použijeme detail.prices. Pro jistotu namapujeme i actionPrice, pokud je k dispozici.
                 
+                let productMaxDiscount: Decimal | undefined = undefined;
+                if (detail.sales?.minPriceRatio) {
+                    const ratio = parseFloat(detail.sales.minPriceRatio);
+                    if (!isNaN(ratio) && ratio <= 1) {
+                        productMaxDiscount = new Decimal(1).minus(new Decimal(ratio));
+                    }
+                }
+                
                 products.push({
                     code: detail.code || change.code || change.guid,
                     price: new Decimal(basePrice),
-                    actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined
+                    actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
+                    productMaxDiscount
                 });
             }
 
@@ -73,10 +83,18 @@ export class ProductsReader {
         const products: ShoptetProduct[] = items.map(item => {
             const basePrice = item.price?.price ? item.price.price : 0;
             const actPrice = item.price?.actionPrice?.price;
+            let productMaxDiscount: Decimal | undefined = undefined;
+            if (item.sales?.minPriceRatio) {
+                const ratio = parseFloat(item.sales.minPriceRatio);
+                if (!isNaN(ratio) && ratio <= 1) {
+                    productMaxDiscount = new Decimal(1).minus(new Decimal(ratio));
+                }
+            }
             return {
                 code: item.code,
                 price: new Decimal(basePrice),
-                actionPrice: actPrice !== null && actPrice !== undefined ? new Decimal(actPrice) : undefined
+                actionPrice: actPrice !== null && actPrice !== undefined ? new Decimal(actPrice) : undefined,
+                productMaxDiscount
             };
         });
 

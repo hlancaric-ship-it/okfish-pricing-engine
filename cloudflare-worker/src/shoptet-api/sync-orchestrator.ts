@@ -91,6 +91,8 @@ export class SyncOrchestrator {
         const engineProducts = sourceProducts.map(p => ({
             code: p.code,
             basePrice: p.price,
+            actionPrice: p.actionPrice,
+            productMaxDiscount: p.productMaxDiscount,
             stockLevel: 100 // Mock nebo z dat
         }));
 

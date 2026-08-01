@@ -25,6 +25,8 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
             const input: PricingInput = {
                 sku: p.code,
                 basePrice: new Decimal(p.basePrice || 0),
+                salePrice: p.actionPrice ? new Decimal(p.actionPrice) : undefined,
+                productMaxDiscount: p.productMaxDiscount ? new Decimal(p.productMaxDiscount) : undefined,
                 customerTier: pl.name as CustomerTier,
                 allowLoyaltyDiscount: true
             };

@@ -115,7 +115,20 @@ export class CustomerAdapter {
             
             if (!newTier) continue;
 
-            const detail = await this.apiClient.getCustomerDetail(baseCustomer.guid);
+            // A customer who placed an order in the sync window can still fail to
+            // resolve here (e.g. deleted/GDPR-erased between the order and this sync
+            // run — a real 404 seen in production). Letting that throw would abort
+            // the ENTIRE hourly sync (all other customers' tier updates, all product
+            // price updates) over one unresolvable customer. Skip just this one and
+            // keep going instead — same "isolate the failure" principle already used
+            // for batch writes elsewhere in this pipeline.
+            let detail;
+            try {
+                detail = await this.apiClient.getCustomerDetail(baseCustomer.guid);
+            } catch (error: any) {
+                console.warn(`[CustomerAdapter] Přeskakuji zákazníka ${baseCustomer.guid} — detail se nepodařilo načíst: ${error.message}`);
+                continue;
+            }
             const oldTier = detail.customerGroup?.name || null;
 
             diffs.push({

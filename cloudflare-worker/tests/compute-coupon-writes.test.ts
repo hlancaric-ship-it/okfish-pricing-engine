@@ -194,6 +194,37 @@ describe('computeCouponWrites', () => {
         });
     });
 
+    describe('allowLoyaltyDiscount (e.g. gift cards that must never get a loyalty-tier discount)', () => {
+        it('treats tier discount as 0% when allowLoyaltyDiscount is explicitly false', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), allowLoyaltyDiscount: false },
+                LOYALTY_TIERS
+            );
+            const zr16 = items.find(i => i.tier === 'ZR16')!;
+            // Tier discount ignored -> currentDiscount=0 -> full 20% ceiling available,
+            // NOT the 4% remainder a real 16% tier discount would leave.
+            expect(zr16.applyDiscountCoupon).toBe(true);
+            expect(zr16.minPriceRatio.toNumber()).toBeCloseTo(0.80);
+        });
+
+        it('ZR20/ZR25 stay locked regardless of allowLoyaltyDiscount (Rule 4 is about tier identity, not discount magnitude)', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), allowLoyaltyDiscount: false },
+                LOYALTY_TIERS
+            );
+            expect(items.find(i => i.tier === 'ZR20')!.applyDiscountCoupon).toBe(false);
+            expect(items.find(i => i.tier === 'ZR25')!.applyDiscountCoupon).toBe(false);
+        });
+
+        it('defaults to allowed when the field is absent (undefined is not treated as false)', () => {
+            const withField = computeCouponWrites({ code: '123', basePrice: d(100), allowLoyaltyDiscount: true }, LOYALTY_TIERS);
+            const withoutField = computeCouponWrites({ code: '123', basePrice: d(100) }, LOYALTY_TIERS);
+            const zr16a = withField.find(i => i.tier === 'ZR16')!;
+            const zr16b = withoutField.find(i => i.tier === 'ZR16')!;
+            expect(zr16a.minPriceRatio.toNumber()).toBeCloseTo(zr16b.minPriceRatio.toNumber());
+        });
+    });
+
     it('never grants coupon room beyond what the ceiling allows (shop margin safety)', () => {
         const items = computeCouponWrites(
             { code: '123', basePrice: d(100), productMaxDiscount: d(0.10) },

@@ -35,22 +35,36 @@ function parseNumber(val: string | undefined): Decimal | undefined {
     return n.isNaN() ? undefined : n;
 }
 
-// Loads loyalty tier discounts as ratios (0.04 = 4%), straight from the same
+// Same convention as engine/pricing.ts's resolveAllowLoyaltyDiscount(): absent
+// defaults to allowed, only an explicit falsy-looking value turns it off.
+function resolveAllowLoyaltyDiscount(row: Record<string, string>): boolean {
+    const val = row['applyLoyaltyDiscount'];
+    return val === '1' || val === 'true' || val === 'yes' || val === undefined;
+}
+
+// Loads loyalty tier discounts and brand/category limits, straight from the same
 // policy-v1.json the rest of the engine treats as the single source of truth.
-function loadLoyaltyTierRatios(): Record<string, Decimal> {
+function loadPolicyConfig(): { loyaltyTiers: Record<string, Decimal>; brandLimits: Record<string, Decimal>; categoryLimits: Record<string, Decimal> } {
     const policyPath = path.resolve(__dirname, '../../../src/config/policies/policy-v1.json');
     const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
-    const ratios: Record<string, Decimal> = {};
-    for (const [tier, ratio] of Object.entries(policy.loyaltyTiers as Record<string, number>)) {
-        ratios[tier] = new Decimal(ratio);
-    }
-    return ratios;
+
+    const toDecimalMap = (obj: Record<string, number> | undefined): Record<string, Decimal> => {
+        const out: Record<string, Decimal> = {};
+        for (const [k, v] of Object.entries(obj || {})) out[k] = new Decimal(v);
+        return out;
+    };
+
+    return {
+        loyaltyTiers: toDecimalMap(policy.loyaltyTiers),
+        brandLimits: toDecimalMap(policy.brandLimits),
+        categoryLimits: toDecimalMap(policy.categoryLimits)
+    };
 }
 
 async function main() {
     if (!MASTER_FEED_URL) throw new Error('MASTER_FEED_URL not set in .env');
 
-    const loyaltyTiers = loadLoyaltyTierRatios();
+    const { loyaltyTiers, brandLimits, categoryLimits } = loadPolicyConfig();
     console.log('Loyalty tiers loaded:', Object.keys(loyaltyTiers).join(', '));
 
     console.log('Fetching master feed...');
@@ -86,11 +100,14 @@ async function main() {
         const actionPrice = parseNumber(row['actionPrice']);
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
+        const manufacturer = row['manufacturer'] || undefined;
+        const category = row['categoryText'] || undefined;
+        const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
         productCount++;
         const items: CouponWriteItem[] = computeCouponWrites(
-            { code, basePrice, actionPrice, productMaxDiscount },
-            loyaltyTiers
+            { code, basePrice, actionPrice, productMaxDiscount, manufacturer, category, allowLoyaltyDiscount },
+            loyaltyTiers, brandLimits, categoryLimits
         );
 
         for (const item of items) {

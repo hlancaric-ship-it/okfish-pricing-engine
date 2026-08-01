@@ -14,6 +14,16 @@ export interface ProductCouponInput {
     manufacturer?: string;
     /** Category name, for categoryLimits fallback — same field DiscountLimitPolicy reads. */
     category?: string;
+    /**
+     * Same semantics as PricingInput.allowLoyaltyDiscount elsewhere in the engine:
+     * explicit `false` means this product (e.g. a gift card) must never receive a
+     * loyalty-tier discount. Missing/undefined defaults to allowed — same
+     * "absent = allowed, only explicit falsy turns it off" convention used by
+     * src/cli/generate.ts's applyLoyalty and engine/pricing.ts's
+     * resolveAllowLoyaltyDiscount(), so a product with no opinion on this field
+     * isn't wrongly treated as loyalty-ineligible.
+     */
+    allowLoyaltyDiscount?: boolean;
 }
 
 /**
@@ -125,8 +135,11 @@ export function computeCouponWrites(
     const effectiveLimit = resolveEffectiveLimit(product, brandLimits, categoryLimits);
     const items: CouponWriteItem[] = [];
 
+    // Same "absent = allowed" convention as engine/pricing.ts's resolveAllowLoyaltyDiscount().
+    const loyaltyDiscountAllowed = product.allowLoyaltyDiscount !== false;
+
     for (const [tier, pricelistId] of Object.entries(TIER_PRICELIST_MAP)) {
-        const rawTierDiscount = loyaltyTiers[tier] ?? new Decimal(0);
+        const rawTierDiscount = loyaltyDiscountAllowed ? (loyaltyTiers[tier] ?? new Decimal(0)) : new Decimal(0);
         items.push(computeItem(policy, product, effectiveLimit, productDiscount, tier, pricelistId, rawTierDiscount, tier));
     }
 

@@ -70,6 +70,13 @@ function parseNumber(val: string | undefined): Decimal | undefined {
     return n.isNaN() ? undefined : n;
 }
 
+// Same convention as engine/pricing.ts's resolveAllowLoyaltyDiscount(): absent
+// defaults to allowed, only an explicit falsy-looking value turns it off.
+function resolveAllowLoyaltyDiscount(row: Record<string, string>): boolean {
+    const val = row['applyLoyaltyDiscount'];
+    return val === '1' || val === 'true' || val === 'yes' || val === undefined;
+}
+
 function loadPolicyConfig(): { loyaltyTiers: Record<string, Decimal>; brandLimits: Record<string, Decimal>; categoryLimits: Record<string, Decimal> } {
     const policyPath = path.resolve(__dirname, '../../../src/config/policies/policy-v1.json');
     const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
@@ -176,10 +183,11 @@ async function main() {
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
         const manufacturer = row['manufacturer'] || undefined;
         const category = row['categoryText'] || undefined;
+        const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
         scanned++;
         const items = computeCouponWrites(
-            { code, basePrice, actionPrice, productMaxDiscount, manufacturer, category },
+            { code, basePrice, actionPrice, productMaxDiscount, manufacturer, category, allowLoyaltyDiscount },
             loyaltyTiers, brandLimits, categoryLimits
         );
 

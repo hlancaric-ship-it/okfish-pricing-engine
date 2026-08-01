@@ -31,14 +31,28 @@ function parseNumber(val: string | undefined): Decimal | undefined {
     return n.isNaN() ? undefined : n;
 }
 
-function loadLoyaltyTierRatios(): Record<string, Decimal> {
+// Same convention as engine/pricing.ts's resolveAllowLoyaltyDiscount(): absent
+// defaults to allowed, only an explicit falsy-looking value turns it off.
+function resolveAllowLoyaltyDiscount(row: Record<string, string>): boolean {
+    const val = row['applyLoyaltyDiscount'];
+    return val === '1' || val === 'true' || val === 'yes' || val === undefined;
+}
+
+function loadPolicyConfig(): { loyaltyTiers: Record<string, Decimal>; brandLimits: Record<string, Decimal>; categoryLimits: Record<string, Decimal> } {
     const policyPath = path.resolve(__dirname, '../../../src/config/policies/policy-v1.json');
     const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
-    const ratios: Record<string, Decimal> = {};
-    for (const [tier, ratio] of Object.entries(policy.loyaltyTiers as Record<string, number>)) {
-        ratios[tier] = new Decimal(ratio);
-    }
-    return ratios;
+
+    const toDecimalMap = (obj: Record<string, number> | undefined): Record<string, Decimal> => {
+        const out: Record<string, Decimal> = {};
+        for (const [k, v] of Object.entries(obj || {})) out[k] = new Decimal(v);
+        return out;
+    };
+
+    return {
+        loyaltyTiers: toDecimalMap(policy.loyaltyTiers),
+        brandLimits: toDecimalMap(policy.brandLimits),
+        categoryLimits: toDecimalMap(policy.categoryLimits)
+    };
 }
 
 async function main() {
@@ -49,7 +63,7 @@ async function main() {
     const client = new ShoptetApiClient(token);
     const writer = new CouponSalesWriter(client, { dryRun: false }); // LIVE
 
-    const loyaltyTiers = loadLoyaltyTierRatios();
+    const { loyaltyTiers, brandLimits, categoryLimits } = loadPolicyConfig();
     console.log('=== ŽIVÝ ZÁPIS NA CELÝ KATALOG ===');
     console.log('Loyalty tiers:', Object.keys(loyaltyTiers).join(', '));
 
@@ -83,9 +97,15 @@ async function main() {
         const actionPrice = parseNumber(row['actionPrice']);
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
+        const manufacturer = row['manufacturer'] || undefined;
+        const category = row['categoryText'] || undefined;
+        const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
         productCount++;
-        const items = computeCouponWrites({ code, basePrice, actionPrice, productMaxDiscount }, loyaltyTiers);
+        const items = computeCouponWrites(
+            { code, basePrice, actionPrice, productMaxDiscount, manufacturer, category, allowLoyaltyDiscount },
+            loyaltyTiers, brandLimits, categoryLimits
+        );
         for (const item of items) byTier[item.tier].push(item);
 
         if (productCount % 2000 === 0) console.log(`...načteno ${productCount} produktů z feedu`);

@@ -45,8 +45,19 @@ async function run() {
         await orchestrator.runFullSync();
         console.log("=== SYNCHRONIZACE DOKONČENA ===");
     } catch (error) {
+        // Previously this only logged the error and let the process exit 0 — in the
+        // hourly GitHub Actions cron that meant a failed sync still showed as a green
+        // checkmark (no failure-log artifact, no notification), so the pipeline could
+        // silently stop working for hours/days with nobody noticing. Must propagate
+        // the failure so the Actions step (and any future failure alerting) sees it.
         console.error("❌ CHYBA PŘI BĚHU:", error);
+        process.exit(1);
     }
 }
 
-run();
+run().catch((error) => {
+    // Safety net for any error thrown before/outside the try/catch above (e.g. a
+    // synchronous throw during setup) — same reasoning: must not exit 0 on failure.
+    console.error("❌ NEOČEKÁVANÁ CHYBA:", error);
+    process.exit(1);
+});

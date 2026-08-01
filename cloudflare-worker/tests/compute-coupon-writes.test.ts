@@ -138,6 +138,62 @@ describe('computeCouponWrites', () => {
         expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(1.0);
     });
 
+    describe('brand/category limit fallback (mirrors DiscountLimitPolicy: Product -> Brand -> Category -> None)', () => {
+        const BRAND_LIMITS: Record<string, Decimal> = { Apple: d(0.05), Samsung: d(0.10) };
+        const CATEGORY_LIMITS: Record<string, Decimal> = { Elektronika: d(0.10) };
+
+        it('falls back to the brand limit when no per-product limit is set', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), manufacturer: 'Apple' },
+                LOYALTY_TIERS, BRAND_LIMITS, CATEGORY_LIMITS
+            );
+            const zr4 = items.find(i => i.tier === 'ZR4')!;
+            // limit 5%, tier 4% -> remaining 1% -> minPriceRatio = 0.99, NOT the default 20% ceiling.
+            expect(zr4.applyDiscountCoupon).toBe(true);
+            expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(0.99);
+        });
+
+        it('falls back to the category limit when no product or brand limit applies', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), category: 'Elektronika' },
+                LOYALTY_TIERS, BRAND_LIMITS, CATEGORY_LIMITS
+            );
+            const zr4 = items.find(i => i.tier === 'ZR4')!;
+            // limit 10%, tier 4% -> remaining 6% -> minPriceRatio = 0.94
+            expect(zr4.applyDiscountCoupon).toBe(true);
+            expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(0.94);
+        });
+
+        it('per-product limit takes precedence over brand limit', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), manufacturer: 'Apple', productMaxDiscount: d(0.15) },
+                LOYALTY_TIERS, BRAND_LIMITS, CATEGORY_LIMITS
+            );
+            const zr4 = items.find(i => i.tier === 'ZR4')!;
+            // product limit 15% wins over Apple's 5% -> remaining 11% -> minPriceRatio = 0.89
+            expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(0.89);
+        });
+
+        it('brand limit takes precedence over category limit', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), manufacturer: 'Apple', category: 'Elektronika' },
+                LOYALTY_TIERS, BRAND_LIMITS, CATEGORY_LIMITS
+            );
+            const zr4 = items.find(i => i.tier === 'ZR4')!;
+            // Apple's 5% wins over Elektronika's 10% -> remaining 1% -> minPriceRatio = 0.99
+            expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(0.99);
+        });
+
+        it('unrecognized brand/category falls through to the default 20% ceiling', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), manufacturer: 'SomeOtherBrand', category: 'SomeOtherCategory' },
+                LOYALTY_TIERS, BRAND_LIMITS, CATEGORY_LIMITS
+            );
+            const zr4 = items.find(i => i.tier === 'ZR4')!;
+            expect(zr4.minPriceRatio.toNumber()).toBeCloseTo(0.84);
+        });
+    });
+
     it('never grants coupon room beyond what the ceiling allows (shop margin safety)', () => {
         const items = computeCouponWrites(
             { code: '123', basePrice: d(100), productMaxDiscount: d(0.10) },

@@ -10,6 +10,29 @@ export interface ProductCouponInput {
     actionPrice?: Decimal;
     /** Product's own max-discount limit (ratio 0-1), same source as PricingInput.productMaxDiscount. */
     productMaxDiscount?: Decimal;
+    /** Manufacturer/brand name, for brandLimits fallback — same field DiscountLimitPolicy reads. */
+    manufacturer?: string;
+    /** Category name, for categoryLimits fallback — same field DiscountLimitPolicy reads. */
+    category?: string;
+}
+
+/**
+ * Mirrors src/policies/DiscountLimitPolicy.ts's hierarchical fallback EXACTLY:
+ * Product -> Brand -> Category -> None. That policy is the real, live price-clamping
+ * logic — if the coupon layer used a different (or missing) hierarchy here, it could
+ * grant coupon room the pricing engine would never actually allow (e.g. an Apple
+ * product with no per-item override falling through to the default 20% ceiling
+ * instead of the real 5% brand cap).
+ */
+function resolveEffectiveLimit(
+    product: ProductCouponInput,
+    brandLimits: Record<string, Decimal>,
+    categoryLimits: Record<string, Decimal>
+): Decimal | undefined {
+    if (product.productMaxDiscount !== undefined) return product.productMaxDiscount;
+    if (product.manufacturer && brandLimits[product.manufacturer] !== undefined) return brandLimits[product.manufacturer];
+    if (product.category && categoryLimits[product.category] !== undefined) return categoryLimits[product.category];
+    return undefined;
 }
 
 export interface CouponWriteItem {
@@ -41,6 +64,7 @@ function computeProductDiscount(basePrice: Decimal, actionPrice: Decimal | undef
 function computeItem(
     policy: CouponPolicy,
     product: ProductCouponInput,
+    effectiveLimit: Decimal | undefined,
     productDiscount: Decimal,
     tier: string,
     pricelistId: number,
@@ -49,22 +73,23 @@ function computeItem(
     customerTier: string | undefined
 ): CouponWriteItem {
     // The real (untouched) PricingEngine clamps both the action price and the
-    // loyalty price to the product's own limit via DiscountLimitPolicy — so the
-    // discount a customer can ACTUALLY receive on this product never exceeds
-    // productMaxDiscount, even if their raw tier % is higher. Mirror that clamp
-    // here so the coupon's price floor matches what the engine really produces,
-    // not an unclamped/unreachable number.
-    const clampedProductDiscount = product.productMaxDiscount !== undefined
-        ? Decimal.min(productDiscount, product.productMaxDiscount)
+    // loyalty price to the effective limit (product -> brand -> category, same
+    // hierarchy as DiscountLimitPolicy) via DiscountLimitPolicy — so the discount a
+    // customer can ACTUALLY receive on this product never exceeds that limit, even
+    // if their raw tier % is higher. Mirror that clamp here so the coupon's price
+    // floor matches what the engine really produces, not an unclamped/unreachable
+    // number.
+    const clampedProductDiscount = effectiveLimit !== undefined
+        ? Decimal.min(productDiscount, effectiveLimit)
         : productDiscount;
-    const clampedTierDiscount = product.productMaxDiscount !== undefined
-        ? Decimal.min(rawTierDiscount, product.productMaxDiscount)
+    const clampedTierDiscount = effectiveLimit !== undefined
+        ? Decimal.min(rawTierDiscount, effectiveLimit)
         : rawTierDiscount;
 
     const decision = policy.decide({
         productDiscount: clampedProductDiscount,
         customerTierDiscount: clampedTierDiscount,
-        productMaxDiscount: product.productMaxDiscount,
+        productMaxDiscount: effectiveLimit,
         customerTier
     });
 
@@ -91,18 +116,21 @@ function computeItem(
  */
 export function computeCouponWrites(
     product: ProductCouponInput,
-    loyaltyTiers: Record<string, Decimal>
+    loyaltyTiers: Record<string, Decimal>,
+    brandLimits: Record<string, Decimal> = {},
+    categoryLimits: Record<string, Decimal> = {}
 ): CouponWriteItem[] {
     const policy = new CouponPolicy();
     const productDiscount = computeProductDiscount(product.basePrice, product.actionPrice);
+    const effectiveLimit = resolveEffectiveLimit(product, brandLimits, categoryLimits);
     const items: CouponWriteItem[] = [];
 
     for (const [tier, pricelistId] of Object.entries(TIER_PRICELIST_MAP)) {
         const rawTierDiscount = loyaltyTiers[tier] ?? new Decimal(0);
-        items.push(computeItem(policy, product, productDiscount, tier, pricelistId, rawTierDiscount, tier));
+        items.push(computeItem(policy, product, effectiveLimit, productDiscount, tier, pricelistId, rawTierDiscount, tier));
     }
 
-    items.push(computeItem(policy, product, productDiscount, "GUEST", GUEST_PRICELIST_ID, new Decimal(0), undefined));
+    items.push(computeItem(policy, product, effectiveLimit, productDiscount, "GUEST", GUEST_PRICELIST_ID, new Decimal(0), undefined));
 
     return items;
 }

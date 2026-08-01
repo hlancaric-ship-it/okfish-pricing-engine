@@ -2,9 +2,21 @@
 // product/tier, compares it against the last-known-written state (persisted in
 // coupon-state.json), and writes ONLY the items that actually changed.
 //
+// This is the script the twice-daily cron runs unattended — it therefore includes
+// three safety nets that a one-off manual script wouldn't need:
+//   1. A minimum-scanned-products sanity check (catches a broken/truncated feed).
+//   2. A circuit breaker refusing to live-write if the diff is implausibly large
+//      (catches a feed format/mapping problem that produces plausible-looking but
+//      wrong numbers across the catalog) — override with --force.
+//   3. A live validation of TIER_PRICELIST_MAP/GUEST_PRICELIST_ID against
+//      GET /api/pricelists before writing anything, so a renamed/recreated pricelist
+//      in Shoptet admin gets caught loudly instead of silently writing to the wrong
+//      ceník.
+//
 // Usage:
-//   npx tsx src/cli/sync-coupon-fields-diff.ts            (dry run — computes diff, writes nothing)
-//   npx tsx src/cli/sync-coupon-fields-diff.ts --live     (live write, updates coupon-state.json)
+//   npx tsx src/cli/sync-coupon-fields-diff.ts               (dry run — computes diff, writes nothing)
+//   npx tsx src/cli/sync-coupon-fields-diff.ts --live         (live write, updates coupon-state.json)
+//   npx tsx src/cli/sync-coupon-fields-diff.ts --live --force (bypass the diff-size circuit breaker)
 import * as fs from 'fs';
 import * as path from 'path';
 import Decimal from 'decimal.js';
@@ -25,7 +37,17 @@ function loadRootEnv() {
 loadRootEnv();
 
 const isLive = process.argv.includes('--live');
+const isForced = process.argv.includes('--force');
 const STATE_PATH = path.resolve(__dirname, '../../coupon-state.json');
+
+// Below this many scanned products, treat the feed as broken/truncated rather than
+// a genuinely tiny catalog — the real catalog has ~16-17k products.
+const MIN_EXPECTED_PRODUCTS = 5000;
+// Refuse to auto-write if more than this fraction of ALL possible items (scanned
+// products x 11 pricelists) changed in one run — a real business change (a
+// storewide sale ending, a coupon campaign starting) is expected to move a
+// meaningful slice of the catalog, but not blow past this without a human looking.
+const MAX_CHANGE_RATIO = 0.30;
 
 // Compact per-item state: c = applyDiscountCoupon, r = minPriceRatio (4dp string).
 type ItemState = { c: boolean; r: string };
@@ -48,14 +70,58 @@ function parseNumber(val: string | undefined): Decimal | undefined {
     return n.isNaN() ? undefined : n;
 }
 
-function loadLoyaltyTierRatios(): Record<string, Decimal> {
+function loadPolicyConfig(): { loyaltyTiers: Record<string, Decimal>; brandLimits: Record<string, Decimal>; categoryLimits: Record<string, Decimal> } {
     const policyPath = path.resolve(__dirname, '../../../src/config/policies/policy-v1.json');
     const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
-    const ratios: Record<string, Decimal> = {};
-    for (const [tier, ratio] of Object.entries(policy.loyaltyTiers as Record<string, number>)) {
-        ratios[tier] = new Decimal(ratio);
+
+    const toDecimalMap = (obj: Record<string, number> | undefined): Record<string, Decimal> => {
+        const out: Record<string, Decimal> = {};
+        for (const [k, v] of Object.entries(obj || {})) out[k] = new Decimal(v);
+        return out;
+    };
+
+    return {
+        loyaltyTiers: toDecimalMap(policy.loyaltyTiers),
+        brandLimits: toDecimalMap(policy.brandLimits),
+        categoryLimits: toDecimalMap(policy.categoryLimits)
+    };
+}
+
+/**
+ * Confirms TIER_PRICELIST_MAP/GUEST_PRICELIST_ID (hardcoded, one-time-verified
+ * constants) still point to the pricelists they think they do, by checking their
+ * names via a live GET /api/pricelists call. Throws loudly rather than silently
+ * writing coupon rules to a renamed/recreated/reassigned pricelist.
+ */
+async function validatePricelistMap(client: ShoptetApiClient): Promise<void> {
+    const live = await client.getPricelists();
+    const liveById = new Map(live.map(p => [p.id, p.name]));
+
+    const expectedNames: Record<string, string> = {
+        ZR4: 'ZR4', ZR6: 'ZR6', ZR8: 'ZR8', ZR10: 'ZR10', ZR12: 'ZR12',
+        ZR14: 'ZR14', ZR16: 'ZR16', ZR18: 'ZR18', ZR20: 'ZR20', ZR25: 'ZR25',
+        GUEST: 'Hlavný cenník'
+    };
+
+    const mismatches: string[] = [];
+    for (const [tier, pricelistId] of Object.entries(ALL_PRICELISTS_MAP)) {
+        const liveName = liveById.get(pricelistId);
+        const expected = expectedNames[tier];
+        if (liveName === undefined) {
+            mismatches.push(`${tier}: pricelist ID ${pricelistId} už na Shoptetu neexistuje`);
+        } else if (liveName !== expected) {
+            mismatches.push(`${tier}: pricelist ID ${pricelistId} se teď jmenuje "${liveName}", čekali jsme "${expected}"`);
+        }
     }
-    return ratios;
+
+    if (mismatches.length > 0) {
+        throw new Error(
+            `Validace ceníkové mapy selhala — TIER_PRICELIST_MAP v tier-pricelist-map.ts neodpovídá skutečnému stavu na Shoptetu:\n` +
+            mismatches.map(m => `  - ${m}`).join('\n') +
+            `\nOprav tier-pricelist-map.ts a spusť znovu. Žádný zápis neproběhl.`
+        );
+    }
+    console.log('[VALIDACE] Ceníková mapa (TIER_PRICELIST_MAP) souhlasí se skutečným stavem na Shoptetu.');
 }
 
 async function main() {
@@ -64,11 +130,21 @@ async function main() {
 
     console.log(`=== COUPON FIELDS DIFF SYNC (${isLive ? 'ŽIVÝ ZÁPIS' : 'DRY RUN'}) ===`);
 
+    // Validate the pricelist mapping BEFORE touching the feed or computing anything,
+    // so a drifted mapping fails fast without wasting the feed download.
+    let client: ShoptetApiClient | null = null;
+    if (isLive) {
+        const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
+        if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set in .env');
+        client = new ShoptetApiClient(token);
+        await validatePricelistMap(client);
+    }
+
     const state = loadState();
     const stateProductCount = Object.keys(state).length;
     console.log(`Načten předchozí stav: ${stateProductCount} produktů (${stateProductCount === 0 ? 'první běh' : 'inkrementální'}).`);
 
-    const loyaltyTiers = loadLoyaltyTierRatios();
+    const { loyaltyTiers, brandLimits, categoryLimits } = loadPolicyConfig();
 
     console.log('Fetching master feed...');
     const res = await fetch(feedUrl);
@@ -98,9 +174,14 @@ async function main() {
         const actionPrice = parseNumber(row['actionPrice']);
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
+        const manufacturer = row['manufacturer'] || undefined;
+        const category = row['categoryText'] || undefined;
 
         scanned++;
-        const items = computeCouponWrites({ code, basePrice, actionPrice, productMaxDiscount }, loyaltyTiers);
+        const items = computeCouponWrites(
+            { code, basePrice, actionPrice, productMaxDiscount, manufacturer, category },
+            loyaltyTiers, brandLimits, categoryLimits
+        );
 
         const prevForCode = state[code] || {};
         const newForCode: Record<string, ItemState> = {};
@@ -123,6 +204,16 @@ async function main() {
 
     console.log(`\nProhledáno ${scanned} produktů. Změn oproti poslednímu stavu: ${changedCount}.`);
 
+    // Safety net #1: a broken/truncated feed still parses SOME valid-looking rows,
+    // but far fewer than the real catalog — refuse to treat that as "nothing to do"
+    // silently, and refuse to write on top of a partial scan.
+    if (scanned < MIN_EXPECTED_PRODUCTS) {
+        throw new Error(
+            `Prohledáno jen ${scanned} produktů (očekáváno alespoň ${MIN_EXPECTED_PRODUCTS}) — feed je pravděpodobně useknutý nebo rozbitý. ` +
+            `Žádný zápis neproběhl, coupon-state.json nebyl změněn.`
+        );
+    }
+
     if (changedCount === 0) {
         console.log('Žádné změny — nic k zápisu.');
         return;
@@ -134,31 +225,43 @@ async function main() {
         }
     }
 
+    // Safety net #2: refuse an implausibly large diff without an explicit --force.
+    const totalPossibleItems = scanned * Object.keys(ALL_PRICELISTS_MAP).length;
+    const changeRatio = changedCount / totalPossibleItems;
+    if (isLive && changeRatio > MAX_CHANGE_RATIO && !isForced) {
+        throw new Error(
+            `Změna se týká ${(changeRatio * 100).toFixed(1)} % všech položek (${changedCount}/${totalPossibleItems}), ` +
+            `což překračuje pojistku ${(MAX_CHANGE_RATIO * 100).toFixed(0)} %. To může znamenat problém s feedem, ne skutečnou ` +
+            `obchodní změnu. Žádný zápis neproběhl. Pokud je to opravdu v pořádku, spusť znovu s --force.`
+        );
+    }
+
     if (!isLive) {
         console.log('\nDRY RUN — žádný zápis neproběhl, coupon-state.json nebyl aktualizován.');
         return;
     }
 
-    const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
-    if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set in .env');
-    const client = new ShoptetApiClient(token);
-    const writer = new CouponSalesWriter(client, { dryRun: false });
+    const writer = new CouponSalesWriter(client!, { dryRun: false });
 
     let failedAny = false;
     for (const [tier, pricelistId] of Object.entries(ALL_PRICELISTS_MAP)) {
         const items = byTier[tier];
         if (items.length === 0) continue;
-        console.log(`--- Zapisuji tier ${tier} (pricelist ${pricelistId}): ${items.length} položek ---`);
+        console.log(`--- Zapisuji tier ${tier} (pricelist ${pricelistId}): ${items.length} změn ---`);
         const stats = await writer.processTierBatch(pricelistId, tier, items);
         console.log(`Hotovo: zpracováno=${stats.processed} selhalo=${stats.failed}`);
         if (stats.failed > 0) failedAny = true;
     }
 
     // Only persist the new state if nothing failed — a partial/failed run should be
-    // retried in full next time, not silently treated as "already written".
+    // retried in full next time, not silently treated as "already written". Also
+    // never shrink tracked coverage: merge into the previous state rather than
+    // replacing it outright, so a run that (for whatever reason) only scanned part
+    // of the feed can't cause already-tracked products to silently drop out of state.
     if (!failedAny) {
-        fs.writeFileSync(STATE_PATH, JSON.stringify(newState), 'utf-8');
-        console.log(`\n[STATE] coupon-state.json aktualizován (${Object.keys(newState).length} produktů).`);
+        const mergedState: FullState = { ...state, ...newState };
+        fs.writeFileSync(STATE_PATH, JSON.stringify(mergedState), 'utf-8');
+        console.log(`\n[STATE] coupon-state.json aktualizován (${Object.keys(mergedState).length} produktů celkem, ${Object.keys(newState).length} z tohoto běhu).`);
     } else {
         console.log('\n[STATE] Některé zápisy selhaly — coupon-state.json NEBYL aktualizován, příští běh zopakuje i tyhle položky.');
     }

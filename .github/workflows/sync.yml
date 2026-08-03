@@ -14,7 +14,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 60 # Ochranný timeout, pokud by se API zaseklo
+    timeout-minutes: 240 # Dočasně zvýšeno pro plný přepočet celého katalogu (16625 produktů) po opravě products-reader.ts bugu — vrátit zpět na 60 po dokončení.
     
     # Práva pro commitnutí .sync_state.json zpět do repozitáře a pro vytvoření
     # issue při selhání (notifikace).

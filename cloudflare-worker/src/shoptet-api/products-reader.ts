@@ -37,33 +37,42 @@ export class ProductsReader {
                 const detail = await this.apiClient.getProductDetail(change.guid);
                 if (!detail) continue;
 
-                // Tady musíme z detailu získat základní cenu z ceníku s `pricelistId`
-                // product detail API obvykle obsahuje pole `prices` nebo podobně
+                // BUG (opraveno): GET /api/products/{guid} nemá žádná cenová pole na
+                // top-level `detail.price` / `detail.sales` — podle Shoptet OpenAPI
+                // schématu (`product`) tahle pole na produktu vůbec neexistují. Cenová
+                // data (cena i sales.minPriceRatio — strop max. slevy) jsou dostupná
+                // JEN přes `?include=perPricelistPrices` (viz getProductDetail), a to
+                // jako POLE `perPricelistPrices[]`, jeden záznam na ceník, s vlastním
+                // `pricelistId`. Předchozí kód četl neexistující top-level pole, takže
+                // pro KAŽDÝ produkt, co prošel inkrementální synchronizací (= byl od
+                // poslední synchronizace upravený), tiše spadl na basePrice=0 a
+                // productMaxDiscount=undefined — tím zmizel strop slevy (např. 5 %) a
+                // loajalitní tier (např. ZR25 = -25 %) se pak uplatnil neomezeně.
+                const pricelistEntry = Array.isArray(detail.perPricelistPrices)
+                    ? detail.perPricelistPrices.find((p: any) => p.pricelistId === pricelistId)
+                    : undefined;
+
                 let basePrice = 0;
                 let actPrice: number | undefined = undefined;
-
-                // Vyhledáme základní cenu (default price) nebo cenu v daném pricelistu
-                // Předpokládáme standardní strukturu, např. detail.prices[?] nebo root level
-                if (detail.price) {
-                     // TODO: Pokud by detail.price bylo víc ceníků, tak to musíme najít podle pricelistId.
-                     // Prozatím vezmeme základní price, protože se ptáme na basePricelist.
-                     basePrice = parseFloat(detail.price.withVat || detail.price.withoutVat || "0");
-                }
-
-                // Pokud chceme zajistit 100% jistotu s `getPricelistProducts`, 
-                // tak pro inkrementální sync bychom museli použít jinou strukturu.
-                // Nicméně basePrice je primární cena.
-                // Pro zachování plné kompatibility s getPricelistProducts 
-                // použijeme detail.prices. Pro jistotu namapujeme i actionPrice, pokud je k dispozici.
-                
                 let productMaxDiscount: Decimal | undefined = undefined;
-                if (detail.sales?.minPriceRatio) {
-                    const ratio = parseFloat(detail.sales.minPriceRatio);
-                    if (!isNaN(ratio) && ratio <= 1) {
-                        productMaxDiscount = new Decimal(1).minus(new Decimal(ratio));
+
+                if (pricelistEntry) {
+                    basePrice = parseFloat(pricelistEntry.price?.price ?? "0") || 0;
+                    const actionPriceVal = pricelistEntry.price?.actionPrice?.price;
+                    if (actionPriceVal !== null && actionPriceVal !== undefined) {
+                        actPrice = parseFloat(actionPriceVal);
                     }
+                    const ratio = pricelistEntry.sales?.minPriceRatio;
+                    if (ratio !== null && ratio !== undefined) {
+                        const ratioNum = parseFloat(ratio);
+                        if (!isNaN(ratioNum) && ratioNum <= 1) {
+                            productMaxDiscount = new Decimal(1).minus(new Decimal(ratioNum));
+                        }
+                    }
+                } else {
+                    console.warn(`ProductsReader: Produkt ${change.guid} nemá záznam perPricelistPrices pro ceník ${pricelistId} — přeskakuji cenová data (bude dořešeno při dalším full syncu).`);
                 }
-                
+
                 products.push({
                     code: detail.code || change.code || change.guid,
                     price: new Decimal(basePrice),

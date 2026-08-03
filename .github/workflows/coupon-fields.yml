@@ -1,11 +1,16 @@
 name: Coupon Fields Sync (2x denně)
 
 on:
-  schedule:
-    # 06:00 a 18:00 UTC, dvakrát denně. Běží nezávisle na hlavní cenové
-    # synchronizaci (sync.yml) — jiné pole (sales.discountCoupon/minPriceRatio),
-    # jiný zápis, žádné sdílené kroky.
-    - cron: '0 6,18 * * *'
+  # DOČASNĚ VYPNUTO (2026-08-03) — nalezen bug: GUEST tier zapisuje do
+  # pricelistu ID 1 ("Hlavný cenník"), který je zároveň ten, odkud Shoptet bere
+  # a zobrazuje "Maximální povolená sleva" na produktu — takže tenhle běh
+  # přepisoval skutečný strop produktu vypočtenou "zbývající slevou". Nechat
+  # vypnuté, dokud se neopraví tier-pricelist-map.ts / coupon-sales-writer.ts.
+  # schedule:
+  #   # 06:00 a 18:00 UTC, dvakrát denně. Běží nezávisle na hlavní cenové
+  #   # synchronizaci (sync.yml) — jiné pole (sales.discountCoupon/minPriceRatio),
+  #   # jiný zápis, žádné sdílené kroky.
+  #   - cron: '0 6,18 * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 
 concurrency:

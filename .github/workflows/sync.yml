@@ -1,9 +1,12 @@
 name: Shoptet Pricing Engine Sync
 
 on:
-  schedule:
-    # Běží automaticky každou hodinu (vždy v nultou minutu)
-    - cron: '0 * * * *'
+  # DOČASNĚ VYPNUTO (2026-08-03) — klient dělá ruční import zákazníků/ceníků přes
+  # vlastní appku, ať se s tím tenhle cron nepere. Až dá vědět, že je hotovo,
+  # odkomentovat zpátky:
+  # schedule:
+  #   # Běží automaticky každou hodinu (vždy v nultou minutu)
+  #   - cron: '0 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 
 # Ochrana proti souběžnému běhu (pokud už synchronizace běží, nová počká nebo se nespustí paralelně)

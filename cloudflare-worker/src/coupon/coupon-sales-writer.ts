@@ -1,5 +1,6 @@
 import { ShoptetApiClient, GlobalStats } from '../shoptet-api/client';
 import { CouponWriteItem } from './compute-coupon-writes';
+import { GUEST_PRICELIST_ID } from './tier-pricelist-map';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -22,6 +23,24 @@ export class CouponSalesWriter {
 
     /** Defaults to dry-run: pass { dryRun: false } explicitly to write for real. */
     public async processTierBatch(pricelistId: number, tier: string, items: CouponWriteItem[]) {
+        // BUG (opraveno, 2026-08-03): pricelist ID 1 ("Hlavný cenník") NENÍ jen další
+        // věrnostní ceník pro GUEST zákazníky — je to ten samý záznam, ze kterého
+        // Shoptet čte a zobrazuje "Maximální povolená sleva" přímo na produktu
+        // (PATCH /pricelists/1 zapisuje do stejného pole sales.minPriceRatio). Zápis
+        // GUEST tieru sem přepisoval skutečný, ručně/importem nastavený strop
+        // produktu tou dopočítanou "zbývající" hodnotou — a to na KAŽDÉM běhu, včetně
+        // automatického cronu 2x denně. Guest zákazníci jsou už chránění tím
+        // existujícím stropem nativně (Shoptet ho sám vynucuje), není potřeba sem nic
+        // zapisovat — proto se tenhle zápis teď tvrdě odmítá bez ohledu na to, odkud
+        // je processTierBatch zavolán.
+        if (pricelistId === GUEST_PRICELIST_ID) {
+            console.warn(`CouponSalesWriter: odmítám zápis do pricelistu ${GUEST_PRICELIST_ID} (GUEST/Hlavný cenník) — přepisovalo by to skutečný strop max. slevy na produktu. Přeskakuji ${items.length} položek.`);
+            return {
+                pricelistId, tier, total: items.length, processed: 0, failed: 0,
+                dryRun: this.options.dryRun !== false, errors: [] as string[], skipped: true
+            };
+        }
+
         const dryRun = this.options.dryRun !== false; // default true
         const stats = {
             pricelistId,

@@ -23,6 +23,9 @@ export interface CustomerDiff {
     oldTier: string | null;
     newTier: CustomerTier;
     changed: boolean;
+    /** Needed so a full sync can repopulate the KV customer-discount cache for
+     *  EVERY customer, not just the ones whose tier changed — see sync-orchestrator.ts. */
+    email: string | null;
 }
 
 export class CustomerAdapter {
@@ -130,13 +133,15 @@ export class CustomerAdapter {
                 continue;
             }
             const oldTier = detail.customerGroup?.name || null;
+            const email = detail.accounts?.[0]?.email || null;
 
             diffs.push({
                 customerGuid: baseCustomer.guid,
                 totalSpend,
                 oldTier,
                 newTier,
-                changed: oldTier !== newTier
+                changed: oldTier !== newTier,
+                email
             });
         }
 

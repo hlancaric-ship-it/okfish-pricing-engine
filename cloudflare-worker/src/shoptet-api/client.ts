@@ -72,6 +72,7 @@ export interface ShoptetCustomer {
         id: number;
         name: string;
     };
+    accounts?: { email: string }[];
 }
 
 export interface ShoptetChange {

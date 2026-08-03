@@ -159,17 +159,43 @@ export class SyncOrchestrator {
             console.log('   !!! UPOZORNĚNÍ: Běží pouze DRY RUN, žádná data nebudou zapsána !!!');
         }
 
-        const customerWriter = new CustomerWriter(this.client, { 
+        const customerWriter = new CustomerWriter(this.client, {
             dryRun: this.options.dryRun,
             pricelistNameMap,
             customerGroupMap,
             customerCache: this.options.customerCache
         });
         const customerStats = await customerWriter.processDiff(customerDiffs);
-        
-        if (!this.options.dryRun && this.options.customerCache && customerStats.processed > 0) {
+
+        const isFullSync = !rawLastSync;
+
+        // BUG (opraveno): customerWriter.processDiff() zapisuje do KV cache jen
+        // zákazníky, kterým se OPRAVDU změnil tier (customerDiffs je filtrované
+        // customerDiffsRaw.filter(d => d.newTier !== d.oldTier)). To je v pořádku
+        // pro INKREMENTÁLNÍ sync (nové klíče se jen přidají do už aktivní verze).
+        // Ale FULL sync na konci accommitne() s isFullSync=true, což atomicky
+        // přepne active_customer_version na tuhle novou (dosud jen z diffů
+        // naplněnou) verzi — a tím zneviditelní úplně VŠECHNY zákazníky, kterým
+        // se tier nezměnil (tj. drtivou většinu). Reálný dopad: po full syncu
+        // najednou skoro všichni zákazníci dostávali 404 z /v1/discount/:hash
+        // místo své skutečné slevy. Fix: při full syncu doplnit do cache i
+        // všechny NEZMĚNĚNÉ zákazníky (customerDiffsRaw, ne jen customerDiffs).
+        if (!this.options.dryRun && this.options.customerCache && isFullSync) {
+            let unchangedWritten = 0;
+            for (const d of customerDiffsRaw) {
+                if (d.changed) continue; // ti už byli zapsáni v customerWriter.processDiff()
+                if (!d.email) continue;
+                const match = d.newTier.match(/ZR(\d+)/i);
+                const discount = match ? parseInt(match[1], 10) : 0;
+                await this.options.customerCache.setCustomerDiscount(d.email, discount);
+                unchangedWritten++;
+            }
+            console.log(`[KV CACHE] Full sync: doplněno ${unchangedWritten} nezměněných zákazníků do nové verze cache (aby full-sync cutover nezneviditelnil jejich slevu).`);
+        }
+
+        if (!this.options.dryRun && this.options.customerCache && (customerStats.processed > 0 || isFullSync)) {
             const version = `customers_${new Date().toISOString().replace(/[:.]/g, '').replace('T', '_').substring(0, 15)}`;
-            await this.options.customerCache.commit(version, !rawLastSync);
+            await this.options.customerCache.commit(version, isFullSync);
             console.log(`[KV CACHE] Zákaznická cache byla zapsána pod verzí ${version}`);
         }
 

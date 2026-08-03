@@ -49,6 +49,40 @@ document.getElementById('runProducts').addEventListener('click', async () => {
     }
 });
 
+// --- Max. sleva podle značky ---
+let maxDiscountPath = null;
+document.getElementById('pickMaxDiscountFile').addEventListener('click', async () => {
+    const path = await window.api.pickFile([{ name: 'Excel', extensions: ['xlsx'] }]);
+    if (path) {
+        maxDiscountPath = path;
+        document.getElementById('maxDiscountPath').value = path;
+        document.getElementById('runMaxDiscount').disabled = false;
+    }
+});
+
+document.getElementById('runMaxDiscount').addEventListener('click', async () => {
+    const btn = document.getElementById('runMaxDiscount');
+    const resultEl = document.getElementById('maxDiscountResult');
+    const rulesText = document.getElementById('brandRules').value;
+    btn.disabled = true;
+    resultEl.innerHTML = '';
+    document.getElementById('openMaxDiscountOutput').style.display = 'none';
+
+    const result = await window.api.setMaxDiscount(maxDiscountPath, rulesText);
+
+    btn.disabled = false;
+    if (result.ok) {
+        resultEl.className = 'result ok';
+        resultEl.textContent = `Hotovo — nalezeno ${result.matchedCount} produktů podle značky, upraveno ${result.changedCount}. Detaily v logu dole.`;
+        const openBtn = document.getElementById('openMaxDiscountOutput');
+        openBtn.style.display = '';
+        openBtn.onclick = () => window.api.revealFile(result.outputPath);
+    } else {
+        resultEl.className = 'result error';
+        resultEl.textContent = `Chyba: ${result.error}`;
+    }
+});
+
 // --- Zákazníci ---
 let customerPath = null;
 document.getElementById('pickCustomerFile').addEventListener('click', async () => {

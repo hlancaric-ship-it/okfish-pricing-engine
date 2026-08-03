@@ -5,6 +5,7 @@ const path = require('path');
 const { processProductXlsx } = require('./lib/xlsxProductProcessor');
 const { processCustomersCsv } = require('./lib/customerProcessor');
 const { syncCustomers, syncProducts } = require('./lib/workerSync');
+const { setMaxDiscountByBrand } = require('./lib/setMaxDiscountByBrand');
 
 let mainWindow;
 
@@ -56,6 +57,34 @@ ipcMain.handle('process-products', async (event, inputPath, alsoSyncWorker) => {
         if (alsoSyncWorker) {
             await syncProducts(result.productsForSync, log);
         }
+
+        log(`Výstupní soubor: ${outputPath}`);
+        return { ok: true, outputPath, ...result };
+    } catch (e) {
+        log(`CHYBA: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('set-max-discount', async (event, inputPath, rulesText) => {
+    try {
+        const brandRules = rulesText
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map(line => {
+                const [brand, percentStr] = line.split(';').map(s => s.trim());
+                const percent = Number(percentStr);
+                if (!brand || Number.isNaN(percent)) {
+                    throw new Error(`Neplatný řádek "${line}" — čekám formát "Značka;Procento", např. "Mikado;25"`);
+                }
+                return { brand, percent };
+            });
+        if (brandRules.length === 0) throw new Error('Nezadal jsi žádnou značku.');
+
+        const outputPath = inputPath.replace(/\.xlsx$/i, '_max_sleva.xlsx');
+        log(`=== Nastavuji max. slevu podle značky: ${inputPath} ===`);
+        const result = setMaxDiscountByBrand(inputPath, outputPath, brandRules, log);
 
         log(`Výstupní soubor: ${outputPath}`);
         return { ok: true, outputPath, ...result };

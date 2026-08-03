@@ -18,6 +18,8 @@
     button.secondary { background: #666; }
     button:disabled { background: #aaa; cursor: not-allowed; }
     label.checkbox { display: flex; align-items: center; gap: 6px; font-size: 0.95em; }
+    textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 0.9em; }
+    .hint { color: #666; font-size: 0.85em; margin: 4px 0 12px; }
     #log { background: #111; color: #0f0; font-family: "SF Mono", Consolas, monospace; font-size: 0.85em; padding: 12px; height: 320px; overflow-y: auto; white-space: pre-wrap; border-radius: 4px; margin-top: 20px; }
     .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
     .result.ok { background: #e8f5e9; color: #28a745; }
@@ -30,6 +32,7 @@
 <div class="tabs">
     <div class="tab active" data-tab="products">Produkty</div>
     <div class="tab" data-tab="customers">Zákazníci</div>
+    <div class="tab" data-tab="maxdiscount">Max. sleva podle značky</div>
 </div>
 
 <div class="panel active" id="panel-products">
@@ -56,6 +59,21 @@
         <button class="secondary" id="openCustomerOutput" style="display:none;">Otevřít výsledný soubor</button>
     </div>
     <div id="customerResult"></div>
+</div>
+
+<div class="panel" id="panel-maxdiscount">
+    <div class="row">
+        <input type="text" id="maxDiscountPath" placeholder="Vyber produktový export (.xlsx)..." readonly>
+        <button id="pickMaxDiscountFile">Vybrat soubor</button>
+    </div>
+    <label>Značky a jejich maximální sleva (jedna na řádek, formát <code>Značka;Procento</code>):</label>
+    <textarea id="brandRules" rows="6" placeholder="Mikado;25&#10;Lowrance;4"></textarea>
+    <div class="hint">Např. <code>Mikado;25</code> nastaví max. slevu 25 % všem produktům se značkou "Mikado". Když se název nenajde přesně (překlep), appka dole v logu navrhne podobné značky, které v souboru reálně jsou.</div>
+    <div class="row">
+        <button id="runMaxDiscount" disabled>Nastavit max. slevu</button>
+        <button class="secondary" id="openMaxDiscountOutput" style="display:none;">Otevřít výsledný soubor</button>
+    </div>
+    <div id="maxDiscountResult"></div>
 </div>
 
 <div id="log"></div>

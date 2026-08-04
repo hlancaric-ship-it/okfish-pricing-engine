@@ -1,0 +1,31 @@
+name: Debug check pricelist item (one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pricelistId:
+        description: 'Pricelist ID (např. 17 pro ZR14)'
+        required: true
+      code:
+        description: 'Kód produktu'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          PRICELIST_ID: ${{ github.event.inputs.pricelistId }}
+          CODE: ${{ github.event.inputs.code }}
+        run: npx tsx src/cli/debug-check-pricelist-item.ts

@@ -33,7 +33,11 @@ const PROFILES: Profile[] = [
     { name: 'product-limit-with-action-price', basePrice: 28.95, actionPrice: 24.61, maxDiscountPct: 25 },
     { name: 'brand-limit-apple', basePrice: 50, manufacturer: 'Apple' },
     { name: 'category-limit-electronics', basePrice: 80, category: 'Elektronika' },
-    { name: 'product-limit-overrides-brand-and-category', basePrice: 200, actionPrice: 150, manufacturer: 'Apple', category: 'Elektronika', maxDiscountPct: 8 }
+    { name: 'product-limit-overrides-brand-and-category', basePrice: 200, actionPrice: 150, manufacturer: 'Apple', category: 'Elektronika', maxDiscountPct: 8 },
+    // Real incident (2026-08-04, VAGNER): action price (~18% off) steeper than the
+    // product's maxDiscount cap (10%). The cap must NEVER water down an active
+    // clearance/sale price — see INCIDENTS.md and DiscountLimitPolicy's SALE check.
+    { name: 'action-price-steeper-than-cap', basePrice: 344.12, actionPrice: 281.67, maxDiscountPct: 10 }
 ];
 
 function toWorkerRow(p: Profile, tier: string, allowLoyaltyDiscount: boolean): CsvRow {

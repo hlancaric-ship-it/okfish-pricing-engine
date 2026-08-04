@@ -119,7 +119,14 @@ export function calculateAllTierPrices(row: CsvRow): AllTierPrices {
         let bestPrice: number = basePrice;
         let usedAction = false;
 
-        if (actionPrice !== undefined && loyaltyPrice !== undefined) {
+        if (minAllowedPrice > 0 && actionPrice !== undefined) {
+            // A cap is active AND the product has its own sale/action price — that
+            // sale price is authoritative: neither raised by the cap-floor below,
+            // nor overridden by a steeper loyalty-tier discount. Explicit client
+            // requirement — see INCIDENTS.md ("2026-08-04 VAGNER" entry).
+            bestPrice = actionPrice;
+            usedAction = true;
+        } else if (actionPrice !== undefined && loyaltyPrice !== undefined) {
             if (actionPrice < loyaltyPrice) { bestPrice = actionPrice; usedAction = true; }
             else { bestPrice = loyaltyPrice; }
         } else if (actionPrice !== undefined) {
@@ -129,8 +136,9 @@ export function calculateAllTierPrices(row: CsvRow): AllTierPrices {
             bestPrice = loyaltyPrice;
         }
 
-        // Enforce the discount limit floor
-        if (minAllowedPrice > 0 && bestPrice < minAllowedPrice) {
+        // Enforce the discount limit floor — but NEVER against an active action/sale
+        // price (handled above already; this only fires for loyalty-only prices).
+        if (!usedAction && minAllowedPrice > 0 && bestPrice < minAllowedPrice) {
             bestPrice = minAllowedPrice;
         }
 

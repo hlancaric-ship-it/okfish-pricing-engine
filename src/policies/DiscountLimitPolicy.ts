@@ -36,6 +36,15 @@ export class DiscountLimitPolicy implements PricingPolicy {
             return;
         }
 
+        // When a cap is active AND the product has its own sale/action price, that
+        // sale price is authoritative: it is neither raised by the cap-floor below,
+        // nor overridden by a steeper loyalty-tier discount HighestDiscountPolicy
+        // might otherwise have picked. Explicit client requirement — see
+        // INCIDENTS.md ("2026-08-04 VAGNER" entry).
+        if (context.input.salePrice !== undefined) {
+            return { type: "SET_PRICE", price: context.input.salePrice, rule: RuleType.SALE };
+        }
+
         const one = new Decimal("1");
         const minAllowedPrice = context.input.basePrice.mul(one.minus(activeLimit));
 

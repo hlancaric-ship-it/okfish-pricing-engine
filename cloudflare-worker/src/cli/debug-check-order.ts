@@ -21,23 +21,36 @@ async function main() {
     const orderNumberFilter = process.env.ORDER_NUMBER;
     const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
     if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set');
-    if (!email) throw new Error('EMAIL not set');
 
-    const client = new ShoptetApiClient(token);
+    const client: any = new ShoptetApiClient(token);
+    let orders: any[] = [];
 
-    // Find the customer's guid via the customers list (paginated fetch, filter by email)
-    console.log(`Hledám zákazníka podle e-mailu: ${email}...`);
-    let guid: string | undefined;
-    const customers = await client.getCustomers();
-    const match = customers.find((c: any) => c.email?.toLowerCase() === email.toLowerCase());
-    if (!match) {
-        console.error('Zákazník nenalezen podle e-mailu.');
-        process.exit(1);
+    // Prefer looking the order up directly by its code (avoids relying on
+    // which email is currently the customer's "primary" one in Shoptet —
+    // relevant here since this customer's two emails were recently merged).
+    if (orderNumberFilter) {
+        console.log(`Hledám objednávku přímo podle čísla: ${orderNumberFilter}...`);
+        const res = await (client as any).fetchPaginated(`/orders?code=${encodeURIComponent(orderNumberFilter)}`, 'orders', 100);
+        orders = res;
+        if (orders.length === 0) {
+            console.error('Objednávka podle čísla nenalezena, zkouším přes e-mail...');
+        }
     }
-    guid = (match as any).guid;
-    console.log(`Nalezen guid: ${guid}, jméno: ${(match as any).fullName ?? '?'}`);
 
-    const orders = await client.getCustomerOrders(guid!);
+    if (orders.length === 0) {
+        if (!email) throw new Error('EMAIL not set and order lookup by code found nothing');
+        console.log(`Hledám zákazníka podle e-mailu: ${email}...`);
+        const customers = await client.getCustomers();
+        const match = customers.find((c: any) => c.email?.toLowerCase() === email.toLowerCase());
+        if (!match) {
+            console.error('Zákazník nenalezen ani podle e-mailu (pravděpodobně kvůli sloučení dvou e-mailů — primární e-mail v Shoptetu je teď jiný).');
+            process.exit(1);
+        }
+        const guid = (match as any).guid;
+        console.log(`Nalezen guid: ${guid}, jméno: ${(match as any).fullName ?? '?'}`);
+        orders = await client.getCustomerOrders(guid);
+    }
+
     console.log(`Celkem objednávek: ${orders.length}\n`);
 
     for (const order of orders as any[]) {

@@ -29,21 +29,17 @@ async function main() {
     // Prefer looking the order up directly (avoids relying on which email is
     // currently the customer's "primary" one in Shoptet — relevant here
     // since this customer's two emails were recently merged).
-    if (orderId) {
-        console.log(`Hledám objednávku přímo podle ID: ${orderId}...`);
-        try {
-            const res = await fetch(`https://api.myshoptet.com/api/orders/${encodeURIComponent(orderId)}`, {
-                headers: { 'Shoptet-Private-API-Token': token, 'Content-Type': 'application/vnd.shoptet.v1.0' },
-            });
-            const body = await res.json();
-            if (!res.ok) {
-                console.error(`Dotaz na /orders/${orderId} vrátil ${res.status}: ${JSON.stringify(body)}`);
-            } else if (body.data?.order) {
-                orders = [body.data.order];
-            }
-        } catch (e: any) {
-            console.error(`Dotaz na /orders/${orderId} selhal: ${e.message}`);
-        }
+    if (orderNumberFilter) {
+        // Search recent orders by change time (today), then filter by code —
+        // avoids needing the customer's current primary email at all.
+        const from = new Date();
+        from.setUTCHours(0, 0, 0, 0);
+        console.log(`Hledám mezi objednávkami změněnými od ${from.toISOString()}, filtr na číslo ${orderNumberFilter}...`);
+        const recent = await client.getOrdersByChangeTime(from.toISOString());
+        console.log(`Nalezeno ${recent.length} objednávek změněných dnes.`);
+        const found = (recent as any[]).find((o) => String(o.code) === orderNumberFilter);
+        if (found) orders = [found];
+        else console.error('Objednávka s tímto číslem mezi dnešními změnami nenalezena.');
     }
 
     if (orders.length === 0) {

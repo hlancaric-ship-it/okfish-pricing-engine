@@ -2,6 +2,23 @@
 
 Veškeré významné změny v tomto projektu budou dokumentovány v tomto souboru.
 
+## [1.2.0] - 2026-08-04
+
+### Přidáno
+- `set-stockout-behavior-by-price.ts` + `set-stockout-behavior.yml` — vyprodané
+  produkty ≥100 € zůstávají objednatelné ("Na dotaz"), pod 100 € se blokují
+  ("Nedostupné"). Viz `RUNBOOK.md` sekce "Dostupnost při vyprodání podle ceny".
+- `ShoptetApiClient.getAvailabilities()` a `updateStockoutBehavior()`.
+
+### Opraveno
+- Tři kritické produkční bugy zjištěné a opravené 2026-08-03 — viz `INCIDENTS.md`
+  INC-001, INC-002, INC-003 (ztráta `productMaxDiscount` u inkrementálního syncu,
+  vymazání zákaznické cache při full syncu, přepisování reálného stropu slevy
+  přes GUEST pricelist).
+- Oprava obrázku produktu DEAD PUMP (case-sensitive cesta k souboru) na
+  `fitness77-eshop` a `fitnes77hamacek` repozitářích — nesouvisí s okfish, ale
+  stejná session.
+
 ## [1.0.0] - 2026-07-20
 
 ### Architektura

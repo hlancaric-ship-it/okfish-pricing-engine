@@ -94,6 +94,50 @@ Při řešení problémů (např. nezobrazování slevy konkrétnímu uživateli
      CF_WORKER_TOKEN=<token>
      ```
 
+## 🎟️ Slevové kupóny (`coupon-fields.yml`, 2×/den cron)
+
+`cloudflare-worker/src/coupon/compute-coupon-writes.ts` počítá pro každý produkt a
+každý věrnostní tier (ZR4–ZR25 + GUEST), jestli je povolen slevový kupón a s jakým
+maximálním % (`CouponPolicy` v `src/coupon/CouponPolicy.ts`, 5 pravidel s pevným
+pořadím — Rule 4, zámek ZR20/ZR25, má absolutní přednost, jinak se řídí hierarchií
+Product → Brand → Category → 20% standardní strop). **Kritické pravidlo:** zápis do
+pricelistu 1 (GUEST/"Hlavný cenník") je natvrdo zakázaný (`coupon-sales-writer.ts`),
+protože je to stejný záznam, ze kterého Shoptet čte skutečný strop "Maximální
+povolená sleva" na produktu — viz INC-003 v `INCIDENTS.md`.
+
+**Časté nepochopení při ověřování na živém webu:** pokud produkt už má vlastní slevu
+(akční/výprodejová cena) ≥ 20 %, Rule 3 kupón zablokuje úplně, bez ohledu na tier
+zákazníka — to NENÍ bug, chrání to výprodejové ceny před dalším podřezáním.
+
+## 📦 Dostupnost při vyprodání podle ceny (`set-stockout-behavior-by-price.ts`)
+
+Od 2026-08-04: produkty s nulovým skladem (součet sloupců `stock:*` v master feedu
+≤ 0) se nechovají jednotně. Podle ceny:
+
+- **≥ 100 €** → `negativeStockAllowed = true` + dostupnost "Na dotaz" (dá se
+  objednat, u dodavatele se to vyplatí doobjednat).
+- **< 100 €** → `negativeStockAllowed = false` + dostupnost "Nedostupné" (nejde
+  objednat, doobjednávka by se nevyplatila).
+
+ID dostupností se nehardcodují — skript si je při každém běhu dotáhne přes
+`ShoptetApiClient.getAvailabilities()` podle přesného názvu ("Na dotaz" /
+"Nedostupné"), takže funguje i po libovolné reorganizaci v adminu, dokud se název
+nezmění. Práh 100 € je konstanta `PRICE_THRESHOLD` v tom souboru — pokud se má
+změnit, mění se jen tam.
+
+Spouští se ručně přes GitHub Actions workflow `set-stockout-behavior.yml`
+(`workflow_dispatch`, checkbox `live` — bez něj běží jen dry-run s výpisem počtů,
+nic nezapisuje). Před prvním ostrým během vždy pustit dry-run a čísla ověřit.
+
+**Pozor na past:** starší skript `disable-negative-stock.ts` (blanket vypnutí
+objednávání pro VŠECHNO bez skladu, bez ohledu na cenu) používal příznak
+`negativeAmount=1` z feedu k nalezení postižených produktů. Jakmile se ale
+`negativeStockAllowed` u produktu jednou vypne, feed už `negativeAmount` nehlásí
+(sklad přestane jít do mínusu) — takže `negativeAmount` NENÍ spolehlivý ukazatel
+"tenhle produkt je vyprodaný", je to jen "tenhle produkt byl v mínusu PRÁVĚ TEĎ,
+protože mu bylo dovoleno". `set-stockout-behavior-by-price.ts` proto správně počítá
+z reálného skladového množství (`stock:*` sloupce), ne z tohoto příznaku.
+
 ## 📋 Nasazení Cloudflare Workeru (Pro vývojáře)
 
 Tento projekt používá architekturu Blue/Green s bezvýpadkovým přepnutím verzí a aktivním Garbage Collection (čištěním starých dat). Pro nasazení Workeru:

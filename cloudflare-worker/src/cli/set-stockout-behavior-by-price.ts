@@ -72,6 +72,10 @@ async function main() {
         if (done) break;
         const row = value as Record<string, string>;
         scanned++;
+        if (scanned === 1 && process.env.DEBUG_FIELDS === '1') {
+            console.log('DEBUG feed columns:', Object.keys(row).join(', '));
+            console.log('DEBUG first row:', JSON.stringify(row));
+        }
         if ((row['negativeAmount'] || '').trim() === '1') {
             const price = parsePrice(row['price'] || row['standardPrice']);
             if (price !== undefined && price >= PRICE_THRESHOLD) {

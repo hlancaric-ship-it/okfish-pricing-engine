@@ -34,7 +34,6 @@ jobs:
         env:
           MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
-          DEBUG_FIELDS: '1'
         run: |
           if [ "${{ github.event.inputs.live }}" = "true" ]; then
             npx tsx src/cli/set-stockout-behavior-by-price.ts --live

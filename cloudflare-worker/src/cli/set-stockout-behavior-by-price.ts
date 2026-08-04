@@ -32,6 +32,18 @@ function parsePrice(val: string | undefined): number | undefined {
     return Number.isNaN(n) ? undefined : n;
 }
 
+/** Sums every "stock:<warehouse name>" column — feed has one per warehouse (e.g. "stock:Feedový", "stock:Predvolený sklad"). */
+function totalStock(row: Record<string, string>): number {
+    let total = 0;
+    for (const [key, val] of Object.entries(row)) {
+        if (key.startsWith('stock:')) {
+            const n = Number((val || '0').replace(',', '.').trim());
+            if (!Number.isNaN(n)) total += n;
+        }
+    }
+    return total;
+}
+
 async function main() {
     const feedUrl = process.env.MASTER_FEED_URL;
     if (!feedUrl) throw new Error('MASTER_FEED_URL not set in .env');
@@ -72,11 +84,7 @@ async function main() {
         if (done) break;
         const row = value as Record<string, string>;
         scanned++;
-        if (scanned === 1 && process.env.DEBUG_FIELDS === '1') {
-            console.log('DEBUG feed columns:', Object.keys(row).join(', '));
-            console.log('DEBUG first row:', JSON.stringify(row));
-        }
-        if ((row['negativeAmount'] || '').trim() === '1') {
+        if (totalStock(row) <= 0) {
             const price = parsePrice(row['price'] || row['standardPrice']);
             if (price !== undefined && price >= PRICE_THRESHOLD) {
                 onRequestCodes.push(row['code']);

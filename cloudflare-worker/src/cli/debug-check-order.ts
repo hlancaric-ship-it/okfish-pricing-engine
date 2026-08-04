@@ -33,7 +33,7 @@ async function main() {
         console.log(`Hledám objednávku přímo podle ID: ${orderId}...`);
         try {
             const res = await fetch(`https://api.myshoptet.com/api/orders/${encodeURIComponent(orderId)}`, {
-                headers: { 'Shoptet-Access-Token': token, 'Content-Type': 'application/json' },
+                headers: { 'Shoptet-Private-API-Token': token, 'Content-Type': 'application/vnd.shoptet.v1.0' },
             });
             const body = await res.json();
             if (!res.ok) {

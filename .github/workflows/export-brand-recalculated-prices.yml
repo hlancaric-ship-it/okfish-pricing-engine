@@ -1,0 +1,44 @@
+name: Export brand recalculated prices CSV (one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      brand:
+        description: 'Přesný název značky (manufacturer)'
+        required: true
+        default: 'VAGNER'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repozitáře
+        uses: actions/checkout@v4
+
+      - name: Příprava Node.js prostředí
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalace závislostí (root)
+        run: npm ci
+
+      - name: Instalace závislostí (cloudflare-worker)
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Export CSV
+        working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+          BRAND: ${{ github.event.inputs.brand }}
+        run: npx tsx src/cli/export-brand-recalculated-prices-csv.ts
+
+      - name: Nahrání CSV jako artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brand-recalculated-prices-csv
+          path: cloudflare-worker/exports/*_recalculated_prices.csv
+          retention-days: 7

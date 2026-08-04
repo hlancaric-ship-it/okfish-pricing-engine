@@ -9,6 +9,9 @@ on:
       order_number:
         description: 'Číslo objednávky (volitelné, filtr)'
         required: false
+      order_id:
+        description: 'Interní číselné ID objednávky z URL adminu (?id=...)'
+        required: false
 
 jobs:
   run:
@@ -28,4 +31,5 @@ jobs:
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
           EMAIL: ${{ github.event.inputs.email }}
           ORDER_NUMBER: ${{ github.event.inputs.order_number }}
+          ORDER_ID: ${{ github.event.inputs.order_id }}
         run: npx tsx src/cli/debug-check-order.ts

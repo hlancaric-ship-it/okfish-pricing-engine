@@ -24,16 +24,25 @@ async function main() {
 
     const client: any = new ShoptetApiClient(token);
     let orders: any[] = [];
+    const orderId = process.env.ORDER_ID; // numeric internal id, e.g. from admin URL ?id=574955
 
-    // Prefer looking the order up directly by its code (avoids relying on
-    // which email is currently the customer's "primary" one in Shoptet —
-    // relevant here since this customer's two emails were recently merged).
-    if (orderNumberFilter) {
-        console.log(`Hledám objednávku přímo podle čísla: ${orderNumberFilter}...`);
-        const res = await (client as any).fetchPaginated(`/orders?code=${encodeURIComponent(orderNumberFilter)}`, 'orders', 100);
-        orders = res;
-        if (orders.length === 0) {
-            console.error('Objednávka podle čísla nenalezena, zkouším přes e-mail...');
+    // Prefer looking the order up directly (avoids relying on which email is
+    // currently the customer's "primary" one in Shoptet — relevant here
+    // since this customer's two emails were recently merged).
+    if (orderId) {
+        console.log(`Hledám objednávku přímo podle ID: ${orderId}...`);
+        try {
+            const res = await fetch(`https://api.myshoptet.com/api/orders/${encodeURIComponent(orderId)}`, {
+                headers: { 'Shoptet-Access-Token': token, 'Content-Type': 'application/json' },
+            });
+            const body = await res.json();
+            if (!res.ok) {
+                console.error(`Dotaz na /orders/${orderId} vrátil ${res.status}: ${JSON.stringify(body)}`);
+            } else if (body.data?.order) {
+                orders = [body.data.order];
+            }
+        } catch (e: any) {
+            console.error(`Dotaz na /orders/${orderId} selhal: ${e.message}`);
         }
     }
 

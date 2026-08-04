@@ -83,7 +83,14 @@ export class CustomerAdapter {
         for (const order of orders) {
             // Logika původního Shoptet exportu: Dokončená (Vybavená = -3) nebo Zaplacená (markAsPaid)
             // Zde se spoléháme na přesné podmínky, které určil Shoptet (dle Discovery Reportu)
-            const isCompleted = order.status.id === -3 || order.paid;
+            //
+            // Výjimka (potvrzeno klientem 2026-08-04): objednávky se stavem
+            // "Navýšenie bodov" jsou čistě interní ruční navýšení obratu
+            // (typ "Doplnenie bodov ZR"), vytvářené v adminu bez skutečné
+            // platby přes bránu — u nich se platba nikdy nepotvrdí, protože
+            // žádná neproběhla. Počítají se do obratu bez ohledu na `paid`.
+            const isManualTurnoverTopUp = /navýšenie bodov/i.test(order.status.name ?? '');
+            const isCompleted = order.status.id === -3 || order.paid || isManualTurnoverTopUp;
             const isCancelled = order.status.id === -4;
 
             if (isCompleted && !isCancelled && order.customerGuid) {

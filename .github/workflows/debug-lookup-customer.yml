@@ -1,0 +1,27 @@
+name: Debug lookup customer discount (one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Zákazníkův e-mail'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
+          EMAIL: ${{ github.event.inputs.email }}
+        run: npx tsx src/cli/debug-lookup-customer.ts

@@ -1,0 +1,32 @@
+name: Force-set one customer's discount (one-off, bypasses turnover calc)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Zákazníkův e-mail'
+        required: true
+      discount_pct:
+        description: 'Sleva v % natvrdo (např. 16)'
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
+          CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
+          EMAIL: ${{ github.event.inputs.email }}
+          DISCOUNT_PCT: ${{ github.event.inputs.discount_pct }}
+        run: npx tsx src/cli/force-customer-discount-live.ts

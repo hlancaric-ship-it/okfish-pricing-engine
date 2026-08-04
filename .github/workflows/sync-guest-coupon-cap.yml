@@ -1,0 +1,33 @@
+name: Sync GUEST coupon cap from ZR4 (one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: 'Ostrý zápis? (jinak dry-run)'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - name: Sync GUEST coupon cap
+        working-directory: cloudflare-worker
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.live }}" = "true" ]; then
+            npx tsx src/cli/sync-guest-coupon-cap-live.ts --live
+          else
+            npx tsx src/cli/sync-guest-coupon-cap-live.ts
+          fi

@@ -455,6 +455,71 @@ export class ShoptetApiClient {
     }
 
     /**
+     * Stáhne seznam všech dostupností (Nastavení -> Produkty -> Dostupnosti),
+     * včetně systémových (Skladem, Na dotaz, Nedostupné, ...).
+     */
+    public async getAvailabilities(): Promise<{ id: number; name: string; system: boolean }[]> {
+        const url = `${this.baseUrl}/products/availabilities`;
+        return await this.rateLimiter.execute(
+            async () => {
+                GlobalStats.apiRequests.GET++;
+                const res = await fetch(url, { headers: this.getHeaders() });
+                GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
+                return res;
+            },
+            async (res) => {
+                const json = await res.json() as any;
+                if (json.errors && json.errors.length > 0) {
+                    throw new Error(`API chyba při čtení dostupností: ${JSON.stringify(json.errors)}`);
+                }
+                return json.data.availabilities as { id: number; name: string; system: boolean }[];
+            }
+        );
+    }
+
+    /**
+     * Nastaví zároveň negativeStockAllowed a availabilityWhenSoldOutId (dostupnost
+     * zobrazená zákazníkovi, když je produkt vyprodaný) — stejný PATCH endpoint a
+     * tělo jako updateNegativeStockAllowed výše, jen s dalším polem navíc.
+     */
+    public async updateStockoutBehavior(
+        code: string,
+        allowed: boolean,
+        availabilityWhenSoldOutId: number
+    ): Promise<{ requestId: string, status: number, endpoint: string }> {
+        const endpointPath = `/products/code/${encodeURIComponent(code)}`;
+        const url = `${this.baseUrl}${endpointPath}`;
+        const body = {
+            data: {
+                variants: [
+                    { code, negativeStockAllowed: allowed, availabilityWhenSoldOutId }
+                ]
+            }
+        };
+
+        return await this.rateLimiter.execute(
+            async () => {
+                GlobalStats.apiRequests.PATCH++;
+                const res = await fetch(url, {
+                    method: 'PATCH',
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(body)
+                });
+                GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
+                return res;
+            },
+            async (res) => {
+                const json = await res.json() as any;
+                if (json.errors && json.errors.length > 0) {
+                    throw new Error(`API chyba při zápisu stockout chování pro ${code}: ${JSON.stringify(json.errors)}`);
+                }
+                const reqId = res.headers.get('x-request-id') || res.headers.get('cf-ray') || 'N/A';
+                return { requestId: reqId, status: res.status, endpoint: endpointPath };
+            }
+        );
+    }
+
+    /**
      * Aktualizuje zařazení zákazníka do ceníku a zákaznické skupiny.
      * @param guid GUID zákazníka
      * @param pricelistId ID nového ceníku

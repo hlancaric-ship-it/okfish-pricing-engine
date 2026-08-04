@@ -34,7 +34,7 @@ async function main() {
     const reader = parsed.getReader();
 
     const brandLower = brand.trim().toLowerCase();
-    const rows: string[] = ['code;maxDiscount'];
+    const rows: string[] = ['code;pairCode;maxDiscount'];
     let matched = 0;
     let scanned = 0;
 
@@ -44,7 +44,7 @@ async function main() {
         const row = value as Record<string, string>;
         scanned++;
         if ((row['manufacturer'] || '').trim().toLowerCase() === brandLower) {
-            rows.push(`${row['code']};${maxDiscount}`);
+            rows.push(`${row['code']};${row['pairCode'] || ''};${maxDiscount}`);
             matched++;
         }
     }

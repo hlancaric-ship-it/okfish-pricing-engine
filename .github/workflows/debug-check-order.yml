@@ -1,0 +1,31 @@
+name: Debug check customer order status (one-off)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Zákazníkův e-mail'
+        required: true
+      order_number:
+        description: 'Číslo objednávky (volitelné, filtr)'
+        required: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          EMAIL: ${{ github.event.inputs.email }}
+          ORDER_NUMBER: ${{ github.event.inputs.order_number }}
+        run: npx tsx src/cli/debug-check-order.ts

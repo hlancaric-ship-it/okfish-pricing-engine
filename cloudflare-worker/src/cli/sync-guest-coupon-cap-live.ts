@@ -59,9 +59,11 @@ async function main() {
     for (const zr4 of zr4Items) {
         const guest = guestByCode.get(zr4.code);
         if (!guest) continue; // product not present on GUEST pricelist — skip, don't invent
-        const zr4Ratio = zr4.sales.minPriceRatio;
+        // API requires minPriceRatio formatted as exactly 4 decimals (regex
+        // [0-9]+\.[0-9]{4}$) on write, but returns it with 3 on read — reformat.
+        const zr4Ratio = Number(zr4.sales.minPriceRatio).toFixed(4);
         const zr4Coupon = zr4.sales.discountCoupon;
-        if (guest.sales.minPriceRatio !== zr4Ratio || guest.sales.discountCoupon !== zr4Coupon) {
+        if (Number(guest.sales.minPriceRatio).toFixed(4) !== zr4Ratio || guest.sales.discountCoupon !== zr4Coupon) {
             toWrite.push({ code: zr4.code, discountCoupon: zr4Coupon, minPriceRatio: zr4Ratio });
         }
     }

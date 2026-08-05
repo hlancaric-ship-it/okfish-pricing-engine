@@ -156,41 +156,24 @@ async function main() {
             // literal "0" here would wrongly write the latter. Confirmed live
             // 2026-08-05: this exact mistake corrupted Delphin/Mikado's caps.
             const roomPct = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100) : 0;
-            // 4%-cap brands (ALWAYS_OFF_BRANDS): coupon fully off on every ZR tier,
-            // client's explicit final call. 10%-cap brands and flat brands
-            // (Delphin/Delphin BOMB/Mikado): normal room formula via
-            // computeCouponWrites (cap-or-20% minus current discount) -- when the
-            // product's own action price already equals the cap, room naturally
-            // computes to 0 and no tier gets anything extra (no special-casing
-            // needed, confirmed 2026-08-05).
-            const isEligible = !isAlwaysOffBrand && !!item && item.applyDiscountCoupon && roomPct > 0;
-            const applyCoupon = isEligible ? '1' : (isAlwaysOffBrand ? '0' : '');
+            // computeCouponWrites (via brandLimits) already gives the right room for
+            // EVERY brand, including GUEST: cap (or 20% default) minus whatever
+            // discount already applies. For a no-action-price product this naturally
+            // equals the brand's own cap (e.g. Lowrance with no action price -> room
+            // = 4% - 0% = 4%, exactly the value that must stay in "Maximální povolená
+            // sleva" -- confirmed live 2026-08-05, LOWRANCE id 29997). No hardcoding
+            // needed for GUEST vs. tier here.
+            //
+            // 4%-cap brands (ALWAYS_OFF_BRANDS) are the one deliberate exception, and
+            // ONLY on the ZR tiers -- client's explicit final call: no coupon there at
+            // all, regardless of room. GUEST is NOT included in this override; it uses
+            // the same natural room formula as everyone else.
+            const tierOverrideOff = isAlwaysOffBrand && tier !== 'GUEST';
+            const isEligible = !tierOverrideOff && !!item && item.applyDiscountCoupon && roomPct > 0;
+            const applyCoupon = isEligible ? '1' : (tierOverrideOff ? '0' : '');
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
-                // GUEST's "Maximální povolená sleva" field, when a REAL room value is
-                // written there, means "how much MORE the coupon may take off on top
-                // of the current price" -- NOT an absolute ceiling. Confirmed live
-                // 2026-08-05 by the client's own manual test on a Mivardi product
-                // (10% flat action price + "Maximální povolená sleva"=10% checked +
-                // "Slevový kupón" checked => coupon correctly adds another 10%,
-                // 20% total). So GUEST gets the SAME computed room as any tier for
-                // 10%-cap and flat brands.
-                //
-                // 4%-cap brands are different again: confirmed live 2026-08-05 on
-                // LOWRANCE (code 65782) -- "Slevový kupón" is a separate ON/OFF gate
-                // from "Maximální povolená sleva". If it's OFF, the coupon field shows
-                // "no discount available" and GUEST can't even try a code (and without
-                // any coupon/action price, GUEST sees the full undiscounted price --
-                // "Maximální povolená sleva" is only a CEILING on other discounts, not
-                // a discount by itself). With it ON, a coupon can be entered but the
-                // price still can never drop below the existing cap floor (verified:
-                // -20% coupon on a 4%-cap product stopped exactly at -4%, not lower).
-                // So for 4%-cap brands GUEST must have "Slevový kupón" ON (so the
-                // coupon field actually works) with NO room value written (the real
-                // cap is a separate field/import and isn't touched here).
-                const guestApplyCoupon = isAlwaysOffBrand ? '1' : applyCoupon;
-                const guestMaxDisc = isAlwaysOffBrand ? '' : maxDisc;
-                cols.push(guestApplyCoupon, guestMaxDisc);
+                cols.push(applyCoupon, maxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
                 cols.push(price, applyCoupon, maxDisc);

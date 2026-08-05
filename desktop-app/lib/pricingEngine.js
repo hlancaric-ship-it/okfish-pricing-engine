@@ -24,10 +24,16 @@ function applyPercent(basePrice, pct) {
     return Math.round(baseCents * (100 - pct) / 100) / 100;
 }
 
+// PRICE-cap resolution deliberately does NOT read row.maxDiscount from the feed.
+// That field is also where the coupon-fields export writes each product's GUEST
+// coupon "room" (e.g. 20% for any normal, non-capped brand) -- confirmed live
+// 2026-08-05 on a non-branded product (code 106645) where a leftover room value
+// of "20" wrongly clamped ZR25's real 25% loyalty discount down to 20%. Coupon
+// eligibility (computeCouponWrites/CouponPolicy) is correct and untouched by
+// this -- only the underlying tier PRICE must ignore that field and trust only
+// the curated brandLimits/categoryLimits (policy-v1.json), which are the one
+// source of truth for a genuine, intentional per-brand discount ceiling.
 function resolveActiveLimit(row, brandLimits, categoryLimits) {
-    const productMaxDiscountPct = parsePrice(row.maxDiscount);
-    if (productMaxDiscountPct !== undefined) return productMaxDiscountPct / 100;
-
     const manufacturer = row.manufacturer;
     if (manufacturer && brandLimits && brandLimits[manufacturer] !== undefined) return brandLimits[manufacturer];
 

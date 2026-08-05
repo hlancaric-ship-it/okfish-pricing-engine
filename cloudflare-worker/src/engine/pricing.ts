@@ -59,13 +59,16 @@ function applyPercent(basePrice: number, pct: number): number {
     return Math.round(baseCents * (100 - pct) / 100) / 100;
 }
 
-// Hierarchical fallback: product-level maxDiscount -> brand limit -> category limit ->
-// no limit. Mirrors src/policies/DiscountLimitPolicy.ts exactly (same precedence, same
-// "first one present wins" rule — these are NOT layered/combined).
+// PRICE-cap resolution deliberately does NOT read row.maxDiscount from the feed.
+// That field is also where the coupon-fields export writes each product's GUEST
+// coupon "room" (e.g. 20% for any normal, non-capped brand) -- confirmed live
+// 2026-08-05 on a non-branded product (code 106645) where a leftover room value
+// of "20" wrongly clamped ZR25's real 25% loyalty discount down to 20%. Coupon
+// eligibility (computeCouponWrites/CouponPolicy) is correct and untouched by
+// this -- only the underlying tier PRICE must ignore that field and trust only
+// the curated BRAND_LIMITS/CATEGORY_LIMITS (policy-v1.json), the one source of
+// truth for a genuine, intentional per-brand discount ceiling.
 function resolveActiveLimit(row: CsvRow): number | undefined {
-    const productMaxDiscountPct = parsePrice(row['maxDiscount']);
-    if (productMaxDiscountPct !== undefined) return productMaxDiscountPct / 100;
-
     const manufacturer = row['manufacturer'];
     if (manufacturer && BRAND_LIMITS[manufacturer] !== undefined) return BRAND_LIMITS[manufacturer];
 

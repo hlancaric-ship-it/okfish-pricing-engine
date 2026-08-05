@@ -166,10 +166,23 @@ async function main() {
                 // (10% flat action price + "Maximální povolená sleva"=10% checked +
                 // "Slevový kupón" checked => coupon correctly adds another 10%,
                 // 20% total). So GUEST gets the SAME Rule-5-computed room as any
-                // other tier -- no special-casing needed here beyond making sure
-                // applyDiscountCoupon is actually written (an earlier version left
-                // it blank, which CSV import reads as unchecked/disabled).
-                cols.push(applyCoupon, maxDisc);
+                // other tier for normal/flat brands.
+                //
+                // Hard-cap brands are different again: confirmed live 2026-08-05 on
+                // LOWRANCE (code 65782) -- "Slevový kupón" is a separate ON/OFF gate
+                // from "Maximální povolená sleva". If it's OFF, the coupon field shows
+                // "no discount available" and GUEST can't even try a code (and without
+                // any coupon/action price, GUEST sees the full undiscounted price --
+                // "Maximální povolená sleva" is only a CEILING on other discounts, not
+                // a discount by itself). With it ON, a coupon can be entered but the
+                // price still can never drop below the existing cap floor (verified:
+                // -20% coupon on a 4%-cap product stopped exactly at -4%, not lower).
+                // So for hard-cap brands GUEST must have "Slevový kupón" ON (so the
+                // coupon field actually works) with NO room value written (the real
+                // cap is a separate field/import and isn't touched here).
+                const guestApplyCoupon = isHardCapBrand ? '1' : applyCoupon;
+                const guestMaxDisc = isHardCapBrand ? '' : maxDisc;
+                cols.push(guestApplyCoupon, guestMaxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
                 cols.push(price, applyCoupon, maxDisc);

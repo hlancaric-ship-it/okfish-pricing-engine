@@ -19,6 +19,8 @@ import Decimal from 'decimal.js';
 import { CsvParserStream } from '../csv/csv-parser';
 import { computeCouponWrites } from '../coupon/compute-coupon-writes';
 import { ALL_PRICELISTS_MAP } from '../coupon/tier-pricelist-map';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { calculateAllTierPrices } = require('../../../desktop-app/lib/pricingEngine.js');
 
 function loadRootEnv() {
     const envPath = path.resolve(__dirname, '../../../.env');
@@ -80,7 +82,14 @@ async function main() {
         if (tier === 'GUEST') {
             headerCols.push('applyDiscountCoupon', 'maxDiscount');
         } else {
-            headerCols.push(`pricelist:${pricelistId}:applyDiscountCoupon`, `pricelist:${pricelistId}:maxDiscount`);
+            // Shoptet's import REQUIRES pricelist:<id>:price to be present for
+            // ANY per-pricelist column on that pricelist to be accepted at all
+            // (confirmed live 2026-08-05 — without it every pricelist:X:* column
+            // is silently skipped with a warning, even though export uses this
+            // exact same column set). We include the engine's own correctly
+            // computed price here — same value it already has — purely to
+            // satisfy this requirement, never to change it.
+            headerCols.push(`pricelist:${pricelistId}:price`, `pricelist:${pricelistId}:applyDiscountCoupon`, `pricelist:${pricelistId}:maxDiscount`);
         }
     }
     out.write(headerCols.join(';') + '\n');
@@ -112,13 +121,19 @@ async function main() {
             loyaltyTiers, brandLimits, categoryLimits,
         );
         const byTier = new Map(items.map((i) => [i.tier, i]));
+        const tierPrices = calculateAllTierPrices(row);
 
         const cols = [code, row['pairCode'] || ''];
         for (const [tier] of tierOrder) {
             const item = byTier.get(tier);
             const applyCoupon = item ? (item.applyDiscountCoupon ? '1' : '0') : '0';
             const maxDisc = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100).toString() : '';
-            cols.push(applyCoupon, maxDisc);
+            if (tier === 'GUEST') {
+                cols.push(applyCoupon, maxDisc);
+            } else {
+                const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
+                cols.push(price, applyCoupon, maxDisc);
+            }
         }
         out.write(cols.join(';') + '\n');
 

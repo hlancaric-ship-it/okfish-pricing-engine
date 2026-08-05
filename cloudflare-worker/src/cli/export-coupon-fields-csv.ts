@@ -126,8 +126,15 @@ async function main() {
         const cols = [code, row['pairCode'] || ''];
         for (const [tier] of tierOrder) {
             const item = byTier.get(tier);
-            const applyCoupon = item ? (item.applyDiscountCoupon ? '1' : '0') : '0';
-            const maxDisc = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100).toString() : '';
+            // No coupon room (or no item at all) -> leave BOTH cells empty, never "0".
+            // Shoptet distinguishes "checkbox unchecked / field blank" (no cap, no
+            // restriction) from "checked with value 0" (blocks all discount) -- a
+            // literal "0" here would wrongly write the latter. Confirmed live
+            // 2026-08-05: this exact mistake corrupted Delphin/Mikado's caps.
+            const roomPct = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100) : 0;
+            const isEligible = !!item && item.applyDiscountCoupon && roomPct > 0;
+            const applyCoupon = isEligible ? '1' : '';
+            const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
                 cols.push(applyCoupon, maxDisc);
             } else {

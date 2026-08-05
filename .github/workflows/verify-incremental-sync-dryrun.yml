@@ -1,0 +1,38 @@
+name: Verify INCREMENTAL sync (dry-run, shows exact API payloads)
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours_ago:
+        description: 'Kolik hodin zpět nastavit lastSync'
+        required: false
+        default: '2'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Dry-run incremental sync
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
+          CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+          HOURS_AGO: ${{ github.event.inputs.hours_ago }}
+        run: |
+          set -o pipefail
+          npx tsx scripts/verify-incremental-sync-dryrun.ts | tee incremental-dry-run.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: incremental-dry-run-log
+          path: incremental-dry-run.log
+          retention-days: 7

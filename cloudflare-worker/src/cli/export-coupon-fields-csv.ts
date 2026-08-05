@@ -22,16 +22,15 @@ import { ALL_PRICELISTS_MAP } from '../coupon/tier-pricelist-map';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { calculateAllTierPrices } = require('../../../desktop-app/lib/pricingEngine.js');
 
-// Brands with a real, hard discount ceiling (~30 brands at 10%, plus
-// Lowrance/Humminbird/Simrad/Navico at 4%) -- confirmed live 2026-08-05: for
-// these, "Slevový kupón" must be OFF everywhere (GUEST + every ZR tier), no
-// exceptions, no partial room -- unlike Delphin/Delphin BOMB/Mikado (flat
-// action-price brands with NO cap), where coupon room is computed normally.
-// Most of these already carry their real maxDiscount value in the feed from
-// the earlier brand-cap CSV import; MIVARDI is listed explicitly here because
-// it was reclassified into this hard-cap group after that import already ran,
-// so the feed doesn't reflect it yet.
-const HARD_CAP_BRAND_OVERRIDE: Record<string, number> = { MIVARDI: 10 };
+// Only the 4%-cap brands get coupon disabled everywhere (GUEST + every ZR
+// tier), confirmed live 2026-08-05 -- client's final call. The ~26-brand 10%
+// group (Lowrance's 4% siblings excluded) uses the NORMAL room formula
+// (cap - current discount, via CouponPolicy Rule 2 + brandLimits), same as
+// Delphin/Delphin BOMB/Mikado's 20%-ceiling formula just with the brand's own
+// cap as ceiling instead of 20% -- confirmed live on Lowrance (a 4%-cap
+// product): coupon capped exactly at -4%, never below, so the underlying
+// engine logic is already correct; only these 4 brands need coupon fully off.
+const ALWAYS_OFF_BRANDS = new Set(['HUMMINBIRD', 'LOWRANCE', 'NAVICO', 'SIMRAD']);
 
 function loadRootEnv() {
     const envPath = path.resolve(__dirname, '../../../.env');
@@ -126,15 +125,17 @@ async function main() {
         if (!basePrice || basePrice.lessThanOrEqualTo(0)) continue;
 
         const actionPrice = parseNumber(row['actionPrice']);
-        const maxDiscountPct = parseNumber(row['maxDiscount']);
-        const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
         const manufacturer = row['manufacturer'] || undefined;
         const manufacturerUpper = manufacturer?.trim().toUpperCase();
-        // Hard cap = product's own feed maxDiscount is set (the ~30-brand list
-        // already carries this from the earlier import) OR it's in the explicit
-        // override map (MIVARDI). Either way: no coupon, anywhere, ever.
-        const isHardCapBrand = (maxDiscountPct !== undefined && maxDiscountPct.lessThan(20))
-            || (manufacturerUpper !== undefined && HARD_CAP_BRAND_OVERRIDE[manufacturerUpper] !== undefined);
+        // Deliberately NOT reading row['maxDiscount'] here -- same reasoning as the
+        // price engine fix: that feed field is also where earlier coupon-room
+        // exports wrote GUEST's computed room (e.g. "20" for any normal brand),
+        // so it can no longer be trusted as a genuine per-product cap. Coupon
+        // eligibility now relies solely on the curated brandLimits (policy-v1.json)
+        // via computeCouponWrites' own Product->Brand->Category fallback (Product
+        // level is simply never populated here anymore).
+        const productMaxDiscount = undefined;
+        const isAlwaysOffBrand = manufacturerUpper !== undefined && ALWAYS_OFF_BRANDS.has(manufacturerUpper);
         const category = row['categoryText'] || undefined;
         const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
@@ -155,8 +156,15 @@ async function main() {
             // literal "0" here would wrongly write the latter. Confirmed live
             // 2026-08-05: this exact mistake corrupted Delphin/Mikado's caps.
             const roomPct = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100) : 0;
-            const isEligible = !isHardCapBrand && !!item && item.applyDiscountCoupon && roomPct > 0;
-            const applyCoupon = isEligible ? '1' : (isHardCapBrand ? '0' : '');
+            // 4%-cap brands (ALWAYS_OFF_BRANDS): coupon fully off on every ZR tier,
+            // client's explicit final call. 10%-cap brands and flat brands
+            // (Delphin/Delphin BOMB/Mikado): normal room formula via
+            // computeCouponWrites (cap-or-20% minus current discount) -- when the
+            // product's own action price already equals the cap, room naturally
+            // computes to 0 and no tier gets anything extra (no special-casing
+            // needed, confirmed 2026-08-05).
+            const isEligible = !isAlwaysOffBrand && !!item && item.applyDiscountCoupon && roomPct > 0;
+            const applyCoupon = isEligible ? '1' : (isAlwaysOffBrand ? '0' : '');
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
                 // GUEST's "Maximální povolená sleva" field, when a REAL room value is
@@ -165,10 +173,10 @@ async function main() {
                 // 2026-08-05 by the client's own manual test on a Mivardi product
                 // (10% flat action price + "Maximální povolená sleva"=10% checked +
                 // "Slevový kupón" checked => coupon correctly adds another 10%,
-                // 20% total). So GUEST gets the SAME Rule-5-computed room as any
-                // other tier for normal/flat brands.
+                // 20% total). So GUEST gets the SAME computed room as any tier for
+                // 10%-cap and flat brands.
                 //
-                // Hard-cap brands are different again: confirmed live 2026-08-05 on
+                // 4%-cap brands are different again: confirmed live 2026-08-05 on
                 // LOWRANCE (code 65782) -- "Slevový kupón" is a separate ON/OFF gate
                 // from "Maximální povolená sleva". If it's OFF, the coupon field shows
                 // "no discount available" and GUEST can't even try a code (and without
@@ -177,11 +185,11 @@ async function main() {
                 // a discount by itself). With it ON, a coupon can be entered but the
                 // price still can never drop below the existing cap floor (verified:
                 // -20% coupon on a 4%-cap product stopped exactly at -4%, not lower).
-                // So for hard-cap brands GUEST must have "Slevový kupón" ON (so the
+                // So for 4%-cap brands GUEST must have "Slevový kupón" ON (so the
                 // coupon field actually works) with NO room value written (the real
                 // cap is a separate field/import and isn't touched here).
-                const guestApplyCoupon = isHardCapBrand ? '1' : applyCoupon;
-                const guestMaxDisc = isHardCapBrand ? '' : maxDisc;
+                const guestApplyCoupon = isAlwaysOffBrand ? '1' : applyCoupon;
+                const guestMaxDisc = isAlwaysOffBrand ? '' : maxDisc;
                 cols.push(guestApplyCoupon, guestMaxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';

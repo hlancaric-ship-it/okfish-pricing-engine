@@ -1,0 +1,27 @@
+name: Export recalculated prices for cleared no-op action-price products
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/export-noop-actionprice-recalculated-prices.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noop_actionprice_recalculated_prices
+          path: cloudflare-worker/exports/noop_actionprice_recalculated_prices.csv
+          retention-days: 7

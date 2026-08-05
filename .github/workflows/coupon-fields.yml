@@ -1,16 +1,20 @@
-name: Coupon Fields Sync (2x denně)
+name: Coupon Fields Sync (hodinově)
 
 on:
   schedule:
-    # 06:00 a 18:00 UTC, dvakrát denně. Běží nezávisle na hlavní cenové
-    # synchronizaci (sync.yml) — jiné pole (sales.discountCoupon/minPriceRatio),
-    # jiný zápis, žádné sdílené kroky.
+    # Zrychleno 2026-08-05 (na žádost klienta) z 2×/den na hodinovou
+    # frekvenci — kupónová eligibilita (vč. GUEST) se propíše mnohem
+    # rychleji po nastavení nové akční ceny/stropu na produktu. Diff-aware
+    # zápis + 30% bezpečnostní pojistka zůstávají beze změny.
+    #
+    # Běží nezávisle na hlavní cenové synchronizaci (sync.yml) — jiné pole
+    # (sales.discountCoupon/minPriceRatio), jiný zápis, žádné sdílené kroky.
     #
     # Znovu zapnuto 2026-08-03 po opravě CouponSalesWriter (viz commit
     # "fix: critical — CouponSalesWriter no longer writes to pricelist ID 1") —
     # GUEST tier zápis do pricelistu 1 ("Hlavný cenník") se teď tvrdě odmítá,
     # takže už nemůže přepsat skutečný strop max. slevy na produktu.
-    - cron: '0 6,18 * * *'
+    - cron: '15 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 
 concurrency:

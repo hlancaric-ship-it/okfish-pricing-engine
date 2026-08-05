@@ -2,10 +2,11 @@ name: Shoptet Pricing Engine Sync
 
 on:
   schedule:
-    # Znovu zapnuto 2026-08-04 20:00 (dle domluvy s klientem) po dokončení
-    # ruční práce v desktop appce. Běží automaticky každou hodinu (vždy v
-    # nultou minutu).
-    - cron: '0 * * * *'
+    # Zrychleno 2026-08-05 (na žádost klienta) z hodinové na 15minutovou
+    # frekvenci — nové/upravené produkty a přepočet tierů se tak propíšou
+    # mnohem rychleji. Incrementální běh trvá řádově pod minutu (ověřeno),
+    # takže se do 15minutového okna bezpečně vejde.
+    - cron: '*/15 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 
 # Ochrana proti souběžnému běhu (pokud už synchronizace běží, nová počká nebo se nespustí paralelně)

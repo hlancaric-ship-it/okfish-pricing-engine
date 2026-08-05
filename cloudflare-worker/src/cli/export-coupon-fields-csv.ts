@@ -22,6 +22,17 @@ import { ALL_PRICELISTS_MAP } from '../coupon/tier-pricelist-map';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { calculateAllTierPrices } = require('../../../desktop-app/lib/pricingEngine.js');
 
+// Brands with a flat action-price discount for everyone and NO cap concept at
+// all (confirmed live 2026-08-05: "ma 9% akcni cenu nema strop chapes",
+// "mivardi nema mit nastavenou max % slevu ani delfin ani mikado ani delfin
+// bomb"). The GUEST/top-level "Maximální povolená sleva" field must stay
+// completely empty for these -- computeCouponWrites treats GUEST as just
+// another 0%-loyalty tier and would otherwise compute a real (non-empty) room
+// value there, which lands in the exact same Shoptet field as the real
+// per-product discount cap and re-creates the original field-overload bug.
+// Their ZR-tier coupon-room columns are unaffected and computed normally.
+const NO_CAP_BRANDS = new Set(['DELPHIN', 'DELPHIN BOMB', 'MIKADO', 'MIVARDI']);
+
 function loadRootEnv() {
     const envPath = path.resolve(__dirname, '../../../.env');
     if (!fs.existsSync(envPath)) return;
@@ -112,6 +123,7 @@ async function main() {
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
         const manufacturer = row['manufacturer'] || undefined;
+        const isNoCapBrand = manufacturer !== undefined && NO_CAP_BRANDS.has(manufacturer.trim().toUpperCase());
         const category = row['categoryText'] || undefined;
         const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
@@ -136,7 +148,9 @@ async function main() {
             const applyCoupon = isEligible ? '1' : '';
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
-                cols.push(applyCoupon, maxDisc);
+                // Top-level field for no-cap brands must stay empty, regardless of
+                // what GUEST's own computed coupon room would otherwise be.
+                cols.push(isNoCapBrand ? '' : applyCoupon, isNoCapBrand ? '' : maxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
                 cols.push(price, applyCoupon, maxDisc);

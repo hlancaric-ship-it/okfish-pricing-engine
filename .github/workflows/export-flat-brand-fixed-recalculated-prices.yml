@@ -1,0 +1,27 @@
+name: Export recalculated prices for fixed flat-brand products
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/export-flat-brand-fixed-recalculated-prices.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat_brand_fixed_recalculated_prices
+          path: cloudflare-worker/exports/flat_brand_fixed_recalculated_prices.csv
+          retention-days: 7

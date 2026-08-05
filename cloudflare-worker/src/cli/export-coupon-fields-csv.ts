@@ -148,9 +148,16 @@ async function main() {
             const applyCoupon = isEligible ? '1' : '';
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
-                // Top-level field for no-cap brands must stay empty, regardless of
-                // what GUEST's own computed coupon room would otherwise be.
-                cols.push(isNoCapBrand ? '' : applyCoupon, isNoCapBrand ? '' : maxDisc);
+                // No-cap brands: "Slevový kupón" (applyDiscountCoupon) must stay ON
+                // so a coupon can be used at all -- but "Maximální povolená sleva"
+                // (maxDiscount) must stay empty (no ceiling on top of the flat
+                // action price). These are two separate checkboxes; leaving BOTH
+                // blank was a bug -- an empty applyDiscountCoupon cell on CSV
+                // import sets the checkbox to unchecked/false, which disables
+                // coupons entirely for GUEST customers (confirmed live 2026-08-05
+                // via a client report: coupon box greyed out / not usable on GUEST
+                // for Mikado).
+                cols.push(isNoCapBrand ? '1' : applyCoupon, isNoCapBrand ? '' : maxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
                 cols.push(price, applyCoupon, maxDisc);

@@ -27,3 +27,4 @@ jobs:
           name: full-pricelist-backup
           path: cloudflare-worker/.snapshots/*.json
           retention-days: 90
+          include-hidden-files: true

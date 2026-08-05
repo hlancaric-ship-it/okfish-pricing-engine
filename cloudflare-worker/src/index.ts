@@ -1,5 +1,6 @@
 import { Env, runFeedGeneration } from './feed-generator';
 import { calculateAllTierPrices, CsvRow } from './engine/pricing';
+import { DASHBOARD_HTML } from './dashboard-html';
 
 const SECRET_TOKEN = 'shoptet-vip-secret-12345';
 
@@ -35,6 +36,13 @@ export default {
                     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
                 }
             });
+        }
+
+        // === GET /dashboard ===
+        // Serves the live sync-monitor page same-origin (avoids the strict CSP that
+        // blocks external fetch() from claude.ai Artifacts entirely).
+        if (path === '/dashboard' && request.method === 'GET') {
+            return new Response(DASHBOARD_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
         }
 
         // === GET /v1/feed/status ===

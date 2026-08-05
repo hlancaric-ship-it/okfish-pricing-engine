@@ -1,0 +1,451 @@
+<title>okfish sync monitor</title>
+<style>
+  :root {
+    --bg: #0b0e13;
+    --surface: #12161d;
+    --surface-2: #171c25;
+    --border: #232a36;
+    --text: #e7ecf3;
+    --text-dim: #8b96a8;
+    --text-faint: #5a6478;
+    --accent: #e8a33d;
+    --accent-dim: #6b5127;
+    --ok: #3fb950;
+    --ok-dim: #1c3a22;
+    --warn: #d29922;
+    --warn-dim: #3d2f10;
+    --crit: #f85149;
+    --crit-dim: #3d1a18;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eef0f3;
+    --border: #dde1e7;
+    --text: #171b21;
+    --text-dim: #5c6472;
+    --text-faint: #8891a0;
+    --accent: #b3721c;
+    --accent-dim: #f3e0bd;
+    --ok: #1a7f37;
+    --ok-dim: #dcf5e3;
+    --warn: #9a6700;
+    --warn-dim: #faedcc;
+    --crit: #cf222e;
+    --crit-dim: #fbe0df;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --surface-2: #eef0f3;
+      --border: #dde1e7;
+      --text: #171b21;
+      --text-dim: #5c6472;
+      --text-faint: #8891a0;
+      --accent: #b3721c;
+      --accent-dim: #f3e0bd;
+      --ok: #1a7f37;
+      --ok-dim: #dcf5e3;
+      --warn: #9a6700;
+      --warn-dim: #faedcc;
+      --crit: #cf222e;
+      --crit-dim: #fbe0df;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .title-block h1 {
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+  .title-block .sub {
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+  .status-pill.running .status-dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent);
+    animation: pulse 1.6s ease-out infinite;
+  }
+  .status-pill.running { border-color: var(--accent-dim); color: var(--accent); }
+  .status-pill.done .status-dot { background: var(--ok); }
+  .status-pill.done { border-color: var(--ok-dim); color: var(--ok); }
+  .status-pill.error .status-dot { background: var(--crit); }
+  .status-pill.error { border-color: var(--crit-dim); color: var(--crit); }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+    100% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent); }
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 18px;
+    font-size: 12.5px;
+    color: var(--text-faint);
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-row b { color: var(--text-dim); font-weight: 600; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+  }
+  .card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .card .value {
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .card .value .unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+  .card .sub {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 6px;
+  }
+  .card.accent .value { color: var(--accent); }
+
+  .stability-bar-track {
+    height: 6px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .stability-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--ok);
+    transition: width 0.4s ease;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+  }
+
+  .chart-wrap { overflow-x: auto; }
+  canvas#chart { display: block; width: 100%; height: 120px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--text-faint);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td.num { text-align: right; }
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .badge.ok { background: var(--ok-dim); color: var(--ok); }
+  .badge.warn { background: var(--warn-dim); color: var(--warn); }
+  .badge.crit { background: var(--crit-dim); color: var(--crit); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-faint);
+  }
+  .empty-state .big {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 28px;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Sync monitor</h1>
+      <div class="sub">okfish-pricing-engine · živé zatížení Shoptet API</div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">načítám…</span>
+    </div>
+  </header>
+
+  <div class="meta-row" id="metaRow"></div>
+
+  <div id="content">
+    <div class="empty-state">
+      <div class="big">Zatím žádná data</div>
+      Čeká se na první odpověď z Workeru…
+    </div>
+  </div>
+
+  <footer>Aktualizuje se každé 3 s · zdroj: <span class="mono">shoptet-vip-worker.hlancaric.workers.dev/v1/sync-stats</span></footer>
+</div>
+
+<script>
+  const WORKER_URL = '/v1/sync-stats';
+  const history = []; // {t, stabilityPct}
+  const MAX_HISTORY = 80;
+
+  function fmt(n) {
+    return new Intl.NumberFormat('cs-CZ').format(n || 0);
+  }
+
+  function statusBadgeForCode(code) {
+    const n = Number(code);
+    if (n >= 200 && n < 300) return 'ok';
+    if (n === 429) return 'warn';
+    if (n >= 400) return 'crit';
+    return 'warn';
+  }
+
+  function render(data) {
+    const pill = document.getElementById('statusPill');
+    const statusText = document.getElementById('statusText');
+    const meta = document.getElementById('metaRow');
+    const content = document.getElementById('content');
+
+    if (!data || data.status === 'idle') {
+      pill.className = 'status-pill';
+      statusText.textContent = 'nečinné';
+      meta.innerHTML = '';
+      content.innerHTML = '<div class="empty-state"><div class="big">Žádný sync neběží</div>' + (data && data.message ? data.message : 'Zatím žádný záznam.') + '</div>';
+      return;
+    }
+
+    const isRunning = data.running === true;
+    const isError = data.phase === 'error';
+    pill.className = 'status-pill ' + (isRunning ? 'running' : isError ? 'error' : 'done');
+    statusText.textContent = isRunning ? 'běží — ' + (data.phase || 'running') : isError ? 'chyba' : 'dokončeno';
+
+    const req = data.requests || { GET: 0, PATCH: 0 };
+    const rate = data.requestRatePerSec || { GET: 0, PATCH: 0 };
+    const stability = data.stabilityPct != null ? data.stabilityPct : 100;
+    const totalRetries = Object.values(data.retries || {}).reduce((a, b) => a + b, 0);
+    const totalReq = req.GET + req.PATCH;
+
+    meta.innerHTML =
+      '<span><b>' + (data.elapsedSeconds != null ? fmt(data.elapsedSeconds) + 's' : '—') + '</b> uplynulo</span>' +
+      '<span>naposledy: <b>' + (data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('cs-CZ') : '—') + '</b></span>' +
+      '<span>celkem retry: <b class="mono">' + fmt(totalRetries) + '</b></span>';
+
+    if (isRunning || totalReq > 0) {
+      history.push({ t: Date.now(), stability });
+      if (history.length > MAX_HISTORY) history.shift();
+    }
+
+    const stabColor = stability >= 98 ? 'var(--ok)' : stability >= 85 ? 'var(--warn)' : 'var(--crit)';
+
+    let html = '<div class="grid">';
+    html += cardBlock('GET požadavky', fmt(req.GET), rate.GET != null ? rate.GET.toFixed(1) + ' /s' : null);
+    html += cardBlock('PATCH požadavky', fmt(req.PATCH), rate.PATCH != null ? rate.PATCH.toFixed(1) + ' /s' : null);
+    html +=
+      '<div class="card"><div class="label">Stabilita</div>' +
+      '<div class="value" style="color:' + stabColor + '">' + stability.toFixed(1) + '<span class="unit">% OK</span></div>' +
+      '<div class="stability-bar-track"><div class="stability-bar-fill" style="width:' + stability + '%; background:' + stabColor + '"></div></div>' +
+      '</div>';
+    html += cardBlock('Retry pokusy', fmt(totalRetries), totalRetries > 0 ? 'viz tabulka níže' : 'bez problémů');
+    html += '</div>';
+
+    html += '<div class="panel"><h2>Stabilita v čase</h2><div class="chart-wrap"><canvas id="chart" width="900" height="120"></canvas></div></div>';
+
+    const statuses = Object.entries(data.httpResponses || {});
+    if (statuses.length > 0) {
+      html += '<div class="panel"><h2>HTTP odpovědi</h2><table><thead><tr><th>Status</th><th class="num">Počet</th><th class="num">Retry</th></tr></thead><tbody>';
+      statuses.sort((a, b) => Number(a[0]) - Number(b[0])).forEach(([code, count]) => {
+        const retryCount = (data.retries || {})[code] || 0;
+        html +=
+          '<tr><td><span class="badge ' + statusBadgeForCode(code) + ' mono">' + code + '</span></td>' +
+          '<td class="num mono">' + fmt(count) + '</td>' +
+          '<td class="num mono">' + (retryCount > 0 ? fmt(retryCount) : '—') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    content.innerHTML = html;
+    drawChart();
+  }
+
+  function cardBlock(label, value, sub) {
+    return '<div class="card"><div class="label">' + label + '</div><div class="value mono">' + value + '</div>' +
+      (sub ? '<div class="sub mono">' + sub + '</div>' : '') + '</div>';
+  }
+
+  function drawChart() {
+    const canvas = document.getElementById('chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const styles = getComputedStyle(document.documentElement);
+    const border = styles.getPropertyValue('--border').trim();
+    const ok = styles.getPropertyValue('--ok').trim();
+
+    // grid
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    [0, 0.5, 1].forEach((f) => {
+      const y = h - f * (h - 10) - 5;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    });
+
+    if (history.length < 2) return;
+
+    const pts = history.map((d, i) => ({
+      x: (i / (MAX_HISTORY - 1)) * w,
+      y: h - (d.stability / 100) * (h - 10) - 5,
+    }));
+
+    // area fill
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'color-mix(in srgb, ' + ok + ' 28%, transparent)');
+    grad.addColorStop(1, 'color-mix(in srgb, ' + ok + ' 0%, transparent)');
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, h);
+    pts.forEach((p) => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length - 1].x, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+    ctx.strokeStyle = ok;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // endpoint dot
+    const last = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = ok;
+    ctx.fill();
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch(WORKER_URL, { cache: 'no-store' });
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      document.getElementById('statusText').textContent = 'chyba spojení';
+    }
+  }
+
+  poll();
+  setInterval(poll, 3000);
+  window.addEventListener('resize', drawChart);
+</script>

@@ -22,17 +22,6 @@ import { ALL_PRICELISTS_MAP } from '../coupon/tier-pricelist-map';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { calculateAllTierPrices } = require('../../../desktop-app/lib/pricingEngine.js');
 
-// Brands with a flat action-price discount for everyone and NO cap concept at
-// all (confirmed live 2026-08-05: "ma 9% akcni cenu nema strop chapes",
-// "mivardi nema mit nastavenou max % slevu ani delfin ani mikado ani delfin
-// bomb"). The GUEST/top-level "Maximální povolená sleva" field must stay
-// completely empty for these -- computeCouponWrites treats GUEST as just
-// another 0%-loyalty tier and would otherwise compute a real (non-empty) room
-// value there, which lands in the exact same Shoptet field as the real
-// per-product discount cap and re-creates the original field-overload bug.
-// Their ZR-tier coupon-room columns are unaffected and computed normally.
-const NO_CAP_BRANDS = new Set(['DELPHIN', 'DELPHIN BOMB', 'MIKADO', 'MIVARDI']);
-
 function loadRootEnv() {
     const envPath = path.resolve(__dirname, '../../../.env');
     if (!fs.existsSync(envPath)) return;
@@ -123,7 +112,6 @@ async function main() {
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
         const manufacturer = row['manufacturer'] || undefined;
-        const isNoCapBrand = manufacturer !== undefined && NO_CAP_BRANDS.has(manufacturer.trim().toUpperCase());
         const category = row['categoryText'] || undefined;
         const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
@@ -148,16 +136,17 @@ async function main() {
             const applyCoupon = isEligible ? '1' : '';
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
-                // No-cap brands: "Slevový kupón" (applyDiscountCoupon) must stay ON
-                // so a coupon can be used at all -- but "Maximální povolená sleva"
-                // (maxDiscount) must stay empty (no ceiling on top of the flat
-                // action price). These are two separate checkboxes; leaving BOTH
-                // blank was a bug -- an empty applyDiscountCoupon cell on CSV
-                // import sets the checkbox to unchecked/false, which disables
-                // coupons entirely for GUEST customers (confirmed live 2026-08-05
-                // via a client report: coupon box greyed out / not usable on GUEST
-                // for Mikado).
-                cols.push(isNoCapBrand ? '1' : applyCoupon, isNoCapBrand ? '' : maxDisc);
+                // GUEST's "Maximální povolená sleva" field, when a REAL room value is
+                // written there, means "how much MORE the coupon may take off on top
+                // of the current price" -- NOT an absolute ceiling. Confirmed live
+                // 2026-08-05 by the client's own manual test on a Mivardi product
+                // (10% flat action price + "Maximální povolená sleva"=10% checked +
+                // "Slevový kupón" checked => coupon correctly adds another 10%,
+                // 20% total). So GUEST gets the SAME Rule-5-computed room as any
+                // other tier -- no special-casing needed here beyond making sure
+                // applyDiscountCoupon is actually written (an earlier version left
+                // it blank, which CSV import reads as unchecked/disabled).
+                cols.push(applyCoupon, maxDisc);
             } else {
                 const price = tierPrices[tier] ? String(tierPrices[tier].price) : '';
                 cols.push(price, applyCoupon, maxDisc);

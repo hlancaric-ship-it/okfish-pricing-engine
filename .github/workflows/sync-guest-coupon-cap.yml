@@ -1,12 +1,30 @@
-name: Sync GUEST coupon cap from ZR4 (one-off)
+name: Sync GUEST coupon cap from ZR4
 
 on:
+  schedule:
+    # Automatizováno 2026-08-05 na žádost klienta — 30minutový takt (ne
+    # 15 jako ostatní), protože tenhle skript při každém běhu stahuje CELÝ
+    # ZR4 i CELÝ GUEST ceník (~167 stránek každý, ~334 požadavků/běh) bez
+    # ohledu na to, jestli se něco změnilo — na 15 min by to bylo cca
+    # 32 000 požadavků/den na Shoptet Private API. 30 min sníží zátěž na
+    # polovinu a pořád je to 2× rychlejší než dřívější čistě ruční řešení.
+    #
+    # Dřív záměrně jen ruční nástroj kvůli opatrnosti po BUG#3 — ale je to
+    # prokazatelně bezpečný diff-only zápis (mění jen produkty, kde se ZR4
+    # liší od GUEST) s tvrdou ochranou "Maximální povolená sleva"
+    # zabudovanou v CouponSalesWriter, ne v tomhle skriptu, takže
+    # automatizace tuhle ochranu neobchází.
+    - cron: '12,42 * * * *'
   workflow_dispatch:
     inputs:
       live:
-        description: 'Ostrý zápis? (jinak dry-run)'
+        description: 'Ostrý zápis? (jinak dry-run) — ignorováno u plánovaného běhu, ten je vždy ostrý'
         type: boolean
         default: false
+
+concurrency:
+  group: sync-guest-coupon-cap
+  cancel-in-progress: false
 
 jobs:
   run:
@@ -26,7 +44,7 @@ jobs:
         env:
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
         run: |
-          if [ "${{ github.event.inputs.live }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.live }}" = "true" ]; then
             npx tsx src/cli/sync-guest-coupon-cap-live.ts --live
           else
             npx tsx src/cli/sync-guest-coupon-cap-live.ts

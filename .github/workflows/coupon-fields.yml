@@ -1,11 +1,12 @@
-name: Coupon Fields Sync (hodinově)
+name: Coupon Fields Sync (15 min)
 
 on:
   schedule:
-    # Zrychleno 2026-08-05 (na žádost klienta) z 2×/den na hodinovou
-    # frekvenci — kupónová eligibilita (vč. GUEST) se propíše mnohem
-    # rychleji po nastavení nové akční ceny/stropu na produktu. Diff-aware
-    # zápis + 30% bezpečnostní pojistka zůstávají beze změny.
+    # Zrychleno 2026-08-05 (na žádost klienta) na 15minutovou frekvenci —
+    # stejný takt jako hlavní cenový sync (sync.yml, */15) a Worker cache
+    # (5,20,35,50). Offset 10,25,40,55 = běží po sync.yml, před dalším
+    # sync.yml tiketem. Diff-aware zápis + 30% bezpečnostní pojistka
+    # zůstávají beze změny.
     #
     # Běží nezávisle na hlavní cenové synchronizaci (sync.yml) — jiné pole
     # (sales.discountCoupon/minPriceRatio), jiný zápis, žádné sdílené kroky.
@@ -14,7 +15,7 @@ on:
     # "fix: critical — CouponSalesWriter no longer writes to pricelist ID 1") —
     # GUEST tier zápis do pricelistu 1 ("Hlavný cenník") se teď tvrdě odmítá,
     # takže už nemůže přepsat skutečný strop max. slevy na produktu.
-    - cron: '15 * * * *'
+    - cron: '10,25,40,55 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 
 concurrency:

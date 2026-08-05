@@ -1,0 +1,23 @@
+name: Debug coupon diff (dry-run, no write)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - name: Dry-run diff (no --live, no --force)
+        working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/sync-coupon-fields-diff.ts

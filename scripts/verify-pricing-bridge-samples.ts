@@ -16,6 +16,7 @@ const SAMPLE_MANUFACTURER: Record<string, string> = {
     '55867': 'MIVARDI',
     '65782': 'LOWRANCE',
     '106645': '',
+    '55696': 'MIVARDI', // real -35% výprodej, must stay untouched
 };
 const SAMPLE_CODES = new Set(Object.keys(SAMPLE_MANUFACTURER));
 

@@ -101,7 +101,13 @@ export function calculateAllTierPrices(row: CsvRow): AllTierPrices {
         return result;
     }
 
-    const actionPrice = parsePrice(row['actionPrice'] || row['salePrice']);
+    let actionPrice = parsePrice(row['actionPrice'] || row['salePrice']);
+    // An "action price" that isn't actually lower than the base price is a
+    // no-op leftover (e.g. a promotion that ended but the field wasn't
+    // cleared) -- confirmed live 2026-08-05 on LOWRANCE code 111139
+    // (actionPrice == price == 1167.20, blocking all loyalty/cap pricing).
+    // Treat it as "no action" so it can't override the cap-floor rule below.
+    if (actionPrice !== undefined && actionPrice >= basePrice) actionPrice = undefined;
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
     const activeLimit = resolveActiveLimit(row);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;

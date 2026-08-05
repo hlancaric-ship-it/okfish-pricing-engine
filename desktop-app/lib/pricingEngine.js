@@ -58,7 +58,12 @@ function calculateAllTierPrices(row, limits) {
         return result;
     }
 
-    const actionPrice = parsePrice(row.actionPrice || row.salePrice);
+    let actionPrice = parsePrice(row.actionPrice || row.salePrice);
+    // A no-op "action price" (not actually lower than the base price) is a
+    // leftover from an ended promotion whose field wasn't cleared -- treat it
+    // as no action so it can't override the cap-floor rule below. Confirmed
+    // live 2026-08-05 (LOWRANCE code 111139).
+    if (actionPrice !== undefined && actionPrice >= basePrice) actionPrice = undefined;
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
     const activeLimit = resolveActiveLimit(row, limits.brandLimits, limits.categoryLimits);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;

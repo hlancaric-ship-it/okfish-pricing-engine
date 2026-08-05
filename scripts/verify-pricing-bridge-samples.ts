@@ -10,7 +10,14 @@ import { calculateProductsPricing } from '../cloudflare-worker/src/shoptet-api/p
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const SAMPLE_CODES = new Set(['39062', '111139', '55867', '65782', '106645']);
+const SAMPLE_MANUFACTURER: Record<string, string> = {
+    '39062': 'DELPHIN',
+    '111139': 'LOWRANCE',
+    '55867': 'MIVARDI',
+    '65782': 'LOWRANCE',
+    '106645': '',
+};
+const SAMPLE_CODES = new Set(Object.keys(SAMPLE_MANUFACTURER));
 
 async function main() {
     const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
@@ -38,7 +45,7 @@ async function main() {
         console.log(`  basePrice=${basePrice} actionPrice=${actionPrice} live minPriceRatio=${ratio} (=> old-code would've used productMaxDiscount=${productMaxDiscount})`);
 
         const results = calculateProductsPricing(
-            [{ code: item.code, basePrice, actionPrice, productMaxDiscount }],
+            [{ code: item.code, basePrice, actionPrice, productMaxDiscount, manufacturer: SAMPLE_MANUFACTURER[item.code] }],
             pricelists.map(p => ({ name: p.name, id: p.id }))
         );
         console.log('  Vypočtené ceny (fixed pricing-bridge):', JSON.stringify(results[0]?.prices, null, 2));

@@ -7,7 +7,39 @@ import { calculateProductsPricing } from './pricing-bridge';
 import { ICacheProvider } from './cache-provider';
 import { ICustomerCache } from './customer-cache';
 import { FileStateProvider, ISyncStateProvider } from './state-provider';
+import { CsvParserStream } from '../csv/csv-parser';
 import Decimal from 'decimal.js';
+
+// The Shoptet Private API's pricelist-items endpoint (used by ProductsReader)
+// never returns `manufacturer` -- it's a product-catalog attribute, not a
+// pricing one. Without it, DiscountLimitPolicy's brand fallback (brandLimits
+// in policy-v1.json) can never trigger, silently disabling the discount cap
+// for every hard-cap brand (confirmed live 2026-08-06: LOWRANCE showed 6%
+// off on ZR6 despite its 4% cap, because manufacturer was never wired
+// through this sync pipeline at all). Fetch it once from the public feed
+// (code -> manufacturer) and merge it in below.
+async function loadManufacturerMap(): Promise<Record<string, string>> {
+    const feedUrl = process.env.MASTER_FEED_URL;
+    const map: Record<string, string> = {};
+    if (!feedUrl) {
+        console.warn('[WARNING] MASTER_FEED_URL not set -- brand discount caps will NOT be applied this run.');
+        return map;
+    }
+    const res = await fetch(feedUrl);
+    if (!res.ok || !res.body) {
+        console.warn(`[WARNING] Could not fetch master feed (HTTP ${res.status}) -- brand discount caps will NOT be applied this run.`);
+        return map;
+    }
+    const parsed = res.body.pipeThrough(new CsvParserStream());
+    const reader = parsed.getReader();
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const row = value as Record<string, string>;
+        if (row['code'] && row['manufacturer']) map[row['code']] = row['manufacturer'];
+    }
+    return map;
+}
 
 export interface SyncOptions {
     dryRun: boolean;
@@ -87,12 +119,17 @@ export class SyncOrchestrator {
         console.log(`\n3. Stahování produktů ze základního ceníku (ID: ${basePricelistId})...`);
         const productsReader = new ProductsReader(this.client);
         const sourceProducts = await productsReader.fetchProducts(basePricelistId, this.options.maxPages, lastSync);
-        
+
+        console.log('   Stahování feedu pro mapování manufacturer (nutné pro brandLimits stropy)...');
+        const manufacturerMap = await loadManufacturerMap();
+        console.log(`   Načteno ${Object.keys(manufacturerMap).length} kódů s manufacturer.`);
+
         const engineProducts = sourceProducts.map(p => ({
             code: p.code,
             basePrice: p.price,
             actionPrice: p.actionPrice,
             productMaxDiscount: p.productMaxDiscount,
+            manufacturer: manufacturerMap[p.code],
             stockLevel: 100 // Mock nebo z dat
         }));
 

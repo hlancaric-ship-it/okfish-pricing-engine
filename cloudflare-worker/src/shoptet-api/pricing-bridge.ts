@@ -47,7 +47,12 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
                 // real flat 15% action price). Confirmed live 2026-08-06 -- brand
                 // caps must come ONLY from policy-v1.json's brandLimits now.
                 customerTier: pl.name as CustomerTier,
-                allowLoyaltyDiscount: true
+                allowLoyaltyDiscount: true,
+                // Required for DiscountLimitPolicy's brand fallback (brandLimits in
+                // policy-v1.json) to ever trigger -- without it, hard-cap brands get
+                // NO cap applied at all. Confirmed live 2026-08-06 (LOWRANCE showed
+                // 6% off on ZR6 despite its 4% cap before this was wired through).
+                manufacturer: p.manufacturer
             };
 
             try {

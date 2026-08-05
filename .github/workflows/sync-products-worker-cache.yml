@@ -1,6 +1,13 @@
 name: Sync products to Worker cache (frontend discount badges)
 
 on:
+  schedule:
+    # Automatizováno 2026-08-05 na žádost klienta — posunuto o 5 minut proti
+    # hlavnímu sync.yml (*/15), aby vždy běželo těsně PO přepočtu cen, ne
+    # souběžně s ním. Bezpečné automatizovat: nesahá na Shoptet vůbec, jen
+    # čte veřejný feed a píše do Worker KV cache přes jeho vlastní import
+    # API — nemůže ovlivnit produkční ceny/kupóny ani feed generation.
+    - cron: '5,20,35,50 * * * *'
   workflow_dispatch:
 
 jobs:

@@ -1,0 +1,27 @@
+name: Export recalculated prices for ALL capped brands
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/export-all-capped-brands-recalculated-prices.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all_capped_brands_recalculated_prices
+          path: cloudflare-worker/exports/all_capped_brands_recalculated_prices.csv
+          retention-days: 7

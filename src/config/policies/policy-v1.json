@@ -16,7 +16,8 @@
     "brandLimits": {
         "Apple": 0.05,
         "Samsung": 0.10,
-        "VAGNER": 0.10
+        "VAGNER": 0.10,
+        "MIVARDI": 0.10
     },
     "categoryLimits": {
         "Elektronika": 0.10

@@ -24,6 +24,12 @@ function loadRootEnv() {
 }
 loadRootEnv();
 
+function loadPolicyLimits(): { brandLimits: Record<string, number>; categoryLimits: Record<string, number> } {
+    const policyPath = path.resolve(__dirname, '../../../src/config/policies/policy-v1.json');
+    const policy = JSON.parse(fs.readFileSync(policyPath, 'utf-8'));
+    return { brandLimits: policy.brandLimits || {}, categoryLimits: policy.categoryLimits || {} };
+}
+
 async function main() {
     const brand = process.env.BRAND;
     if (!brand) throw new Error('BRAND env var not set (e.g. BRAND=VAGNER)');
@@ -36,6 +42,7 @@ async function main() {
 
     const parsed = res.body.pipeThrough(new CsvParserStream());
     const reader = parsed.getReader();
+    const limits = loadPolicyLimits();
 
     const brandLower = brand.trim().toLowerCase();
     const tierNames = Object.keys(TIER_TO_PRICELIST_ID);
@@ -50,7 +57,7 @@ async function main() {
         const row = value as Record<string, string>;
         scanned++;
         if ((row['manufacturer'] || '').trim().toLowerCase() === brandLower) {
-            const tierPrices = calculateAllTierPrices(row);
+            const tierPrices = calculateAllTierPrices(row, limits);
             const cells = [row['code'], row['pairCode'] || ''];
             for (const tier of tierNames) {
                 cells.push(String(tierPrices[tier].price));

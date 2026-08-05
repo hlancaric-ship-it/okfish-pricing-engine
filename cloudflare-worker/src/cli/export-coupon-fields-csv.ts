@@ -75,6 +75,12 @@ async function main() {
     if (!feedUrl) throw new Error('MASTER_FEED_URL not set in .env');
 
     const { loyaltyTiers, brandLimits, categoryLimits } = loadPolicyConfig();
+    // calculateAllTierPrices (JS engine) wants plain numbers, not Decimal.
+    const plainBrandLimits: Record<string, number> = {};
+    for (const [k, v] of Object.entries(brandLimits)) plainBrandLimits[k] = v.toNumber();
+    const plainCategoryLimits: Record<string, number> = {};
+    for (const [k, v] of Object.entries(categoryLimits)) plainCategoryLimits[k] = v.toNumber();
+    const priceLimits = { brandLimits: plainBrandLimits, categoryLimits: plainCategoryLimits };
 
     console.log('Fetching master feed...');
     const res = await fetch(feedUrl);
@@ -138,7 +144,7 @@ async function main() {
             loyaltyTiers, brandLimits, categoryLimits,
         );
         const byTier = new Map(items.map((i) => [i.tier, i]));
-        const tierPrices = calculateAllTierPrices(row);
+        const tierPrices = calculateAllTierPrices(row, priceLimits);
 
         const cols = [code, row['pairCode'] || ''];
         for (const [tier] of tierOrder) {

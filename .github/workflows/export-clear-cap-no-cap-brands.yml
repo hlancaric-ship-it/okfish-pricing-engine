@@ -1,0 +1,29 @@
+name: Export "clear cap" CSV for no-cap brands (Delphin/Delphin BOMB/Mikado/Mivardi)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - working-directory: cloudflare-worker
+        run: npm ci
+      - name: Export clear-cap CSV
+        working-directory: cloudflare-worker
+        env:
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/export-clear-cap-for-brands-csv.ts
+      - name: Upload CSV as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clear_cap_no_cap_brands
+          path: clear_cap_no_cap_brands.csv
+          retention-days: 7

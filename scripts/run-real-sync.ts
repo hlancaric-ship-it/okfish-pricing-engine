@@ -9,11 +9,17 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Živý přehled zatížení API během běhu -- kolik requestů, jaké HTTP statusy
-// (429 = rate limit, 5xx = server chyby), kolik retry pokusů. Vypisuje se
-// každých 15s, ať je vidět stabilita a kde nás Shoptet případně omezuje.
-function startStatsReporter(): NodeJS.Timeout {
+// (429 = rate limit, 5xx = server chyby), kolik retry pokusů. Vypisuje se do
+// konzole a zároveň (pokud jsou nastavené CF_WORKER_URL/TOKEN) posílá do
+// Workeru (POST /v1/sync-stats), aby to šlo sledovat živě i z dashboardu
+// mimo GitHub Actions log. Odesílání je fire-and-forget -- selhání nesmí
+// zastavit samotný sync.
+function startStatsReporter(phase: () => string): NodeJS.Timeout {
     const startedAt = Date.now();
     let lastGet = 0, lastPatch = 0;
+    const workerUrl = process.env.CF_WORKER_URL;
+    const workerToken = process.env.CF_WORKER_TOKEN;
+
     return setInterval(() => {
         const elapsedS = Math.round((Date.now() - startedAt) / 1000);
         const get = GlobalStats.apiRequests.GET || 0;
@@ -21,17 +27,34 @@ function startStatsReporter(): NodeJS.Timeout {
         const getRate = (get - lastGet) / 15;
         const patchRate = (patch - lastPatch) / 15;
         lastGet = get; lastPatch = patch;
-        const statuses = Object.entries(GlobalStats.httpResponses)
-            .map(([code, n]) => `${code}:${n}`).join(', ') || '(zatím žádné)';
         const totalResponses = Object.values(GlobalStats.httpResponses).reduce((a, b) => a + b, 0);
         const okResponses = Object.entries(GlobalStats.httpResponses)
             .filter(([code]) => Number(code) >= 200 && Number(code) < 300)
             .reduce((a, [, n]) => a + n, 0);
-        const stabilityPct = totalResponses > 0 ? (okResponses / totalResponses * 100).toFixed(1) : '100.0';
+        const stabilityPct = totalResponses > 0 ? (okResponses / totalResponses * 100) : 100;
         const totalRetries = Object.values(GlobalStats.retries).reduce((a, b) => a + b, 0);
-        const retries = Object.entries(GlobalStats.retries)
-            .map(([code, n]) => `${code}×${n}`).join(', ') || 'žádné';
-        console.log(`[STATS ${elapsedS}s] GET=${get} (${getRate.toFixed(1)}/s) PATCH=${patch} (${patchRate.toFixed(1)}/s) | Stabilita: ${stabilityPct}% OK (${totalRetries} retry celkem) | HTTP: ${statuses} | Retries: ${retries}`);
+        const statuses = Object.entries(GlobalStats.httpResponses).map(([code, n]) => `${code}:${n}`).join(', ') || '(zatím žádné)';
+        const retries = Object.entries(GlobalStats.retries).map(([code, n]) => `${code}×${n}`).join(', ') || 'žádné';
+
+        console.log(`[STATS ${elapsedS}s] GET=${get} (${getRate.toFixed(1)}/s) PATCH=${patch} (${patchRate.toFixed(1)}/s) | Stabilita: ${stabilityPct.toFixed(1)}% OK (${totalRetries} retry celkem) | HTTP: ${statuses} | Retries: ${retries}`);
+
+        if (workerUrl && workerToken) {
+            const payload = {
+                running: true,
+                phase: phase(),
+                elapsedSeconds: elapsedS,
+                requests: { GET: get, PATCH: patch },
+                requestRatePerSec: { GET: Number(getRate.toFixed(2)), PATCH: Number(patchRate.toFixed(2)) },
+                httpResponses: GlobalStats.httpResponses,
+                retries: GlobalStats.retries,
+                stabilityPct: Number(stabilityPct.toFixed(1)),
+            };
+            fetch(`${workerUrl}/v1/sync-stats`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${workerToken}` },
+                body: JSON.stringify(payload),
+            }).catch((e) => console.warn('[STATS] Odeslání do Workeru selhalo (neblokuje sync):', e.message));
+        }
     }, 15000);
 }
 
@@ -69,10 +92,14 @@ async function run() {
         maxPages: undefined // Projdeme vše, co je potřeba
     });
 
-    const statsTimer = startStatsReporter();
+    let currentPhase = 'starting';
+    const statsTimer = startStatsReporter(() => currentPhase);
+    let finished = false;
     try {
+        currentPhase = 'running';
         await orchestrator.runFullSync();
         console.log("=== SYNCHRONIZACE DOKONČENA ===");
+        finished = true;
     } catch (error) {
         // Previously this only logged the error and let the process exit 0 — in the
         // hourly GitHub Actions cron that meant a failed sync still showed as a green
@@ -80,11 +107,26 @@ async function run() {
         // silently stop working for hours/days with nobody noticing. Must propagate
         // the failure so the Actions step (and any future failure alerting) sees it.
         console.error("❌ CHYBA PŘI BĚHU:", error);
-        process.exit(1);
+        currentPhase = 'error';
+        process.exitCode = 1;
     } finally {
         clearInterval(statsTimer);
         console.log(`[STATS FINAL] GET=${GlobalStats.apiRequests.GET || 0} PATCH=${GlobalStats.apiRequests.PATCH || 0} | HTTP: ${JSON.stringify(GlobalStats.httpResponses)} | Retries: ${JSON.stringify(GlobalStats.retries)}`);
+        if (process.env.CF_WORKER_URL && process.env.CF_WORKER_TOKEN) {
+            await fetch(`${process.env.CF_WORKER_URL}/v1/sync-stats`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CF_WORKER_TOKEN}` },
+                body: JSON.stringify({
+                    running: false,
+                    phase: finished ? 'done' : 'error',
+                    requests: { GET: GlobalStats.apiRequests.GET || 0, PATCH: GlobalStats.apiRequests.PATCH || 0 },
+                    httpResponses: GlobalStats.httpResponses,
+                    retries: GlobalStats.retries,
+                }),
+            }).catch(() => {});
+        }
     }
+    if (process.exitCode) process.exit(process.exitCode);
 }
 
 run().catch((error) => {

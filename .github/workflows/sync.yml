@@ -50,6 +50,10 @@ jobs:
           set -o pipefail
           npx tsx scripts/run-real-sync.ts | tee sync-execution.log
 
+      - name: Sladění s remote před commitem (jiné cronové běhy mohly mezitím pushnout)
+        if: success()
+        run: git pull --rebase --autostash origin main
+
       - name: Uložení stavu synchronizace (.sync_state.json) do repozitáře
         if: success() # Uloží stav pouze v případě, že synchronizace neskončila chybou
         uses: stefanzweifel/git-auto-commit-action@v5

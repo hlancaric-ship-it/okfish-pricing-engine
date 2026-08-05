@@ -25,19 +25,39 @@ async function loadManufacturerMap(): Promise<Record<string, string>> {
         console.warn('[WARNING] MASTER_FEED_URL not set -- brand discount caps will NOT be applied this run.');
         return map;
     }
-    const res = await fetch(feedUrl);
+    console.log(`   [manufacturer map] Stahuji feed: ${feedUrl}`);
+    const startedAt = Date.now();
+    // Hard timeout -- a hung/slow feed fetch must never block the whole sync
+    // indefinitely (confirmed live 2026-08-06: first attempt stalled >5min with
+    // zero API requests made, before this timeout existed).
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+    let res: Response;
+    try {
+        res = await fetch(feedUrl, { signal: controller.signal });
+    } catch (e) {
+        console.warn(`[WARNING] Feed fetch selhal/timeout po ${Date.now() - startedAt}ms (${(e as Error).message}) -- brand discount caps will NOT be applied this run.`);
+        return map;
+    } finally {
+        clearTimeout(timeout);
+    }
+    console.log(`   [manufacturer map] Feed odpověděl po ${Date.now() - startedAt}ms, status ${res.status}. Parsuji...`);
     if (!res.ok || !res.body) {
         console.warn(`[WARNING] Could not fetch master feed (HTTP ${res.status}) -- brand discount caps will NOT be applied this run.`);
         return map;
     }
     const parsed = res.body.pipeThrough(new CsvParserStream());
     const reader = parsed.getReader();
+    let scanned = 0;
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const row = value as Record<string, string>;
         if (row['code'] && row['manufacturer']) map[row['code']] = row['manufacturer'];
+        scanned++;
+        if (scanned % 4000 === 0) console.log(`   [manufacturer map] ...zpracováno ${scanned} řádků (${Date.now() - startedAt}ms)`);
     }
+    console.log(`   [manufacturer map] Hotovo: ${scanned} řádků, ${Object.keys(map).length} s manufacturer, za ${Date.now() - startedAt}ms.`);
     return map;
 }
 

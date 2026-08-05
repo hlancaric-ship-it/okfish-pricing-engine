@@ -22,6 +22,17 @@ import { ALL_PRICELISTS_MAP } from '../coupon/tier-pricelist-map';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { calculateAllTierPrices } = require('../../../desktop-app/lib/pricingEngine.js');
 
+// Brands with a real, hard discount ceiling (~30 brands at 10%, plus
+// Lowrance/Humminbird/Simrad/Navico at 4%) -- confirmed live 2026-08-05: for
+// these, "Slevový kupón" must be OFF everywhere (GUEST + every ZR tier), no
+// exceptions, no partial room -- unlike Delphin/Delphin BOMB/Mikado (flat
+// action-price brands with NO cap), where coupon room is computed normally.
+// Most of these already carry their real maxDiscount value in the feed from
+// the earlier brand-cap CSV import; MIVARDI is listed explicitly here because
+// it was reclassified into this hard-cap group after that import already ran,
+// so the feed doesn't reflect it yet.
+const HARD_CAP_BRAND_OVERRIDE: Record<string, number> = { MIVARDI: 10 };
+
 function loadRootEnv() {
     const envPath = path.resolve(__dirname, '../../../.env');
     if (!fs.existsSync(envPath)) return;
@@ -112,6 +123,12 @@ async function main() {
         const maxDiscountPct = parseNumber(row['maxDiscount']);
         const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
         const manufacturer = row['manufacturer'] || undefined;
+        const manufacturerUpper = manufacturer?.trim().toUpperCase();
+        // Hard cap = product's own feed maxDiscount is set (the ~30-brand list
+        // already carries this from the earlier import) OR it's in the explicit
+        // override map (MIVARDI). Either way: no coupon, anywhere, ever.
+        const isHardCapBrand = (maxDiscountPct !== undefined && maxDiscountPct.lessThan(20))
+            || (manufacturerUpper !== undefined && HARD_CAP_BRAND_OVERRIDE[manufacturerUpper] !== undefined);
         const category = row['categoryText'] || undefined;
         const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
 
@@ -132,8 +149,8 @@ async function main() {
             // literal "0" here would wrongly write the latter. Confirmed live
             // 2026-08-05: this exact mistake corrupted Delphin/Mikado's caps.
             const roomPct = item ? Math.round((1 - Number(item.minPriceRatio.toFixed(4))) * 100) : 0;
-            const isEligible = !!item && item.applyDiscountCoupon && roomPct > 0;
-            const applyCoupon = isEligible ? '1' : '';
+            const isEligible = !isHardCapBrand && !!item && item.applyDiscountCoupon && roomPct > 0;
+            const applyCoupon = isEligible ? '1' : (isHardCapBrand ? '0' : '');
             const maxDisc = isEligible ? roomPct.toString() : '';
             if (tier === 'GUEST') {
                 // GUEST's "Maximální povolená sleva" field, when a REAL room value is

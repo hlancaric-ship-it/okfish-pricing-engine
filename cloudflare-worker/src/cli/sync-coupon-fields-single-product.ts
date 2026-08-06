@@ -119,8 +119,12 @@ async function main() {
     }
 
     const actionPrice = parseNumber(row['actionPrice']);
-    const maxDiscountPct = parseNumber(row['maxDiscount']);
-    const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
+    // Deliberately NOT reading row['maxDiscount'] -- same reasoning as
+    // export-coupon-fields-csv.ts: that column is GUEST's own coupon-room field
+    // (self-referential, see coupon-sales-writer.ts's GUEST block comment), never a
+    // real independent cap. resolveEffectiveLimit() falls back to brandLimits/
+    // categoryLimits on its own when productMaxDiscount is undefined.
+    const productMaxDiscount = undefined;
     const manufacturer = row['manufacturer'] || undefined;
     const category = row['categoryText'] || undefined;
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);

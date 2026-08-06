@@ -8,6 +8,11 @@ on:
     # takže se do 15minutového okna bezpečně vejde.
     - cron: '*/15 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
+  repository_dispatch:
+    # Spouští Worker (POST /v1/webhook/shoptet) během pár sekund po order:create/
+    # order:update v Shoptetu -- cron výše zůstává jako záložní síť pro případ, že by
+    # webhook selhal nebo Shoptet vyčerpal svých 3 retry pokusy.
+    types: [shoptet-webhook]
 
 # Ochrana proti souběžnému běhu (pokud už synchronizace běží, nová počká nebo se nespustí paralelně)
 concurrency:

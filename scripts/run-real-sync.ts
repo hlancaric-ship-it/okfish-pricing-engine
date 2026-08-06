@@ -75,13 +75,19 @@ async function run() {
 
     console.log("=== STARTING FULL / INCREMENTAL SYNC ===");
 
+    // CF_WORKER_URL/TOKEN musí být vždy nastavené v ostrém běhu (dryRun: false).
+    // Bez nich by se zákaznické tier-změny zapsaly jen do lokálního souboru a Worker
+    // by o nich nikdy nevěděl -- přesně tohle se stalo 2026-08-06 (7 zákazníků, viz
+    // .customers_cache.json verze customers_2026-08-06_0056, nikdy neodeslaná).
     let customerCache;
     if (process.env.CF_WORKER_URL && process.env.CF_WORKER_TOKEN) {
         console.log("-> Using RemoteCustomerCache (CF Worker KV API)");
         customerCache = new RemoteCustomerCache(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
     } else {
-        console.log("-> CF_WORKER_URL/TOKEN not found. Using local FileCustomerCache.");
-        customerCache = new FileCustomerCache();
+        console.error("❌ CHYBA: Chybí CF_WORKER_URL a/nebo CF_WORKER_TOKEN.");
+        console.error("Ostrý běh (dryRun: false) bez nich by zapsal zákaznické tiery jen lokálně -- Worker by se o změně nikdy nedozvěděl.");
+        console.error("Nastav obě proměnné, nebo pro test bez Workeru spusť s DRY_RUN=1.");
+        process.exit(1);
     }
 
     const orchestrator = new SyncOrchestrator({

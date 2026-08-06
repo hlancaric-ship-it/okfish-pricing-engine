@@ -22,6 +22,39 @@ function checkAuth(request: Request): boolean {
     return auth === `Bearer ${SECRET_TOKEN}`;
 }
 
+// Shoptet signs webhook bodies as hash_hmac('sha1', body, signingKey), sent in the
+// Shoptet-Webhook-Signature header. Recompute with Web Crypto and compare.
+async function verifyShoptetSignature(body: string, signatureHex: string, key: string): Promise<boolean> {
+    if (!signatureHex) return false;
+    const enc = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+        'raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    );
+    const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(body));
+    const computedHex = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (computedHex.length !== signatureHex.length) return false;
+    let diff = 0;
+    for (let i = 0; i < computedHex.length; i++) diff |= computedHex.charCodeAt(i) ^ signatureHex.charCodeAt(i);
+    return diff === 0;
+}
+
+async function triggerGithubSync(token: string, event?: string, eventInstance?: string): Promise<void> {
+    try {
+        const res = await fetch('https://api.github.com/repos/hlancaric-ship-it/okfish-pricing-engine/dispatches', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'okfish-pricing-engine-worker',
+            },
+            body: JSON.stringify({ event_type: 'shoptet-webhook', client_payload: { event, eventInstance } }),
+        });
+        if (!res.ok) console.error('[webhook] GitHub dispatch failed', res.status, await res.text());
+    } catch (e) {
+        console.error('[webhook] GitHub dispatch error', e);
+    }
+}
+
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const url = new URL(request.url);
@@ -188,6 +221,36 @@ export default {
             const discountStr = await env.VIP_KV.get(`customer:${activeVersion}:${hash}`);
             if (discountStr === null) return jsonResponse({ error: 'Not found' }, 404);
             return jsonResponse({ v: 1, discount: Number(discountStr) });
+        }
+
+        // === POST /v1/webhook/shoptet ===
+        // Shoptet calls this within seconds of order:create/order:update (registered
+        // via POST /api/webhooks). We verify the HMAC-SHA1 signature so only Shoptet
+        // can trigger this, then fire a GitHub repository_dispatch so sync.yml's
+        // incremental sync runs immediately instead of waiting up to 15min for cron.
+        // Must ack within Shoptet's 4s timeout -- ctx.waitUntil lets the GitHub call
+        // finish after the response is already sent. Cron stays as the fallback safety
+        // net if this ever misfires or Shoptet's 3 webhook retries are exhausted.
+        if (path === '/v1/webhook/shoptet' && request.method === 'POST') {
+            const bodyText = await request.text();
+            const signature = request.headers.get('Shoptet-Webhook-Signature') ?? '';
+            const signingKey = env.SHOPTET_WEBHOOK_SIGNING_KEY;
+            if (!signingKey) {
+                console.error('[webhook] SHOPTET_WEBHOOK_SIGNING_KEY not configured');
+                return jsonResponse({ error: 'Webhook not configured' }, 503);
+            }
+            const valid = await verifyShoptetSignature(bodyText, signature, signingKey);
+            if (!valid) return jsonResponse({ error: 'Invalid signature' }, 401);
+
+            let payload: { event?: string; eventInstance?: string } = {};
+            try { payload = JSON.parse(bodyText); } catch { /* ignore malformed body */ }
+
+            if (env.GITHUB_DISPATCH_TOKEN) {
+                ctx.waitUntil(triggerGithubSync(env.GITHUB_DISPATCH_TOKEN, payload.event, payload.eventInstance));
+            } else {
+                console.error('[webhook] GITHUB_DISPATCH_TOKEN not configured -- signature verified but no sync triggered');
+            }
+            return jsonResponse({ ok: true });
         }
 
         // === POST /v1/products/import/begin ===

@@ -7,6 +7,8 @@ export interface Env {
     VIP_KV: KVNamespace;
     FEED_BUCKET: R2Bucket;
     MASTER_FEED_URL: string;
+    SHOPTET_WEBHOOK_SIGNING_KEY?: string;
+    GITHUB_DISPATCH_TOKEN?: string;
 }
 
 // Minimal XML escape — only chars that MUST be escaped (safe for both text content and

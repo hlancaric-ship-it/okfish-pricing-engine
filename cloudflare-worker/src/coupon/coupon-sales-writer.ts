@@ -23,18 +23,22 @@ export class CouponSalesWriter {
 
     /** Defaults to dry-run: pass { dryRun: false } explicitly to write for real. */
     public async processTierBatch(pricelistId: number, tier: string, items: CouponWriteItem[]) {
-        // BUG (opraveno, 2026-08-03): pricelist ID 1 ("Hlavný cenník") NENÍ jen další
-        // věrnostní ceník pro GUEST zákazníky — je to ten samý záznam, ze kterého
-        // Shoptet čte a zobrazuje "Maximální povolená sleva" přímo na produktu
-        // (PATCH /pricelists/1 zapisuje do stejného pole sales.minPriceRatio). Zápis
-        // GUEST tieru sem přepisoval skutečný, ručně/importem nastavený strop
-        // produktu tou dopočítanou "zbývající" hodnotou — a to na KAŽDÉM běhu, včetně
-        // automatického cronu 2x denně. Guest zákazníci jsou už chránění tím
-        // existujícím stropem nativně (Shoptet ho sám vynucuje), není potřeba sem nic
-        // zapisovat — proto se tenhle zápis teď tvrdě odmítá bez ohledu na to, odkud
-        // je processTierBatch zavolán.
+        // BLOKACE ZNOVU ZAVEDENA 2026-08-06 (krátce po pokusu ji odstranit týž den).
+        // Důvod pokusu: zjistili jsme, že "Maximálna povolená sleva" na GUEST není
+        // obecný cenový strop, ale KUPÓNOVÝ strop -- funkčně stejné pole jako "Max.
+        // sleva (%)" na ZR tierech, takže se zdálo bezpečné ho psát stejnou cestou.
+        // Živý test to ale vyvrátil: `computeCouponWrites` čte `productMaxDiscount`
+        // z NEPREFIXOVANÉHO `maxDiscount` sloupce feedu -- a to je PŘESNĚ to samé
+        // pole, do kterého bychom chtěli zapsat výsledek. Je to kruhová závislost:
+        // klient ručně nastaví GUEST kupón na 8% (aby 12% akce + 8% kupón = 20%
+        // strop), feed tuhle 8% přečte jako by to byl nezávislý cenový strop
+        // produktu, engine si z něj odečte už uplatněnou 12% akci a vyjde 0% --
+        // čímž by automatika přepsala klientovu správnou ruční hodnotu na špatnou
+        // nulu. Potvrzeno živě na produktu 999999 (klient to musel ručně opravit
+        // zpět). Dokud GUEST nemá nezávislý zdroj stropu (jen brandLimits/
+        // categoryLimits, nikdy feedovo vlastní maxDiscout), zůstává nepsaný.
         if (pricelistId === GUEST_PRICELIST_ID) {
-            console.warn(`CouponSalesWriter: odmítám zápis do pricelistu ${GUEST_PRICELIST_ID} (GUEST/Hlavný cenník) — přepisovalo by to skutečný strop max. slevy na produktu. Přeskakuji ${items.length} položek.`);
+            console.warn(`CouponSalesWriter: odmítám zápis do pricelistu ${GUEST_PRICELIST_ID} (GUEST/Hlavný cenník) — kruhová závislost na feedu, viz komentář výše. Přeskakuji ${items.length} položek.`);
             return {
                 pricelistId, tier, total: items.length, processed: 0, failed: 0,
                 dryRun: this.options.dryRun !== false, errors: [] as string[], skipped: true

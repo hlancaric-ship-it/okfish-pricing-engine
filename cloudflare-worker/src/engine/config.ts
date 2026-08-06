@@ -6,6 +6,7 @@
 import policy from '../../../src/config/policies/policy-v1.json';
 import productMaxDiscountOverrides from '../../../src/config/policies/product-max-discount-overrides.json';
 import zeroDiscountProducts from '../../../src/config/policies/zero-discount-products.json';
+import clearanceSaleProducts from '../../../src/config/policies/clearance-sale-products.json';
 
 // policy-v1.json stores discounts as ratios (0.04 = 4%); this Worker's pricing math
 // (engine/pricing.ts) expects plain percentages (4), matching its pre-existing
@@ -34,8 +35,18 @@ export const CATEGORY_LIMITS: Record<string, number> = policy.categoryLimits ?? 
 // price from scratch, showing stale/incorrect % to customers. These two maps
 // close that gap: zeroDiscountProducts (0%) merged in as a ratio 0, then
 // productMaxDiscountOverrides (percent -> ratio) on top.
+// clearanceSaleProducts (22%/30% výpredaj codes) merged in too -- confirmed live
+// 2026-08-06 that without this, engine/pricing.ts picks whichever is LOWER between
+// the clearance actionPrice and the raw uncapped ZR25 loyalty price (25%), and since
+// 25% > 22%/30% intended discount for most of these products, the engine silently
+// showed the deeper loyalty % instead of the intended clearance price on ZR25. Adding
+// them here as a real cap makes the `minAllowedPrice > 0 && actionPrice !== undefined`
+// branch fire, which makes actionPrice authoritative regardless of loyalty tier depth.
 export const PRODUCT_LIMITS: Record<string, number> = {
     ...Object.fromEntries((zeroDiscountProducts as string[]).map((code) => [code, 0])),
+    ...Object.fromEntries(
+        Object.entries(clearanceSaleProducts as Record<string, number>).map(([code, pct]) => [code, pct / 100])
+    ),
     ...Object.fromEntries(
         Object.entries(productMaxDiscountOverrides as Record<string, number>).map(([code, pct]) => [code, pct / 100])
     ),

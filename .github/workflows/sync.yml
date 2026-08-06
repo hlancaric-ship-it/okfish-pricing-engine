@@ -82,6 +82,21 @@ jobs:
           commit_message: "chore: aktualizace času poslední synchronizace [skip ci]"
           file_pattern: .sync_state.json
 
+      # Nový, IZOLOVANÝ krok -- pouze pro webhook product:create/product:update.
+      # Vědomě na samém konci, PO už ověřeném a funkčním hlavním syncu i
+      # sync-products kroku, a s continue-on-error, aby jakákoli chyba tady
+      # (chybějící produkt ve feedu, timeout apod.) nemohla nijak zpětně ovlivnit
+      # nebo shodit už úspěšně dokončené kroky výše.
+      - name: Živý zápis kupónových polí pro 1 nový/změněný produkt (jen z product webhooku)
+        if: success() && github.event_name == 'repository_dispatch' && (github.event.client_payload.event == 'product:create' || github.event.client_payload.event == 'product:update')
+        continue-on-error: true
+        working-directory: cloudflare-worker
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+          PRODUCT_CODE: ${{ github.event.client_payload.eventInstance }}
+        run: npx tsx src/cli/sync-coupon-fields-single-product.ts
+
       - name: Uložení logu v případě chyby
         if: failure() # Tento krok se provede pouze při selhání některého z předchozích kroků
         uses: actions/upload-artifact@v4

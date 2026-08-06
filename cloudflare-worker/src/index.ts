@@ -242,11 +242,24 @@ export default {
             const valid = await verifyShoptetSignature(bodyText, signature, signingKey);
             if (!valid) return jsonResponse({ error: 'Invalid signature' }, 401);
 
-            let payload: { event?: string; eventInstance?: string } = {};
+            let payload: Record<string, any> = {};
             try { payload = JSON.parse(bodyText); } catch { /* ignore malformed body */ }
 
+            // For product:create/product:update (registered with sendPayload:"full")
+            // eventInstance may be Shoptet's internal numeric ID, not the merchant
+            // `code` our pricing engine keys on (same code/internal-ID split we hit
+            // with data-micro-product-id in vip_catalog.js). We don't have a
+            // confirmed real payload shape for this yet, so try the plausible
+            // locations rather than assume one -- sync-coupon-fields-single-product.ts
+            // already safely no-ops if the code it's given isn't found in the feed,
+            // so a wrong guess here just logs and skips, it can't write bad data.
+            const productCode = payload.data?.code ?? payload.product?.code ?? payload.data?.product?.code ?? payload.code;
+            if (payload.event?.startsWith('product:') && !productCode) {
+                console.warn('[webhook] product event but could not find a `code` field in payload -- logging shape for debugging:', bodyText.slice(0, 500));
+            }
+
             if (env.GITHUB_DISPATCH_TOKEN) {
-                ctx.waitUntil(triggerGithubSync(env.GITHUB_DISPATCH_TOKEN, payload.event, payload.eventInstance));
+                ctx.waitUntil(triggerGithubSync(env.GITHUB_DISPATCH_TOKEN, payload.event, productCode ?? payload.eventInstance));
             } else {
                 console.error('[webhook] GITHUB_DISPATCH_TOKEN not configured -- signature verified but no sync triggered');
             }

@@ -7,7 +7,13 @@ export const GlobalStats = {
     auditLogs: 0,
     rollbackSnapshots: 0,
     ordersLoaded: 0,
-    turnoverCalculated: 0
+    turnoverCalculated: 0,
+    // Diagnostic breadcrumb -- set by SyncOrchestrator at each major step, read by
+    // the stats reporter (scripts/run-real-sync.ts). Lets the dashboard show WHICH
+    // step a stuck run is stuck on, since raw GitHub Actions logs aren't readable
+    // while a job is still in progress. Added 2026-08-06 after several runs stalled
+    // with zero API requests and no way to tell where.
+    phase: 'starting' as string
 };
 
 // Základní typy podle zjištění v API Discovery

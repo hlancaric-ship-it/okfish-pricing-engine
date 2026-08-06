@@ -92,6 +92,7 @@ export class SyncOrchestrator {
         // Shoptet expects format without milliseconds: YYYY-MM-DDThh:mm:ss+0000
         const syncStartedAt = new Date(startTime).toISOString().replace(/\.\d{3}Z$/, '+0000');
         
+        GlobalStats.phase = 'state-read';
         const stateProvider: ISyncStateProvider = new FileStateProvider();
         const rawLastSync = await stateProvider.getLastSync();
         let lastSync = rawLastSync;
@@ -107,6 +108,7 @@ export class SyncOrchestrator {
         }
 
         // 1. Načtení seznamu ceníků
+        GlobalStats.phase = 'pricelists';
         console.log('1. Stahování seznamu ceníků ze Shoptet API...');
         let pricelists;
         try {
@@ -126,6 +128,7 @@ export class SyncOrchestrator {
             pricelistNameMap[pl.name] = pl.id;
         }
         
+        GlobalStats.phase = 'customer-groups';
         let customerGroups;
         try {
             customerGroups = await this.client.getCustomerGroups();
@@ -146,10 +149,12 @@ export class SyncOrchestrator {
         const basePricelistId = pricelistNameMap[basePricelistName] || pricelists[0].id; 
 
         // 3. Načtení produktů
+        GlobalStats.phase = 'fetch-products';
         console.log(`\n3. Stahování produktů ze základního ceníku (ID: ${basePricelistId})...`);
         const productsReader = new ProductsReader(this.client);
         const sourceProducts = await productsReader.fetchProducts(basePricelistId, this.options.maxPages, lastSync);
 
+        GlobalStats.phase = 'manufacturer-map';
         console.log('   Stahování feedu pro mapování manufacturer (nutné pro brandLimits stropy)...');
         const manufacturerMap = await loadManufacturerMap();
         console.log(`   Načteno ${Object.keys(manufacturerMap).length} kódů s manufacturer.`);
@@ -164,11 +169,13 @@ export class SyncOrchestrator {
         }));
 
         // 4. Načtení zákazníků
+        GlobalStats.phase = 'customer-orders';
         console.log('\n4. Stahování objednávek a výpočet obratu zákazníků...');
         const customerAdapter = new CustomerAdapter(this.client);
         const customerDiffsRaw = await customerAdapter.processCustomers(this.options.maxPages, lastSync, syncStartedAt);
 
         // 5. Výpočet cen (Pricing Engine Black Box)
+        GlobalStats.phase = 'pricing-engine';
         let calculated: any[] = [];
         if (engineProducts.length > 0) {
             console.log('\n5. Spouštění výpočtu Pricing Engine...');

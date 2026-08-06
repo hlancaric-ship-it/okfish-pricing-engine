@@ -14,7 +14,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 // Workeru (POST /v1/sync-stats), aby to šlo sledovat živě i z dashboardu
 // mimo GitHub Actions log. Odesílání je fire-and-forget -- selhání nesmí
 // zastavit samotný sync.
-function startStatsReporter(phase: () => string): NodeJS.Timeout {
+function startStatsReporter(): NodeJS.Timeout {
     const startedAt = Date.now();
     let lastGet = 0, lastPatch = 0;
     const workerUrl = process.env.CF_WORKER_URL;
@@ -36,12 +36,12 @@ function startStatsReporter(phase: () => string): NodeJS.Timeout {
         const statuses = Object.entries(GlobalStats.httpResponses).map(([code, n]) => `${code}:${n}`).join(', ') || '(zatím žádné)';
         const retries = Object.entries(GlobalStats.retries).map(([code, n]) => `${code}×${n}`).join(', ') || 'žádné';
 
-        console.log(`[STATS ${elapsedS}s] GET=${get} (${getRate.toFixed(1)}/s) PATCH=${patch} (${patchRate.toFixed(1)}/s) | Stabilita: ${stabilityPct.toFixed(1)}% OK (${totalRetries} retry celkem) | HTTP: ${statuses} | Retries: ${retries}`);
+        console.log(`[STATS ${elapsedS}s] phase=${GlobalStats.phase} GET=${get} (${getRate.toFixed(1)}/s) PATCH=${patch} (${patchRate.toFixed(1)}/s) | Stabilita: ${stabilityPct.toFixed(1)}% OK (${totalRetries} retry celkem) | HTTP: ${statuses} | Retries: ${retries}`);
 
         if (workerUrl && workerToken) {
             const payload = {
                 running: true,
-                phase: phase(),
+                phase: GlobalStats.phase,
                 elapsedSeconds: elapsedS,
                 requests: { GET: get, PATCH: patch },
                 requestRatePerSec: { GET: Number(getRate.toFixed(2)), PATCH: Number(patchRate.toFixed(2)) },
@@ -92,11 +92,9 @@ async function run() {
         maxPages: undefined // Projdeme vše, co je potřeba
     });
 
-    let currentPhase = 'starting';
-    const statsTimer = startStatsReporter(() => currentPhase);
+    const statsTimer = startStatsReporter();
     let finished = false;
     try {
-        currentPhase = 'running';
         await orchestrator.runFullSync();
         console.log("=== SYNCHRONIZACE DOKONČENA ===");
         finished = true;
@@ -107,7 +105,7 @@ async function run() {
         // silently stop working for hours/days with nobody noticing. Must propagate
         // the failure so the Actions step (and any future failure alerting) sees it.
         console.error("❌ CHYBA PŘI BĚHU:", error);
-        currentPhase = 'error';
+        GlobalStats.phase = 'error';
         process.exitCode = 1;
     } finally {
         clearInterval(statsTimer);

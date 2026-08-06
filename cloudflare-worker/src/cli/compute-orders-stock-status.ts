@@ -1,9 +1,10 @@
 // Počítá skladový semafor (zelená/žlutá/červená) + stav platby pro všechny
 // OTEVŘENÉ objednávky (ne vybavené, ne zrušené) a zapíše výsledek do Workerovy
 // KV, odkud ho čte skrytá stránka /orders-dashboard-xk92q. Skladové množství
-// se čte z master feedu (sloupec `stock:Predvolený sklad`) -- ověřeno živě
-// 2026-08-06, že sedí 1:1 se skutečným Private API stavem, takže netřeba
-// dělat N+1 API volání na sklad pro každou položku.
+// se čte z master feedu, součet sloupců `stock:Predvolený sklad` +
+// `stock:Feedový` (oba sklady mají v adminu zapnuté "Viditelnost skladu na
+// e-shopu", takže se sčítají do zákaznicky zobrazené dostupnosti -- ověřeno
+// živě 2026-08-06), takže netřeba dělat N+1 API volání na sklad pro položku.
 import * as fs from 'fs';
 import * as path from 'path';
 import { CsvParserStream } from '../csv/csv-parser';
@@ -71,11 +72,24 @@ async function loadStockMap(): Promise<Record<string, number>> {
         if (done) break;
         const row = value as Record<string, string>;
         const code = row['code'];
-        const stockStr = row['stock:Predvolený sklad'];
-        if (code && stockStr !== undefined && stockStr !== '') {
-            const n = parseFloat(stockStr.replace(',', '.'));
-            if (!isNaN(n)) map[code] = n;
+        if (!code) continue;
+        // Shoptet má DVA fyzické sklady ("Predvolený sklad", "Feedový") a OBA mají
+        // zapnuté "Viditelnost skladu na e-shopu" (ověřeno živě v adminu 2026-08-06) --
+        // tzn. zákazníkům zobrazovaná dostupnost je součet obou, ne jen jednoho.
+        // Bez tohohle součtu jsme systematicky podhodnocovali sklad u ~3853/16650
+        // produktů (těch, co mají zásobu ve Feedový skladu), což vysvětlovalo
+        // případy, kdy objednávka šla vybavit i přes to, že náš dashboard hlásil
+        // "chýba" (potvrzeno živě: FOX mikina/tepláky, obj. 2026000958).
+        let sum = 0;
+        let any = false;
+        for (const col of ['stock:Predvolený sklad', 'stock:Feedový']) {
+            const v = row[col];
+            if (v !== undefined && v !== '') {
+                const n = parseFloat(v.replace(',', '.'));
+                if (!isNaN(n)) { sum += n; any = true; }
+            }
         }
+        if (any) map[code] = sum;
     }
     return map;
 }

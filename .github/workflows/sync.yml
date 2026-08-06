@@ -118,6 +118,20 @@ jobs:
           PRODUCT_CODE: ${{ github.event.client_payload.eventInstance }}
         run: npx tsx src/cli/sync-coupon-fields-single-product.ts
 
+      # Skladový semafor + stav platby pro skrytou /orders-dashboard-xk92q stránku
+      # (2026-08-06). Běží při KAŽDÉM triggeru (cron i webhook), izolované,
+      # continue-on-error -- selhání tady nemůže ovlivnit nic z hlavního syncu.
+      - name: Přepočet skladového semaforu pro dashboard objednávek
+        if: success()
+        continue-on-error: true
+        working-directory: cloudflare-worker
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+          CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
+          CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
+        run: npx tsx src/cli/compute-orders-stock-status.ts
+
       - name: Uložení logu v případě chyby
         if: failure() # Tento krok se provede pouze při selhání některého z předchozích kroků
         uses: actions/upload-artifact@v4

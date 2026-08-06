@@ -9,6 +9,7 @@ export interface Env {
     MASTER_FEED_URL: string;
     SHOPTET_WEBHOOK_SIGNING_KEY?: string;
     GITHUB_DISPATCH_TOKEN?: string;
+    SHOPTET_PRIVATE_API_TOKEN?: string;
 }
 
 // Minimal XML escape — only chars that MUST be escaped (safe for both text content and

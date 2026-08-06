@@ -1,6 +1,5 @@
 import { ShoptetApiClient, GlobalStats } from '../shoptet-api/client';
 import { CouponWriteItem } from './compute-coupon-writes';
-import { GUEST_PRICELIST_ID } from './tier-pricelist-map';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -34,17 +33,16 @@ export class CouponSalesWriter {
         // strop), feed tuhle 8% přečte jako by to byl nezávislý cenový strop
         // produktu, engine si z něj odečte už uplatněnou 12% akci a vyjde 0% --
         // čímž by automatika přepsala klientovu správnou ruční hodnotu na špatnou
-        // nulu. Potvrzeno živě na produktu 999999 (klient to musel ručně opravit
-        // zpět). Dokud GUEST nemá nezávislý zdroj stropu (jen brandLimits/
-        // categoryLimits, nikdy feedovo vlastní maxDiscout), zůstává nepsaný.
-        if (pricelistId === GUEST_PRICELIST_ID) {
-            console.warn(`CouponSalesWriter: odmítám zápis do pricelistu ${GUEST_PRICELIST_ID} (GUEST/Hlavný cenník) — kruhová závislost na feedu, viz komentář výše. Přeskakuji ${items.length} položek.`);
-            return {
-                pricelistId, tier, total: items.length, processed: 0, failed: 0,
-                dryRun: this.options.dryRun !== false, errors: [] as string[], skipped: true
-            };
-        }
-
+        // nulu. Potvrzeno živě na produktu 999999.
+        //
+        // OPRAVENO 2026-08-06 (týž den): oba live zápisové skripty
+        // (sync-coupon-fields-live.ts, sync-coupon-fields-single-product.ts) teď
+        // NIKDY nečtou feedovo `maxDiscount` jako productMaxDiscount (stejně jako to
+        // už dřív dělal export-coupon-fields-csv.ts) -- jediný zdroj stropu je
+        // nezávislý brandLimits/categoryLimits z policy-v1.json. Tím kruhová
+        // závislost mizí i pro GUEST (nic už nečte GUEST vlastní hodnotu jako
+        // vstup), takže zápis je bezpečný. Ověřeno živě na 999999: po opravě dává
+        // GUEST i ZR4 shodně 8%, ne 0%.
         const dryRun = this.options.dryRun !== false; // default true
         const stats = {
             pricelistId,

@@ -73,15 +73,28 @@ jobs:
 
       - name: Sladění s remote před commitem (jiné cronové běhy mohly mezitím pushnout)
         if: success()
-        # Timeout přidán 2026-08-06: při souběhu dvou webhook-triggered běhů (typicky
-        # rychle za sebou -- product:create hned následované order:update apod.) tenhle
-        # krok jednou viselo přes 6 minut bez chybové hlášky, blokoval frontu dalšího
-        # běhu (concurrency: cancel-in-progress: false) a hlavně dělal ze slíbených
-        # "2-3 minut" reálně mnohem víc. Bez timeoutu by to teoreticky viselo až do
-        # 60min limitu celého jobu. 3 minuty stačí s rezervou -- normální rebase trvá
-        # řádově vteřiny.
+        # Přepsáno 2026-08-06 (podruhé týž den): `git pull --rebase` s timeoutem
+        # sice zastaví nekonečné visení, ale při přerušení uprostřed rebase nechá
+        # repo v nevyřešeném konfliktním stavu ("you need to resolve your current
+        # index first") -- a TEN pak shodí hned následující krok (git-auto-commit)
+        # v tom samém běhu. Potvrzeno živě: 2 reálné běhy dnes takhle selhaly pod
+        # náhlou vlnou webhooků (víc repository_dispatch běhů rychle za sebou).
+        # Fix: fetch + merge se strategií "ours" na konfliktní soubor -- nikdy
+        # nenechá index v nevyřešeném stavu, protože konflikt řeší tím, že vždycky
+        # vezme AKTUÁLNÍ (tímto během právě spočítanou) verzi .sync_state.json,
+        # ne že by čekal na ruční zásah. Žádná ztráta dat: .sync_state.json je jen
+        # kontrolní časové razítko, i kdyby "prohrálo" proti starší hodnotě z
+        # jiného běhu, příští sync jen projde o něco širší okno (neškodné,
+        # idempotentní zápisy).
         timeout-minutes: 3
-        run: git pull --rebase --autostash origin main
+        run: |
+          git fetch origin main
+          git merge -X ours origin/main --no-edit || {
+            echo "Merge selhal i s -X ours, vynucuji lokální verzi .sync_state.json"
+            git checkout --ours .sync_state.json 2>/dev/null || true
+            git add .sync_state.json
+            git commit --no-edit || true
+          }
 
       - name: Uložení stavu synchronizace (.sync_state.json) do repozitáře
         if: success() # Uloží stav pouze v případě, že synchronizace neskončila chybou

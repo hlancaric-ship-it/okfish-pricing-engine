@@ -26,7 +26,14 @@ function loadRootEnv() {
 loadRootEnv();
 
 const MASTER_FEED_URL = process.env.MASTER_FEED_URL;
-const PRODUCT_CODE = process.env.PRODUCT_CODE || process.argv[2];
+const PRODUCT_CODE_OR_GUID = process.env.PRODUCT_CODE || process.argv[2];
+
+// Confirmed live 2026-08-06: for product:create/product:update webhooks, Shoptet's
+// eventInstance (and every plausible spot we checked in the "full" payload) is its
+// OWN internal GUID, not the merchant `code` our feed/pricing engine keys on -- same
+// code/internal-ID split already seen with data-micro-product-id in vip_catalog.js.
+// A GUID always has hyphens in this fixed position; a merchant code never does.
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseNumber(val: string | undefined): Decimal | undefined {
     if (!val || val.trim() === '') return undefined;
@@ -60,15 +67,27 @@ function loadPolicyConfig(): { loyaltyTiers: Record<string, Decimal>; brandLimit
 
 async function main() {
     if (!MASTER_FEED_URL) throw new Error('MASTER_FEED_URL not set in .env');
-    if (!PRODUCT_CODE) throw new Error('PRODUCT_CODE not set (env var or first CLI arg)');
+    if (!PRODUCT_CODE_OR_GUID) throw new Error('PRODUCT_CODE not set (env var or first CLI arg)');
     const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
     if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set in .env');
-
-    console.log(`=== ŽIVÝ ZÁPIS KUPÓNOVÝCH POLÍ PRO JEDEN PRODUKT: ${PRODUCT_CODE} ===`);
 
     const client = new ShoptetApiClient(token);
     const writer = new CouponSalesWriter(client, { dryRun: false }); // LIVE
     const { loyaltyTiers, brandLimits, categoryLimits } = loadPolicyConfig();
+
+    let PRODUCT_CODE = PRODUCT_CODE_OR_GUID;
+    if (GUID_PATTERN.test(PRODUCT_CODE_OR_GUID)) {
+        console.log(`${PRODUCT_CODE_OR_GUID} vypadá jako Shoptet GUID, ne merchant kód -- dohledávám skutečný code přes API...`);
+        const product = await client.getProductDetail(PRODUCT_CODE_OR_GUID);
+        if (!product?.code) {
+            console.warn(`[WARNING] Produkt s GUID ${PRODUCT_CODE_OR_GUID} nebyl nalezen (smazaný, nebo se ještě nestihl propsat). Přeskakuji.`);
+            return;
+        }
+        PRODUCT_CODE = product.code;
+        console.log(`Dohledáno: GUID ${PRODUCT_CODE_OR_GUID} -> code ${PRODUCT_CODE}`);
+    }
+
+    console.log(`=== ŽIVÝ ZÁPIS KUPÓNOVÝCH POLÍ PRO JEDEN PRODUKT: ${PRODUCT_CODE} ===`);
 
     console.log('Fetching master feed...');
     const res = await fetch(MASTER_FEED_URL);

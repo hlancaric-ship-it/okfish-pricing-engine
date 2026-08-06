@@ -73,6 +73,14 @@ jobs:
 
       - name: Sladění s remote před commitem (jiné cronové běhy mohly mezitím pushnout)
         if: success()
+        # Timeout přidán 2026-08-06: při souběhu dvou webhook-triggered běhů (typicky
+        # rychle za sebou -- product:create hned následované order:update apod.) tenhle
+        # krok jednou viselo přes 6 minut bez chybové hlášky, blokoval frontu dalšího
+        # běhu (concurrency: cancel-in-progress: false) a hlavně dělal ze slíbených
+        # "2-3 minut" reálně mnohem víc. Bez timeoutu by to teoreticky viselo až do
+        # 60min limitu celého jobu. 3 minuty stačí s rezervou -- normální rebase trvá
+        # řádově vteřiny.
+        timeout-minutes: 3
         run: git pull --rebase --autostash origin main
 
       - name: Uložení stavu synchronizace (.sync_state.json) do repozitáře

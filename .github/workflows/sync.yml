@@ -56,6 +56,21 @@ jobs:
           set -o pipefail
           npx tsx scripts/run-real-sync.ts | tee sync-execution.log
 
+      # Samostatná pipeline (KV data pro /v1/product-discount, na kterých stojí
+      # katalog/košík/detail cenové badge) -- dřív se spouštěla jen ručně přes
+      # `npm run sync-products` a nikdo si nevšiml, že se dávno nespustila, dokud
+      # se badge úplně nepřestaly zobrazovat (2026-08-06, potvrzeno živě). Teď běží
+      # automaticky při každém triggeru (cron i webhook), aby nová/změněná cena
+      # produktu vždy skončila v KV bez ručního zásahu.
+      - name: Synchronizace produktových dat pro frontend badge (sync-products)
+        if: success()
+        working-directory: cloudflare-worker
+        env:
+          CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
+          CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: npx tsx src/cli/sync-products.ts
+
       - name: Sladění s remote před commitem (jiné cronové běhy mohly mezitím pushnout)
         if: success()
         run: git pull --rebase --autostash origin main

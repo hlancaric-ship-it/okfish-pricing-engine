@@ -160,7 +160,14 @@ export default {
             if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
             const body = await request.json().catch(() => null);
             if (!body) return jsonResponse({ error: 'Invalid JSON body' }, 400);
-            await env.VIP_KV.put('orders_status', JSON.stringify(body), { expirationTtl: 3600 });
+            // TTL byl původně 3600s (1h) -- příliš křehké: jediný vynechaný
+            // sync.yml běh (deploy, git push race, dočasná chyba) nechal KV
+            // klíč vypršet a dashboard spadl na "0 objednávek" i když byla
+            // živá data k dispozici (potvrzeno živě 2026-08-06). 86400s (24h)
+            // dává rozumnou rezervu -- i celý den výpadku automatiky dashboard
+            // neztratí data, jen přestane být čerstvý (a to je vidět v
+            // "aktualizováno" časovém razítku, ne jako prázdný seznam).
+            await env.VIP_KV.put('orders_status', JSON.stringify(body), { expirationTtl: 86400 });
             return jsonResponse({ ok: true });
         }
 
@@ -215,6 +222,14 @@ export default {
         if (path === '/orders-dashboard-xk92q' && request.method === 'GET') {
             const token = url.searchParams.get('token');
             if (token !== SECRET_TOKEN) return new Response('Unauthorized', { status: 401 });
+            return new Response(ORDERS_DASHBOARD_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        }
+
+        // === GET /objednavky-prehlad ===
+        // Čistá adresa bez tokenu v URL -- stránka sama má prihlasovacie okno
+        // (heslo se ověří proti /v1/orders-status a uloží se do cookie), takže
+        // se odkaz dá poslat klientovi bez viditelného hesla v odkazu.
+        if (path === '/objednavky-prehlad' && request.method === 'GET') {
             return new Response(ORDERS_DASHBOARD_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
         }
 
@@ -414,6 +429,14 @@ export default {
             if (rowJson === null) return jsonResponse({ error: 'Product not found' }, 404);
 
             const row = JSON.parse(rowJson) as CsvRow;
+            // sync-products.ts deliberately omits 'code' from the stored row (it's
+            // already the KV key, no need to duplicate it) -- but resolveActiveLimit()
+            // in engine/pricing.ts needs row['code'] to look up PRODUCT_LIMITS.
+            // Without this, product-level overrides (e.g. 101821's 10% cap) were
+            // silently ignored and the badge fell back to the raw uncapped loyalty
+            // price -- confirmed live 2026-08-06 (showed 25% instead of the correct
+            // capped ~10%).
+            row['code'] = code;
             const tierPrices = calculateAllTierPrices(row);
             const tierResult = tierPrices[tier];
             if (!tierResult) return jsonResponse({ error: 'Unknown tier' }, 400);

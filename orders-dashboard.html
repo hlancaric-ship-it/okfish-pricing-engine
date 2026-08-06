@@ -128,14 +128,34 @@
 
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
   footer { text-align: center; font-size: 11.5px; color: var(--text-faint); margin-top: 26px; }
+
+  .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px 28px; width: 300px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+  .login-box img { height: 36px; margin-bottom: 14px; }
+  .login-box h1 { font-size: 15px; margin: 0 0 18px; color: var(--text); }
+  .login-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: 14px; margin-bottom: 10px; }
+  .login-box button { width: 100%; padding: 10px 12px; border: none; border-radius: 7px; background: var(--brand); color: #1a2e00; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .login-box button:hover { background: var(--brand-dark); color: #fff; }
+  .login-box .login-error { color: var(--crit); font-size: 12.5px; margin-top: 10px; min-height: 15px; }
+  .app-hidden { display: none !important; }
 </style>
 
-<div class="topbar">
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <img src="https://cdn.myshoptet.com/usr/www.okfish.sk/user/logos/logo-fish.png" alt="OKFISH">
+    <h1>Prihlásenie do prehľadu objednávok</h1>
+    <input type="password" id="loginPassword" placeholder="Heslo" autocomplete="current-password">
+    <button id="loginSubmit">Prihlásiť sa</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="topbar app-hidden" id="appTopbar">
   <img src="https://cdn.myshoptet.com/usr/www.okfish.sk/user/logos/logo-fish.png" alt="OKFISH">
   <div class="title">Objednávky — skladový prehľad<small>interný nástroj, nezdieľať</small></div>
 </div>
 
-<div class="wrap">
+<div class="wrap app-hidden" id="appWrap">
   <div class="summary-period">Prehľad za posledných 14 dní</div>
   <div class="summary" id="summary"></div>
   <div class="filters" id="filters"></div>
@@ -156,10 +176,43 @@
 </div>
 
 <script>
-  const params = new URLSearchParams(location.search);
-  const TOKEN = params.get('token') || '';
+  // Heslo sa nikdy nenosí v URL -- po overení sa uloží do cookie (30 dní),
+  // odkaz na stránku je tak čistý (bez ?token=...) a dá sa poslať kdekoľvek.
+  function getCookie(name) {
+    const m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function setCookie(name, value) {
+    document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + (60 * 60 * 24 * 30) + '; SameSite=Lax';
+  }
+  let TOKEN = getCookie('okfish_dash_token');
   let currentFilter = 'all'; // 'all', 'action' (red+yellow), 'red', 'yellow', 'green'
   let lastData = null;
+
+  async function tryLogin(password) {
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    const res = await fetch('/v1/orders-status', { headers: { Authorization: 'Bearer ' + password }, cache: 'no-store' });
+    if (!res.ok) { errEl.textContent = 'Nesprávne heslo, skús to znova.'; return; }
+    TOKEN = password;
+    setCookie('okfish_dash_token', password);
+    document.getElementById('loginScreen').classList.add('app-hidden');
+    document.getElementById('appTopbar').classList.remove('app-hidden');
+    document.getElementById('appWrap').classList.remove('app-hidden');
+    startApp();
+  }
+
+  document.getElementById('loginSubmit').addEventListener('click', () => {
+    tryLogin(document.getElementById('loginPassword').value);
+  });
+  document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryLogin(document.getElementById('loginPassword').value);
+  });
+
+  if (TOKEN) {
+    // Cookie už existuje -- rovno skúsime overiť a preskočiť prihlasovaciu obrazovku.
+    tryLogin(TOKEN);
+  }
 
   function fmtMoney(v) {
     return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: 'EUR' }).format(Number(v) || 0);
@@ -428,6 +481,11 @@
     }
   }
 
-  poll();
-  setInterval(poll, 60000);
+  let appStarted = false;
+  function startApp() {
+    if (appStarted) return; // po prihlásení sa nesmie nabehnúť dvakrát
+    appStarted = true;
+    poll();
+    setInterval(poll, 60000);
+  }
 </script>

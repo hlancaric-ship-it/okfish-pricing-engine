@@ -20,7 +20,7 @@
  *  3. Rounding:        round to 2 decimal places
  */
 
-import { LOYALTY_TIERS, TIER_NAMES, BRAND_LIMITS, CATEGORY_LIMITS } from './config';
+import { LOYALTY_TIERS, TIER_NAMES, BRAND_LIMITS, CATEGORY_LIMITS, PRODUCT_LIMITS } from './config';
 
 export interface CsvRow {
     [key: string]: string;
@@ -69,6 +69,12 @@ function applyPercent(basePrice: number, pct: number): number {
 // the curated BRAND_LIMITS/CATEGORY_LIMITS (policy-v1.json), the one source of
 // truth for a genuine, intentional per-brand discount ceiling.
 function resolveActiveLimit(row: CsvRow): number | undefined {
+    // Product-level override always wins -- matches root's DiscountLimitPolicy
+    // Product -> Brand -> Category priority (added 2026-08-06, see config.ts
+    // PRODUCT_LIMITS comment for why this was missing before).
+    const code = row['code'];
+    if (code && PRODUCT_LIMITS[code] !== undefined) return PRODUCT_LIMITS[code];
+
     const manufacturer = row['manufacturer'];
     if (manufacturer && BRAND_LIMITS[manufacturer] !== undefined) return BRAND_LIMITS[manufacturer];
 

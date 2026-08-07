@@ -5,7 +5,10 @@ const path = require('path');
 const { processProductXlsx } = require('./lib/xlsxProductProcessor');
 const { processCustomersCsv } = require('./lib/customerProcessor');
 const { syncCustomers, syncProducts } = require('./lib/workerSync');
-const { setMaxDiscountByBrand } = require('./lib/setMaxDiscountByBrand');
+const policyManager = require('./lib/policyManager');
+const { fetchCatalog } = require('./lib/catalogFetcher');
+const shoptetApi = require('./lib/shoptetApi');
+const { computeDashboard } = require('./lib/dashboardCalculator');
 
 let mainWindow;
 
@@ -66,30 +69,129 @@ ipcMain.handle('process-products', async (event, inputPath, alsoSyncWorker) => {
     }
 });
 
-ipcMain.handle('set-max-discount', async (event, inputPath, rulesText) => {
+ipcMain.handle('compute-dashboard', async (event, { catalog, policies }) => {
     try {
-        const brandRules = rulesText
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .map(line => {
-                const [brand, percentStr] = line.split(';').map(s => s.trim());
-                const percent = Number(percentStr);
-                if (!brand || Number.isNaN(percent)) {
-                    throw new Error(`Neplatný řádek "${line}" — čekám formát "Značka;Procento", např. "Mikado;25"`);
-                }
-                return { brand, percent };
-            });
-        if (brandRules.length === 0) throw new Error('Nezadal jsi žádnou značku.');
-
-        const outputPath = inputPath.replace(/\.xlsx$/i, '_max_sleva.xlsx');
-        log(`=== Nastavuji max. slevu podle značky: ${inputPath} ===`);
-        const result = setMaxDiscountByBrand(inputPath, outputPath, brandRules, log);
-
-        log(`Výstupní soubor: ${outputPath}`);
-        return { ok: true, outputPath, ...result };
+        return { ok: true, data: computeDashboard(catalog, policies) };
     } catch (e) {
-        log(`CHYBA: ${e.message}`);
+        log(`CHYBA při výpočtu dashboardu: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('load-catalog', async () => {
+    try {
+        const data = await fetchCatalog(log);
+        return { ok: true, data };
+    } catch (e) {
+        log(`CHYBA při načítání katalogu: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('load-policies', async () => {
+    try {
+        return { ok: true, data: policyManager.loadAll() };
+    } catch (e) {
+        log(`CHYBA při načítání pravidel: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('save-policies', async (event, { section, data, commitMessage }) => {
+    try {
+        log(`=== Ukládám pravidla: ${section} ===`);
+        if (section === 'brandLimits') policyManager.saveBrandLimits(data);
+        else if (section === 'categoryLimits') policyManager.saveCategoryLimits(data);
+        else if (section === 'productOverrides') policyManager.saveProductOverrides(data);
+        else if (section === 'zeroDiscount') policyManager.saveZeroDiscount(data);
+        else if (section === 'clearance') policyManager.saveClearance(data);
+        else if (section === 'couponPolicy') policyManager.saveCouponPolicy(data);
+        else throw new Error(`Neznámá sekce pravidel: ${section}`);
+
+        const result = await policyManager.commitAndPush(commitMessage, log);
+        return { ok: true, pushed: result.pushed };
+    } catch (e) {
+        log(`CHYBA při ukládání pravidel: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('export-rule-csv', async (event, { section, data }) => {
+    try {
+        log(`=== Exportuji seznam do Downloads: ${section} ===`);
+        const result = policyManager.exportRuleCsv(section, data);
+        log(`Uloženo: ${result.outputPath} (${result.rowCount} řádků). Nahraj tento soubor v Shoptetu přes Produkty -> Import.`);
+        return { ok: true, ...result };
+    } catch (e) {
+        log(`CHYBA při exportu: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('load-customer-index', async () => {
+    try {
+        log('=== Načítám index zákazníků (jméno) pro vyhledávání ===');
+        const customers = await shoptetApi.fetchAllCustomersIndex(log);
+        log(`Hotovo — ${customers.length} zákazníků.`);
+        return { ok: true, customers };
+    } catch (e) {
+        log(`CHYBA při načítání zákazníků: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('get-customer-detail', async (event, guid) => {
+    try {
+        const customer = await shoptetApi.getCustomerDetail(guid);
+        return { ok: true, customer };
+    } catch (e) {
+        log(`CHYBA při načítání detailu zákazníka: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('get-availabilities', async () => {
+    try {
+        const availabilities = await shoptetApi.getAvailabilities();
+        return { ok: true, availabilities };
+    } catch (e) {
+        log(`CHYBA při načítání dostupností: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('set-product-availability', async (event, { code, availabilityId }) => {
+    try {
+        log(`=== Nastavuji dostupnost produktu ${code} na ID ${availabilityId} ===`);
+        const result = await shoptetApi.setProductAvailability(code, availabilityId);
+        log(`Hotovo (HTTP ${result.status}).`);
+        return { ok: true };
+    } catch (e) {
+        log(`CHYBA při nastavování dostupnosti: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('find-customers', async (event, email) => {
+    try {
+        log(`Hledám zákazníka podle e-mailu: ${email}`);
+        const customers = await shoptetApi.findCustomersByEmail(email);
+        log(`Nalezeno: ${customers.length}`);
+        return { ok: true, customers };
+    } catch (e) {
+        log(`CHYBA při hledání zákazníka: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('set-customer-tier', async (event, { guid, tier }) => {
+    try {
+        log(`=== Nastavuji tier ${tier} zákazníkovi ${guid} ===`);
+        const result = await shoptetApi.setCustomerTier(guid, tier);
+        log(`Hotovo (HTTP ${result.status}).`);
+        return { ok: true };
+    } catch (e) {
+        log(`CHYBA při nastavování tieru: ${e.message}`);
         return { ok: false, error: e.message };
     }
 });

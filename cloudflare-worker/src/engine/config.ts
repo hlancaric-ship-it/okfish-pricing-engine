@@ -42,11 +42,31 @@ export const CATEGORY_LIMITS: Record<string, number> = policy.categoryLimits ?? 
 // showed the deeper loyalty % instead of the intended clearance price on ZR25. Adding
 // them here as a real cap makes the `minAllowedPrice > 0 && actionPrice !== undefined`
 // branch fire, which makes actionPrice authoritative regardless of loyalty tier depth.
+// clearance-sale-products.json entries support an optional date window
+// ({ pct, validFrom?, validTo?: "YYYY-MM-DD" }) alongside the plain-number shape
+// (backwards compatible with entries that never had dates). Evaluated once at
+// module load (this file is re-imported fresh by every CLI/cron run via `npx tsx`,
+// so the CLI writers -- the actual source of truth for live prices, see
+// clearance-sale-products.json's own header comment about the CSV-import-only
+// lesson -- always see today's correct window; only the long-lived Worker isolate
+// could see a stale window between deploys, a known, accepted limitation here).
+type ClearanceEntry = number | { pct: number; validFrom?: string; validTo?: string };
+
+function resolveClearancePct(entry: ClearanceEntry, now: Date): number | undefined {
+    if (typeof entry === 'number') return entry;
+    if (entry.validFrom && now < new Date(entry.validFrom)) return undefined;
+    if (entry.validTo && now > new Date(entry.validTo + 'T23:59:59')) return undefined;
+    return entry.pct;
+}
+
+const now = new Date();
+const activeClearanceEntries = Object.entries(clearanceSaleProducts as Record<string, ClearanceEntry>)
+    .map(([code, entry]) => [code, resolveClearancePct(entry, now)] as const)
+    .filter((pair): pair is [string, number] => pair[1] !== undefined);
+
 export const PRODUCT_LIMITS: Record<string, number> = {
     ...Object.fromEntries((zeroDiscountProducts as string[]).map((code) => [code, 0])),
-    ...Object.fromEntries(
-        Object.entries(clearanceSaleProducts as Record<string, number>).map(([code, pct]) => [code, pct / 100])
-    ),
+    ...Object.fromEntries(activeClearanceEntries.map(([code, pct]) => [code, pct / 100])),
     ...Object.fromEntries(
         Object.entries(productMaxDiscountOverrides as Record<string, number>).map(([code, pct]) => [code, pct / 100])
     ),

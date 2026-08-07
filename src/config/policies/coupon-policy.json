@@ -1,0 +1,6 @@
+{
+  "defaultMaxDiscount": 20,
+  "lockedTiers": ["ZR20", "ZR25"],
+  "disabledBrands": [],
+  "disabledProducts": []
+}

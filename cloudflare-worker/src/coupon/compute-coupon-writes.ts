@@ -1,6 +1,12 @@
 import Decimal from "decimal.js";
 import { CouponPolicy } from "../../../src/coupon/CouponPolicy.js";
 import { TIER_PRICELIST_MAP, GUEST_PRICELIST_ID } from "./tier-pricelist-map.js";
+import {
+    COUPON_STANDARD_LIMIT,
+    COUPON_LOCKED_TIERS,
+    COUPON_DISABLED_BRANDS,
+    COUPON_DISABLED_PRODUCTS
+} from "./coupon-config.js";
 
 export interface ProductCouponInput {
     code: string;
@@ -80,8 +86,18 @@ function computeItem(
     pricelistId: number,
     rawTierDiscount: Decimal,
     /** undefined for guests — CouponPolicy's ZR20/ZR25 lock (Rule 4) must never apply to them. */
-    customerTier: string | undefined
+    customerTier: string | undefined,
+    /** True when this product's brand or code is on the manual coupon-off list
+     * (coupon-policy.json, editable from the admin app) -- short-circuits straight
+     * to "no coupon" before CouponPolicy.decide() even runs, same end result as
+     * Rule 1 (productMaxDiscount === 0) but driven by a separate on/off switch
+     * rather than a discount ceiling. */
+    couponDisabled: boolean
 ): CouponWriteItem {
+    if (couponDisabled) {
+        return { code: product.code, tier, pricelistId, applyDiscountCoupon: false, minPriceRatio: new Decimal(1) };
+    }
+
     // The real (untouched) PricingEngine clamps both the action price and the
     // loyalty price to the effective limit (product -> brand -> category, same
     // hierarchy as DiscountLimitPolicy) via DiscountLimitPolicy — so the discount a
@@ -128,11 +144,21 @@ export function computeCouponWrites(
     product: ProductCouponInput,
     loyaltyTiers: Record<string, Decimal>,
     brandLimits: Record<string, Decimal> = {},
-    categoryLimits: Record<string, Decimal> = {}
+    categoryLimits: Record<string, Decimal> = {},
+    // Defaults read straight from coupon-policy.json (the file the admin app edits) --
+    // omitting these params gives every existing call site the current, live-configured
+    // behavior automatically, not the pre-coupon-policy.json hardcoded values.
+    standardLimit: Decimal = COUPON_STANDARD_LIMIT,
+    lockedTiers: Set<string> = COUPON_LOCKED_TIERS,
+    disabledBrands: Set<string> = COUPON_DISABLED_BRANDS,
+    disabledProducts: Set<string> = COUPON_DISABLED_PRODUCTS
 ): CouponWriteItem[] {
-    const policy = new CouponPolicy();
+    const policy = new CouponPolicy(standardLimit, lockedTiers);
     const productDiscount = computeProductDiscount(product.basePrice, product.actionPrice);
     const effectiveLimit = resolveEffectiveLimit(product, brandLimits, categoryLimits);
+    const couponDisabled =
+        disabledProducts.has(product.code) ||
+        (!!product.manufacturer && disabledBrands.has(product.manufacturer.toUpperCase()));
     const items: CouponWriteItem[] = [];
 
     // Same "absent = allowed" convention as engine/pricing.ts's resolveAllowLoyaltyDiscount().
@@ -140,10 +166,10 @@ export function computeCouponWrites(
 
     for (const [tier, pricelistId] of Object.entries(TIER_PRICELIST_MAP)) {
         const rawTierDiscount = loyaltyDiscountAllowed ? (loyaltyTiers[tier] ?? new Decimal(0)) : new Decimal(0);
-        items.push(computeItem(policy, product, effectiveLimit, productDiscount, tier, pricelistId, rawTierDiscount, tier));
+        items.push(computeItem(policy, product, effectiveLimit, productDiscount, tier, pricelistId, rawTierDiscount, tier, couponDisabled));
     }
 
-    items.push(computeItem(policy, product, effectiveLimit, productDiscount, "GUEST", GUEST_PRICELIST_ID, new Decimal(0), undefined));
+    items.push(computeItem(policy, product, effectiveLimit, productDiscount, "GUEST", GUEST_PRICELIST_ID, new Decimal(0), undefined, couponDisabled));
 
     return items;
 }

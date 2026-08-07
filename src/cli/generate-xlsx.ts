@@ -62,7 +62,9 @@ async function main() {
     let headerMap = new Map<string, number>();
 
     for await (const worksheetReader of workbookReader) {
-        const worksheetWriter = workbookWriter.addWorksheet(worksheetReader.name);
+        // exceljs's streaming WorksheetReader has `.name` at runtime but the
+        // type definitions don't expose it (known exceljs typing gap).
+        const worksheetWriter = workbookWriter.addWorksheet((worksheetReader as any).name);
         
         let isFirstRow = true;
 

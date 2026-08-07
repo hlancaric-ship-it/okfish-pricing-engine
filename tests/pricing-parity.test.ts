@@ -49,7 +49,9 @@ function toWorkerRow(p: Profile, tier: string, allowLoyaltyDiscount: boolean): C
     if (p.actionPrice !== undefined) row.actionPrice = String(p.actionPrice).replace('.', ',');
     if (p.manufacturer) row.manufacturer = p.manufacturer;
     if (p.category) row.categoryText = p.category;
-    if (p.maxDiscountPct !== undefined) row.maxDiscount = String(p.maxDiscountPct);
+    // Deliberately NOT setting row.maxDiscount -- the Worker never reads that
+    // field live (see caller: productMaxDiscountPct is injected explicitly
+    // via calculateAllTierPrices' productLimits param instead).
     return row;
 }
 
@@ -71,8 +73,18 @@ describe('Pricing parity: Worker engine vs root PricingEngine, 100 combinations'
 
     it.each(cases)('$profile.name / $tier / allowLoyaltyDiscount=$allowLoyaltyDiscount', ({ profile, tier, allowLoyaltyDiscount }) => {
         // --- Worker engine ---
+        // Product-level cap is injected the same way root gets its explicit
+        // `productMaxDiscount` input -- NOT via row.maxDiscount, which the
+        // Worker deliberately never reads live (that field gets overwritten
+        // by the coupon-room writer in production; see the 2026-08-05 GUEST
+        // circular-dependency incident). This keeps the test honest about
+        // the real, intentional architecture instead of asserting the two
+        // engines agree on a code path production no longer uses.
         const workerRow = toWorkerRow(profile, tier, allowLoyaltyDiscount);
-        const workerPrice = calculateAllTierPrices(workerRow)[tier].price;
+        const productLimits = profile.maxDiscountPct !== undefined
+            ? { [profile.name]: profile.maxDiscountPct / 100 }
+            : {};
+        const workerPrice = calculateAllTierPrices(workerRow, productLimits)[tier].price;
 
         // --- Root engine ---
         const input = {

@@ -42,10 +42,14 @@ describe('CLI and Worker produce identical PRICELIST output for equivalent input
             standardPrice: String(product.standardPrice).replace('.', ','),
             purchasePrice: String(product.purchasePrice).replace('.', ','),
             actionPrice: String(product.actionPrice).replace('.', ','),
-            maxDiscount: '25',
             marza_v_percentach: ''
+            // Deliberately no row.maxDiscount -- the Worker never reads that
+            // field live (production circular-dependency guard, see
+            // engine/config.ts PRODUCT_LIMITS comment). The cap is injected
+            // explicitly below instead, mirroring how the CLI side gets its
+            // productMaxDiscount input directly.
         };
-        const workerPrices = calculateAllTierPrices(csvRow);
+        const workerPrices = calculateAllTierPrices(csvRow, { [product.code]: product.maxDiscountRatio });
 
         // --- CLI path: root Decimal.js-based PricingEngine, same single-source-of-truth policy ---
         const engine = EngineBuilder.fromConfig('src/config/policies/policy-v1.json').build();

@@ -54,13 +54,18 @@ describe('generate-xml.ts — real run against a fixture, fresh output', () => {
         }
     });
 
-    it('clamps price to the Apple brand discount limit (5%) for product 2002', () => {
+    it('clamps price to the HUMMINBIRD brand discount limit (4%) for product 2002', () => {
+        // HUMMINBIRD replaces the old Apple fixture (Apple's 5% brand limit was
+        // removed from policy-v1.json at the client's request, 2026-08-06 --
+        // see CHANGELOG). basePrice 50, cap 4% -> floor 48.00. ZR4's own 4%
+        // loyalty tier lands exactly on the floor already; every deeper tier
+        // (ZR6+) has a steeper loyalty % than the cap, so all clamp to 48.00.
         const block = xml.match(/<CODE>2002<\/CODE>[\s\S]*?<PRICELISTS>[\s\S]*?<\/PRICELISTS>/)![0];
         const zr4 = block.match(/<PRICELIST><TITLE>ZR4<\/TITLE>.*?<\/PRICELIST>/)![0];
         expect(zr4).toContain('<PRICE>48.00</PRICE>');
         for (const tier of ['ZR6', 'ZR8', 'ZR10', 'ZR12', 'ZR14', 'ZR16', 'ZR18', 'ZR20', 'ZR25']) {
             const pricelist = block.match(new RegExp(`<PRICELIST><TITLE>${tier}<\\/TITLE>.*?<\\/PRICELIST>`))![0];
-            expect(pricelist, `${tier} clamped to brand limit`).toContain('<PRICE>47.50</PRICE>');
+            expect(pricelist, `${tier} clamped to brand limit`).toContain('<PRICE>48.00</PRICE>');
         }
     });
 
@@ -139,15 +144,15 @@ describe('generate.ts — real run against the real products.csv, fresh output',
         const product = records.find((r: any) => r.code === '39769');
         expect(product).toBeDefined();
 
-        // Standard: 28,95 | Action: 24,61 | Limit: 25% (21,71)
-        expect(product['pricelist:2:price']).toBe('24,61'); // ZR4 -> Action
-        expect(product['pricelist:11:price']).toBe('24,61'); // ZR10 -> Action
-        expect(product['pricelist:17:price']).toBe('24,61'); // ZR14 -> Action
-
-        expect(product['pricelist:20:price']).toBe('24,32'); // ZR16
-        expect(product['pricelist:26:price']).toBe('23,16'); // ZR20
-
-        expect(product['pricelist:29:price']).toBe('21,71'); // ZR25 -> hits product max discount (25%)
+        // Standard: 28,95 | Action: 24,61 | Limit: 25% (floor would be 21,71)
+        // Since a cap (25%) is active AND the product has its own action price,
+        // DiscountLimitPolicy's SALE rule (added after the 2026-08-04 VAGNER
+        // incident) makes the action price authoritative outright for EVERY
+        // tier -- never watered down by a steeper loyalty discount, and never
+        // re-clamped to the cap floor either. 24.61 on all 10 tiers.
+        for (const id of [2, 5, 8, 11, 14, 17, 20, 23, 26, 29]) {
+            expect(product[`pricelist:${id}:price`], `pricelist:${id}:price`).toBe('24,61');
+        }
     });
 });
 

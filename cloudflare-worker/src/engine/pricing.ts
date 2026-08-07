@@ -68,12 +68,18 @@ function applyPercent(basePrice: number, pct: number): number {
 // this -- only the underlying tier PRICE must ignore that field and trust only
 // the curated BRAND_LIMITS/CATEGORY_LIMITS (policy-v1.json), the one source of
 // truth for a genuine, intentional per-brand discount ceiling.
-function resolveActiveLimit(row: CsvRow): number | undefined {
+function resolveActiveLimit(row: CsvRow, productLimits: Record<string, number> = PRODUCT_LIMITS): number | undefined {
     // Product-level override always wins -- matches root's DiscountLimitPolicy
     // Product -> Brand -> Category priority (added 2026-08-06, see config.ts
-    // PRODUCT_LIMITS comment for why this was missing before).
+    // PRODUCT_LIMITS comment for why this was missing before). `productLimits`
+    // defaults to the real live map but is overridable -- lets
+    // pricing-parity.test.ts inject an explicit per-test-SKU cap (mirroring
+    // root engine's explicit `productMaxDiscount` input) WITHOUT resurrecting
+    // reading row['maxDiscount'] directly, which is deliberately never done
+    // here (see zero-discount-products.json's read comment / the 2026-08-05
+    // GUEST circular-dependency incident this avoids).
     const code = row['code'];
-    if (code && PRODUCT_LIMITS[code] !== undefined) return PRODUCT_LIMITS[code];
+    if (code && productLimits[code] !== undefined) return productLimits[code];
 
     const manufacturer = row['manufacturer'];
     if (manufacturer && BRAND_LIMITS[manufacturer] !== undefined) return BRAND_LIMITS[manufacturer];
@@ -98,7 +104,7 @@ function resolveAllowLoyaltyDiscount(row: CsvRow): boolean {
  * Calculate all loyalty tier prices for a single CSV row.
  * Returns a map of tier → { price, usedActionPrice }.
  */
-export function calculateAllTierPrices(row: CsvRow): AllTierPrices {
+export function calculateAllTierPrices(row: CsvRow, productLimits: Record<string, number> = PRODUCT_LIMITS): AllTierPrices {
     const basePrice = parsePrice(row['price'] || row['priceVat'] || row['standardPrice']);
     if (!basePrice || basePrice <= 0) {
         // No valid base price — return base for all tiers
@@ -118,7 +124,7 @@ export function calculateAllTierPrices(row: CsvRow): AllTierPrices {
     // Treat it as "no action" so it can't override the cap-floor rule below.
     if (actionPrice !== undefined && actionPrice >= basePrice) actionPrice = undefined;
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
-    const activeLimit = resolveActiveLimit(row);
+    const activeLimit = resolveActiveLimit(row, productLimits);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;
 
     const result: AllTierPrices = {};

@@ -225,6 +225,61 @@ describe('computeCouponWrites', () => {
         });
     });
 
+    // Combines all three discount sources the engine has to reconcile at once —
+    // an active clearance sale (modeled as actionPrice, same as computeProductDiscount
+    // treats any sale/action price), a loyalty tier, and the coupon layer on top —
+    // the exact scenario the audit flagged as untested despite being the engine's
+    // headline differentiator ("always shows the customer the best legitimate price,
+    // never double-stacked"). Was previously covered only for each pair in isolation.
+    describe('three-way interaction: active clearance sale + loyalty tier + coupon', () => {
+        it('a clearance sale deeper than the 20% ceiling blocks the coupon outright, even for a non-locked tier', () => {
+            // 22% clearance (matches typical clearance-sale-products.json entries) already
+            // exceeds the 20% standard ceiling -> Rule 3 fires before the tier is even considered.
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), actionPrice: d(78) },
+                LOYALTY_TIERS
+            );
+            const zr16 = items.find(i => i.tier === 'ZR16')!;
+            expect(zr16.applyDiscountCoupon).toBe(false);
+            expect(zr16.minPriceRatio.toNumber()).toBe(1);
+        });
+
+        it('a shallow clearance sale still leaves coupon room on top of the deeper of {clearance, tier}', () => {
+            // 10% clearance vs ZR16's 16% tier discount -> tier is the binding one (Rule 5
+            // takes max(productDiscount, customerTierDiscount)) -> 20% - 16% = 4% left.
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), actionPrice: d(90) },
+                LOYALTY_TIERS
+            );
+            const zr16 = items.find(i => i.tier === 'ZR16')!;
+            expect(zr16.applyDiscountCoupon).toBe(true);
+            expect(zr16.minPriceRatio.toNumber()).toBeCloseTo(0.96);
+        });
+
+        it('ZR20/ZR25 stay locked even during an active clearance sale that would otherwise leave coupon room', () => {
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), actionPrice: d(90) }, // shallow 10% clearance
+                LOYALTY_TIERS
+            );
+            expect(items.find(i => i.tier === 'ZR20')!.applyDiscountCoupon).toBe(false);
+            expect(items.find(i => i.tier === 'ZR25')!.applyDiscountCoupon).toBe(false);
+        });
+
+        it('a per-product discount cap below the clearance/tier depth clamps both before the coupon layer sees them', () => {
+            // 22% clearance and ZR25's 25% tier both exceed a 10% product cap -> both get
+            // clamped to 10% first (mirrors DiscountLimitPolicy), so remaining coupon room
+            // is 0, not a naive 20% - 22% (which would wrongly go negative/blocked-for-the-
+            // wrong-reason) or 20% - 25%.
+            const items = computeCouponWrites(
+                { code: '123', basePrice: d(100), actionPrice: d(78), productMaxDiscount: d(0.10) },
+                LOYALTY_TIERS
+            );
+            const zr16 = items.find(i => i.tier === 'ZR16')!; // not locked, so Rule 2 actually runs
+            expect(zr16.applyDiscountCoupon).toBe(false);
+            expect(zr16.minPriceRatio.toNumber()).toBe(1);
+        });
+    });
+
     it('never grants coupon room beyond what the ceiling allows (shop margin safety)', () => {
         const items = computeCouponWrites(
             { code: '123', basePrice: d(100), productMaxDiscount: d(0.10) },

@@ -64,6 +64,48 @@ const activeClearanceEntries = Object.entries(clearanceSaleProducts as Record<st
     .map(([code, entry]) => [code, resolveClearancePct(entry, now)] as const)
     .filter((pair): pair is [string, number] => pair[1] !== undefined);
 
+// --- STAGE 1 VALIDATION: config-load-time cross-file conflict check --------------
+// This is the FIRST of three validation stages the sync pipeline relies on to keep
+// a bad config from ever reaching a live price:
+//   Stage 1 (here): fail the module load itself if two static policy sources
+//     disagree about the same product code, before any price is ever computed.
+//   Stage 2 (scripts/run-real-sync.ts / sync-coupon-fields-diff.ts): the
+//     diff-aware live write refuses to apply itself if it would move more than
+//     30% of catalog prices in one run (safety fuse against a bad feed/config).
+//   Stage 3 (npm test, enforced by ci.yml on every push/PR): the 236-test vitest
+//     suite regression-checks the actual pricing/coupon decision logic, including
+//     the three-way tier+coupon+clearance interaction.
+// A product silently landing in two of {zeroDiscountProducts, clearanceSaleProducts,
+// productMaxDiscountOverrides} is exactly how INC-004-style bugs happen: whichever
+// map is spread last in PRODUCT_LIMITS below wins with zero warning, and the price a
+// customer actually sees quietly stops matching the price someone intended to set.
+// Instead of guessing which source "should" win, refuse to build at all — whoever
+// added the conflicting entry has to resolve it explicitly in the JSON files.
+function assertNoCrossFileConflicts(sources: Record<string, string[]>): void {
+    const entries = Object.entries(sources);
+    for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+            const [nameA, codesA] = entries[i];
+            const [nameB, codesB] = entries[j];
+            const setB = new Set(codesB);
+            const conflicts = codesA.filter((code) => setB.has(code));
+            if (conflicts.length > 0) {
+                throw new Error(
+                    `Product code(s) ${conflicts.join(', ')} appear in BOTH ${nameA} and ${nameB}. ` +
+                        `This is ambiguous — the map spread later in PRODUCT_LIMITS would silently win with no ` +
+                        `warning. Remove the code from one of the two files before deploying.`
+                );
+            }
+        }
+    }
+}
+
+assertNoCrossFileConflicts({
+    'zero-discount-products.json': zeroDiscountProducts as string[],
+    'clearance-sale-products.json': Object.keys(clearanceSaleProducts as Record<string, ClearanceEntry>),
+    'product-max-discount-overrides.json': Object.keys(productMaxDiscountOverrides as Record<string, number>)
+});
+
 export const PRODUCT_LIMITS: Record<string, number> = {
     ...Object.fromEntries((zeroDiscountProducts as string[]).map((code) => [code, 0])),
     ...Object.fromEntries(activeClearanceEntries.map(([code, pct]) => [code, pct / 100])),

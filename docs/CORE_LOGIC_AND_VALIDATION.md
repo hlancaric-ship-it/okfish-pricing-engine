@@ -1,0 +1,389 @@
+# Core Pricing/Coupon Decision Logic & the 3-Stage Validation Model
+
+Engineering reference for two things: (1) the exact precedence rules the
+engine applies when computing a price or a coupon decision, and (2) the
+**3-stage validation model** the codebase now implements to keep a bad config
+from ever reaching a live price. This document assumes the reader has already
+read `ENGINE_TECHNICAL_TEMPLATE.md` for the general architecture (two
+engines, sync pipeline, tier system) — it is not repeated here. This is a
+build/scale/validate reference for standing up the next client, not a repeat
+of the architecture tour.
+
+## 1. Core Decision Logic (Precedence, Precisely)
+
+There are two separate decision layers. They are invoked at different times,
+by different code paths, and they do not call each other — but they must
+agree on the same discount ceiling for a given product, or the coupon layer
+could grant room the pricing engine would never actually honor.
+
+### 1.1 Price-cap resolution (`cloudflare-worker/src/engine/config.ts`,
+`cloudflare-worker/src/engine/pricing.ts`)
+
+Discount cap lookup order, `resolveActiveLimit()` (`pricing.ts:71`):
+
+```
+PRODUCT_LIMITS[code]  →  BRAND_LIMITS[brand]  →  CATEGORY_LIMITS[category]  →  none
+```
+
+`PRODUCT_LIMITS` itself (`config.ts:109-115`) is built by **object-spread
+merge, in this exact order, last write wins**:
+
+```
+{}                                        (empty)
+  ← zero-discount-products.json           (code -> 0)
+  ← clearance-sale-products.json          (code -> pct/100, date-window filtered)
+  ← product-max-discount-overrides.json   (code -> pct/100)   ** highest priority **
+```
+
+Given a product/action price, `calculateAllTierPrices()` (`pricing.ts:107`):
+1. Parse `basePrice`.
+2. Parse `actionPrice`; if not strictly below `basePrice`, treat as absent
+   (guards against stale promo fields left in the feed).
+3. Resolve the active cap via the lookup order above.
+4. **Clearance-vs-cap rule** (`pricing.ts:143-164`): if a cap is active *and*
+   an action price is present, the action price wins outright — never
+   floor-clamped up to the cap, never beaten by a deeper loyalty-tier
+   discount. The cap only clamps a *loyalty-only* price (no action price).
+5. Otherwise, for each loyalty tier, take the lower of tier price vs. action
+   price, then clamp to the cap.
+
+### 1.2 Coupon decision (`src/coupon/CouponPolicy.ts`,
+`cloudflare-worker/src/coupon/compute-coupon-writes.ts`)
+
+`CouponPolicy.decide()` (`CouponPolicy.ts:22-56`), checked **in this exact
+order, first match wins**:
+
+1. **Rule 4 — locked tiers** (absolute precedence): `customerTier` is in
+   `coupon-policy.json.lockedTiers` → no coupon, `maxDiscount = 0`. Checked
+   before anything else, no exceptions.
+2. **Rule 1**: `productMaxDiscount === 0` → no coupon.
+3. **Rule 2**: `productMaxDiscount` set and below `standardLimit` → coupon
+   room = `productMaxDiscount − max(productDiscount, tierDiscount)`, if
+   positive.
+4. **Rule 3**: product's own discount already ≥ `standardLimit` → no coupon.
+5. **Rule 5 (default)**: coupon room = `standardLimit − max(productDiscount,
+   tierDiscount)`.
+
+`compute-coupon-writes.ts` is the caller that turns one `decide()` call into
+a real write payload per pricelist:
+
+- `resolveEffectiveLimit()` (line 43) mirrors the price-cap lookup order in
+  §1.1 (Product → Brand → Category) **exactly**, so the coupon layer can
+  never grant more room than the pricing engine would apply on its own. This
+  is the single most important cross-layer invariant in the system — see the
+  margin-safety test in §4.3.
+- `couponDisabled` check (line 80, `computeItem()`) short-circuits to
+  no-coupon *before* `decide()` runs, for products/brands listed in
+  `coupon-policy.json.disabledProducts`/`disabledBrands`.
+- Both `productDiscount` and raw tier discount are clamped to
+  `effectiveLimit` before being handed to `decide()` (lines 108-113) — the
+  three-way interaction (clearance + tier + coupon) is resolved by clamping
+  first, then applying the five rules above to the clamped values, not by any
+  special-cased three-way branch. See §4.3 for the tests exercising this.
+- `minPriceRatio = 1 − maxDiscount` (line 122) is written per-pricelist,
+  relative to that pricelist's own (already tier-discounted) price.
+
+**Why two separate layers instead of one**: the price engine decides what a
+shopper *sees* on the storefront; the coupon layer decides what checkout will
+*accept*. They must independently arrive at a consistent ceiling — which is
+exactly why `resolveEffectiveLimit()` duplicates the price-cap fallback
+instead of importing a shared function (Worker/root deploy boundary, per
+`ENGINE_TECHNICAL_TEMPLATE.md` §1). The 3-stage model in §3 exists largely to
+keep these two independently-implemented lookups from silently drifting.
+
+## 2. Building This Correctly for a New Client, From Scratch
+
+Order matters. Each step depends on artifacts the previous step produced.
+Do not skip ahead — a coupon ceiling set before loyalty tiers exist has
+nothing to be relative to, and a sync cron wired up before the safety fuses
+are tuned to the new catalog size is a live-price incident waiting to happen.
+
+1. **Loyalty tiers** — write `src/config/policies/policy-v1.json`'s
+   `loyaltyTiers` map (any names, any count, ratios not percentages).
+   Nothing downstream works without this; it's the one file every other
+   config keys off of (both engines' `TIER_NAMES`, `compute-coupon-writes.ts`'s
+   tier-discount lookups, the frontend's tier→pricelist resolution).
+2. **Shoptet pricelists** — create one pricelist per tier in Shoptet admin,
+   plus confirm the guest/default pricelist ID. Write
+   `cloudflare-worker/src/coupon/tier-pricelist-map.ts`'s `TIER_PRICELIST_MAP`
+   to match. This is a manual, hand-verified mapping — there is no API to
+   auto-discover it reliably, which is exactly why `sync-coupon-fields-diff.ts`
+   re-validates it live before every write batch (§1.2, §3.2 Stage 2).
+3. **Brand/category limits** — `policy-v1.json`'s `brandLimits`/
+   `categoryLimits`, if the client has any blanket caps below 100%.
+4. **Per-product policy files** — `zero-discount-products.json`,
+   `clearance-sale-products.json`, `product-max-discount-overrides.json`.
+   Populate these *after* tiers/limits exist, because Stage 1 validation
+   (§3.1) will refuse to even load the module if a product code lands in more
+   than one of these three files — you need all three finalized to pass that
+   check, not built incrementally against a partially-populated set.
+5. **Coupon policy** — `coupon-policy.json` (`defaultMaxDiscount`,
+   `lockedTiers`, `disabledBrands`/`disabledProducts`). This is the ceiling
+   value to confirm explicitly with the client — get it wrong and every
+   coupon-room calculation downstream is wrong.
+6. **Dry-run the diff sync** — `npx tsx sync-coupon-fields-diff.ts` (no
+   `--live`) against the real feed before any cron is wired up. This is the
+   first point a wrong `MIN_EXPECTED_PRODUCTS` or a systematically wrong feed
+   mapping becomes visible, and it costs zero Shoptet API calls.
+7. **Tune the two safety-fuse constants** to the new catalog
+   (`MIN_EXPECTED_PRODUCTS`, `MAX_CHANGE_RATIO` — see §3.2). Do this *before*
+   the first live run, not after an incident.
+8. **Wire up cron/webhook workflows** (`sync.yml`,
+   `sync-products-worker-cache.yml`, `coupon-fields.yml`) with staggered
+   offsets, only once steps 1-7 have been dry-run clean.
+9. **Frontend tier resolution** — re-implement however this client's
+   storefront exposes customer identity (§4/§6 of the technical template);
+   this has no dependency on 1-8 and can be built in parallel, but must not
+   go live before the pricelist map (step 2) is confirmed correct, since a
+   wrong tier→pricelist mapping is invisible in the UI but silently wrong at
+   checkout.
+
+## 3. The 3-Stage Validation Model
+
+**Central principle: a new client's config should never be able to reach a
+live price change unless it passes all three stages.** Each stage catches a
+different failure mode, at a different point in the pipeline, at a different
+cost:
+
+| Stage | When | Catches | Cost |
+|---|---|---|---|
+| 1 — config-load-time | Module import, before any price is computed | Static self-contradictions between policy JSON files | Free, no I/O, fails in milliseconds |
+| 2 — pre-write/dry-run | Every sync run, before any Shoptet API write | Dynamic/data-driven anomalies (bad feed, mapping regression, renamed pricelist) | One feed fetch + optional one API call |
+| 3 — regression tests | Every push/PR, in CI | Logic regressions from human code changes | ~7s local, full CI run remotely |
+
+No single stage is sufficient alone: Stage 1 can't see a corrupted feed
+(it only checks static files); Stage 2 can't see a logic bug in code that
+produces plausible-looking wrong numbers within the change-ratio threshold;
+Stage 3 can't see a config file that is internally fine but contradicts
+another config file, or a feed that's broken *today* but wasn't when the
+test fixtures were written. All three together are what makes it safe to
+hand this engine to a new client's config without re-auditing every policy
+JSON by hand.
+
+### 3.1 Stage 1 — Config-load-time validation (`config.ts`)
+
+Implemented in `cloudflare-worker/src/engine/config.ts:67-107`, function
+`assertNoCrossFileConflicts()` (defined at line 84, called at line 103).
+
+What it actually does: takes a `Record<string, string[]>` mapping each
+source-file name to its list of product codes, and does a pairwise
+comparison across every pair of sources — `O(n²)` over the *files*, not the
+products, so with three files today it's three set-intersection checks. For
+each pair, it builds a `Set` from the second list and filters the first
+list for membership, i.e. `codesA.filter(code => setB.has(code))`. If any
+pair has a non-empty intersection, it throws immediately with the specific
+conflicting code(s) and the two file names named in the error message. This
+throw happens at **module load time** — before `PRODUCT_LIMITS` is even
+constructed (line 109) — so a conflicting config doesn't just produce a
+wrong price, it prevents the Worker module (and any CLI script that imports
+it) from loading at all.
+
+The three sources checked today (call site, lines 103-107):
+
+```ts
+assertNoCrossFileConflicts({
+    'zero-discount-products.json': zeroDiscountProducts as string[],
+    'clearance-sale-products.json': Object.keys(clearanceSaleProducts as Record<string, ClearanceEntry>),
+    'product-max-discount-overrides.json': Object.keys(productMaxDiscountOverrides as Record<string, number>)
+});
+```
+
+**Why this matters**: `PRODUCT_LIMITS` (line 109) is built by object spread,
+last-write-wins. Before this check existed, a product code silently present
+in two of these three files would resolve to whichever map happened to be
+spread later — with zero warning, and a live price that quietly stopped
+matching what whoever edited the JSON intended. This is the exact failure
+class behind the historical clearance-vs-cap production bug (documented in
+`ENGINE_TECHNICAL_TEMPLATE.md` §2 and §7). Stage 1 doesn't try to guess which
+source "should" win; it refuses to build at all and forces the person who
+introduced the conflict to resolve it explicitly.
+
+**Known scope limit**: Stage 1 only checks the three files wired into the
+call at lines 103-107. Adding a fourth policy file that can also assign a
+per-product discount cap does *not* get checked automatically — see the
+worked example in §5.
+
+### 3.2 Stage 2 — Pre-write/dry-run validation (diff-aware sync)
+
+Implemented in `cloudflare-worker/src/cli/sync-coupon-fields-diff.ts`. Two
+independent guards, both evaluated before any live Shoptet write:
+
+**Guard A — minimum scanned-product count** (`MIN_EXPECTED_PRODUCTS = 5000`,
+line 45; check at lines 221-226). If the feed parse yields fewer than this
+many valid rows, the script throws immediately: `"Prohledáno jen X produktů
+... feed je pravděpodobně useknutý nebo rozbitý. Žádný zápis neproběhl,
+coupon-state.json nebyl změněn."` **This aborts the entire run** — no writes
+happen at all, and the state file is untouched, so the next run retries from
+the same baseline.
+
+**Guard B — the 30% change-ratio safety fuse** (`MAX_CHANGE_RATIO = 0.30`,
+line 50; check at lines 240-248). After scanning the full feed and diffing
+every product×pricelist item against the last-known-written state
+(`coupon-state.json`), the script computes `changeRatio = changedCount /
+(scanned * numPricelists)`. If running live (`isLive`), that ratio exceeds
+30%, and `--force` was not passed, it throws: `"Změna se týká X % všech
+položek ... což překračuje pojistku 30 %. ... Žádný zápis neproběhl."`
+
+**Exact behavior when it trips — this is the fact to get right**: **it
+aborts the entire run, not a per-item skip.** The threshold is evaluated
+once, globally, after the full feed has already been scanned and the full
+diff computed — it is not applied per-product or per-tier. If it trips, zero
+Shoptet API writes happen for that run (the throw happens *before* the
+`CouponSalesWriter` loop at line 261 is ever reached), and `coupon-state.json`
+is left completely unchanged (line 278's `if (!failedAny)` block never
+executes because `main()` has already thrown and been caught by the
+top-level `.catch()` at line 289, which logs the error and calls
+`process.exit(1)`). The only way past it is an explicit human re-run with
+`--force`. There is no partial-apply or "write the safe 70%, skip the rest"
+behavior — it is a full-run circuit breaker, deliberately, because a
+change ratio that large is treated as evidence the *entire* diff might be
+computed from bad data, not evidence that some specific items are fine and
+others aren't.
+
+A third check exists but is not itself a threshold: `validatePricelistMap()`
+(lines 103-132), called only once the script knows there's something to
+write (line 259, right before the first live write), confirms every ID in
+`TIER_PRICELIST_MAP` still resolves to the pricelist name it's expected to
+via a live `GET /api/pricelists` call — protects against a renamed/recreated
+pricelist in Shoptet admin. Also aborts the whole run on mismatch, before any
+write.
+
+`scripts/run-real-sync.ts` (root engine, real-price writer) follows the same
+pattern architecturally — diff against previous state, guard on implausible
+scope before writing — as part of the same Stage 2 philosophy, though the
+coupon-fields script above is the one with the concrete, currently-tuned
+thresholds documented here.
+
+### 3.3 Stage 3 — Regression-test validation (CI)
+
+`.github/workflows/ci.yml` runs on every `push` to `main` and every `pull_request`
+into `main`: `npm ci` → `npm run build` → `npm test` → `npx eslint src tests`
+→ mock-data + benchmark E2E steps. `npm test` runs the Vitest suite —
+**236 tests across 17 files** (confirmed via `npx vitest --run`), the
+authoritative regression gate for the decision logic in §1. What it locks in:
+
+- **Coupon rule precedence** — `tests/coupon-policy.test.ts` (23 cases) and
+  `cloudflare-worker/tests/compute-coupon-writes.test.ts` (21+ cases): exact
+  Rule 1-5 ordering from §1.2, locked-tier absolute precedence, disabled
+  brand/product short-circuiting.
+- **Brand/category/product fallback** — verifies `resolveActiveLimit()` and
+  `resolveEffectiveLimit()` both apply Product → Brand → Category in that
+  order and agree with each other (the cross-layer invariant from §1.2).
+- **Cross-engine pricing parity** — `tests/pricing-parity.test.ts`, 121
+  profile combinations comparing root vs. Worker engine output byte-for-byte,
+  including the clearance-vs-cap regression profile.
+- **The three-way tier+coupon+clearance interaction**
+  (`cloudflare-worker/tests/compute-coupon-writes.test.ts:234-281`, `describe('three-way
+  interaction: active clearance sale + loyalty tier + coupon')`) — four cases:
+  a clearance deeper than the ceiling blocking the coupon outright (Rule 3
+  fires before tier is considered); a shallow clearance leaving room based on
+  `max(clearance, tier)`; locked tiers staying locked even during an active
+  clearance sale; and a per-product cap clamping both clearance and tier
+  *before* the coupon layer sees either value. This closes the gap the
+  technical template previously flagged as untested (§7/§8 there).
+- **The margin-safety test** — `compute-coupon-writes.test.ts:283-293`,
+  `'never grants coupon room beyond what the ceiling allows (shop margin
+  safety)'`: for every tier's computed write item, asserts
+  `1 − minPriceRatio ≤ productMaxDiscount + 1e-9`. This is the test that
+  would fail if `resolveEffectiveLimit()` ever drifted out of sync with the
+  price engine's cap lookup — the single invariant most directly protecting
+  the client's margin from a coupon stacking beyond an intended cap.
+
+## 4. Scaling This
+
+**More products.** The engine is O(products) per sync run with no per-product
+external calls beyond the batched Shoptet writes — the feed is streamed
+(`CsvParserStream`), not loaded fully into memory. The main scaling lever is
+`MIN_EXPECTED_PRODUCTS` (Stage 2 guard A) and `MAX_CHANGE_RATIO`'s
+denominator, both of which must be re-tuned per catalog size (§2 step 7) —
+an unmodified `MIN_EXPECTED_PRODUCTS = 5000` on a 2,000-product client either
+never lets a legitimate small catalog sync, or (worse) is silently too low to
+catch a real truncation. Stage 1's `assertNoCrossFileConflicts()` is O(n²)
+over the *number of policy files*, not products, so it doesn't degrade with
+catalog growth — the per-file product-code lists themselves are compared via
+`Set` lookups, O(products) per pair.
+
+**More clients.** Each client is a fully separate deploy: own Worker, own KV
+namespace, own GitHub Actions secrets/workflows, own copy of the policy JSON
+files (this repo's structure assumes one client per repo instance, per
+`ENGINE_TECHNICAL_TEMPLATE.md` §1). Stage 1 and Stage 3 both run per-deploy
+already — nothing changes there. Stage 2's thresholds are the one place that
+must be explicitly reset per client (§2 step 7); there is currently no
+mechanism to derive them automatically from catalog size, so this is a
+manual onboarding step that should be checklisted, not assumed.
+
+**More concurrent sync runs.** The existing conflict-handling strategy
+(`ENGINE_TECHNICAL_TEMPLATE.md` §5 — `git merge -X ours` with a
+`--ours`-forced fallback for `sync.yml`, `git pull --rebase --autostash` for
+`coupon-fields.yml`) already assumes overlapping runs are normal, not
+exceptional, and is designed to degrade safely (a "lost" state-file merge
+only widens the next incremental window). Scaling to more overlapping runs
+(e.g. a client with a higher webhook volume) doesn't require new
+architecture, but does raise the odds of Stage 2's Guard B tripping more
+often on legitimate rapid-fire changes — if a client's real business pattern
+regularly produces >30% simultaneous changes (e.g. a storewide flash sale
+toggling on/off), `MAX_CHANGE_RATIO` itself, not just `--force`, may need
+revisiting for that client, since routinely forcing past a safety fuse
+defeats its purpose.
+
+## 5. Worked Example: Adding a "Flash Sale" Policy File
+
+Suppose a new client needs a `flash-sale-products.json` file — like
+`clearance-sale-products.json`, but for short, non-clearance promotional
+windows that can independently overlap with an existing clearance sale or
+override. Where does validation for this new file go, at each stage?
+
+**Stage 1 (config.ts, static conflict check).** Add the new file's product
+codes as a fourth source to the `assertNoCrossFileConflicts()` call
+(`config.ts:103-107`):
+
+```ts
+assertNoCrossFileConflicts({
+    'zero-discount-products.json': zeroDiscountProducts as string[],
+    'clearance-sale-products.json': Object.keys(clearanceSaleProducts as Record<string, ClearanceEntry>),
+    'product-max-discount-overrides.json': Object.keys(productMaxDiscountOverrides as Record<string, number>),
+    'flash-sale-products.json': Object.keys(flashSaleProducts as Record<string, FlashSaleEntry>)
+});
+```
+
+This alone extends the existing `O(n²)` pairwise check to cover the new
+file automatically — no new logic needed, just adding it to the input map.
+If a product ends up in both `clearance-sale-products.json` and
+`flash-sale-products.json`, the module fails to load with a specific error
+naming both files and the code, exactly like the existing three-file case.
+
+**Stage 2 (sync script, dynamic/data-driven check).** If flash sales are
+meant to be short-lived and toggle frequently, that's exactly the kind of
+legitimate-but-large change Guard B (§3.2) is tuned to distinguish from a
+feed bug. Two choices: (a) leave `MAX_CHANGE_RATIO` as-is and require
+`--force` for the (presumably rare, deliberate) moment a flash sale goes
+live across a large slice of the catalog, treating it the same as any other
+large deliberate change; or (b) if flash sales are expected to be routine
+and large, add a dedicated ratio guard scoped to just the flash-sale subset
+(new local check inside `sync-coupon-fields-diff.ts`, alongside Guard A/B,
+before the live-write block at line 250) so an anomalous flash-sale-specific
+spike can be caught without raising the blanket 30% threshold for everything
+else. Either way, the check belongs at write-time, in the sync script — not
+in `config.ts`, because whether a given flash-sale change is "plausible" is
+a function of the live feed data volume, which Stage 1 (module load, no
+feed access) has no visibility into.
+
+**Stage 3 (vitest).** Add a new `describe` block in
+`compute-coupon-writes.test.ts` mirroring the existing three-way interaction
+tests (§4.3): flash sale + tier + coupon combinations (shallower than
+ceiling leaves room; deeper blocks outright; locked tiers stay locked during
+a flash sale), plus a variant of the margin-safety test confirming coupon
+room still never exceeds the effective cap when a flash-sale entry is the
+binding limit. If `flash-sale-products.json` is meant to merge into
+`PRODUCT_LIMITS` (`config.ts:109-115`) at a specific priority relative to
+clearance and overrides, add a `pricing-parity.test.ts` profile exercising
+that specific priority ordering — this is exactly the class of interaction
+that went undocumented before the clearance-vs-override gap was flagged in
+`ENGINE_TECHNICAL_TEMPLATE.md` §7, and a new merge source is the moment to
+close it explicitly rather than repeat it.
+
+**The general rule for extending this model**: a new *static policy file*
+gets a Stage 1 entry; a new *behavior that depends on live feed data volume
+or shape* gets a Stage 2 guard; a new *decision-logic rule or interaction*
+gets a Stage 3 test. Most new policy files need all three — skipping any one
+stage re-opens exactly the failure mode that stage exists to close.

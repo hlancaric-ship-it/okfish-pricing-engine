@@ -100,6 +100,14 @@ function git(args, cwd = REPO_ROOT) {
     });
 }
 
+// The app ships its own copy of .env (see package.json's build.files) so it
+// never needs a network round-trip for it -- but .env is deliberately NOT in
+// git (it holds MASTER_FEED_URL + the Shoptet API token), so a fresh
+// `git clone` into REPO_ROOT never brings one along. Used to mean manually
+// copying .env onto every new machine by hand; seeding it from the app's own
+// bundled copy the first time it's missing closes that gap.
+const BUNDLED_ENV_PATH = path.join(__dirname, '..', '.env');
+
 // Runs once per machine, on every app startup (cheap no-op after the first
 // run): used to be a separate 1_NASTAVENI_spustit_jednou.bat/.command Pavol
 // had to run by hand before ever opening the app -- moved in-app because he
@@ -107,20 +115,29 @@ function git(args, cwd = REPO_ROOT) {
 // tears the cmd window down before the "Hotovo" pause ever showed, making it
 // look broken. Now the app itself is the only thing Pavol ever has to run.
 async function ensureRepoCloned(log) {
-    if (fs.existsSync(REPO_ROOT)) return;
+    if (!fs.existsSync(REPO_ROOT)) {
+        try {
+            await git(['--version'], os.homedir());
+        } catch {
+            throw new Error(
+                'Git není nainstalovaný. Stáhni a nainstaluj ho z https://git-scm.com/download/win, ' +
+                'pak appku spusť znovu.'
+            );
+        }
 
-    try {
-        await git(['--version'], os.homedir());
-    } catch {
-        throw new Error(
-            'Git není nainstalovaný. Stáhni a nainstaluj ho z https://git-scm.com/download/win, ' +
-            'pak appku spusť znovu.'
-        );
+        log('Poprvé na tomto počítači — stahuji repozitář s pravidly (jednorázově)...');
+        await git(['clone', 'https://github.com/hlancaric-ship-it/okfish-pricing-engine.git', REPO_ROOT], os.homedir());
+        log('Repozitář stažen.');
     }
 
-    log('Poprvé na tomto počítači — stahuji repozitář s pravidly (jednorázově)...');
-    await git(['clone', 'https://github.com/hlancaric-ship-it/okfish-pricing-engine.git', REPO_ROOT], os.homedir());
-    log('Repozitář stažen.');
+    const envPath = path.join(REPO_ROOT, '.env');
+    if (!fs.existsSync(envPath)) {
+        if (!fs.existsSync(BUNDLED_ENV_PATH)) {
+            throw new Error(`Chybí .env a appka nemá vlastní kopii k nastavení (${envPath}).`);
+        }
+        log('Nastavuji .env (API klíč, adresa katalogu)...');
+        fs.copyFileSync(BUNDLED_ENV_PATH, envPath);
+    }
 }
 
 // Commits and pushes ONLY the one policy file the current save actually wrote

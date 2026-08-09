@@ -686,7 +686,8 @@ async function loadAvailabilitiesOnce() {
     const result = await window.api.getAvailabilities();
     const select = document.getElementById('availabilitySelect');
     if (!result.ok) {
-        select.innerHTML = `<option value="">Chyba: ${result.error}</option>`;
+        select.innerHTML = `<option value="">Chyba při načítání dostupností</option>`;
+        select.title = result.error;
         return;
     }
     availabilitiesLoaded = true;

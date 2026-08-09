@@ -451,6 +451,16 @@ document.querySelectorAll('.tab[data-tab="rules"]').forEach((tab) => {
 // ever showing the admin UI half-populated with "(neznámý produkt, katalog
 // ještě nenačten)" placeholders while a cold-start fetch is still in flight.
 async function startUpSequence() {
+    // First-ever launch on a machine (no ~/okfish-pricing-engine yet) clones it
+    // here instead of requiring a separate setup script to be run by hand first
+    // -- see policyManager.ensureRepoCloned. A missing git install is the only
+    // way this can fail, so surface that directly on the splash and stop instead
+    // of letting every step after it fail with a confusing "ENOENT" further down.
+    const repoResult = await window.api.ensureRepo();
+    if (!repoResult.ok) {
+        if (splashStatusEl) splashStatusEl.textContent = repoResult.error;
+        return;
+    }
     await ensureRulesLoaded();
     await renderDashboard();
     document.body.classList.remove('app-loading');

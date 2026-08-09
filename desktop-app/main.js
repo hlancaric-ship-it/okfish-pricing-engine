@@ -120,6 +120,16 @@ ipcMain.handle('load-catalog', async (event, forceRefresh) => {
     }
 });
 
+ipcMain.handle('ensure-repo', async () => {
+    try {
+        await policyManager.ensureRepoCloned(log);
+        return { ok: true };
+    } catch (e) {
+        log(`CHYBA: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
 ipcMain.handle('load-policies', async () => {
     try {
         return { ok: true, data: policyManager.loadAll() };

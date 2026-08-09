@@ -88,9 +88,9 @@ function saveCouponPolicy(couponPolicy) {
     writeJson(FILES.couponPolicy, couponPolicy);
 }
 
-function git(args) {
+function git(args, cwd = REPO_ROOT) {
     return new Promise((resolve, reject) => {
-        execFile('git', args, { cwd: REPO_ROOT }, (err, stdout, stderr) => {
+        execFile('git', args, { cwd }, (err, stdout, stderr) => {
             if (err) {
                 reject(new Error(stderr || stdout || err.message));
             } else {
@@ -98,6 +98,29 @@ function git(args) {
             }
         });
     });
+}
+
+// Runs once per machine, on every app startup (cheap no-op after the first
+// run): used to be a separate 1_NASTAVENI_spustit_jednou.bat/.command Pavol
+// had to run by hand before ever opening the app -- moved in-app because he
+// kept double-clicking it from inside the still-zipped folder, where Explorer
+// tears the cmd window down before the "Hotovo" pause ever showed, making it
+// look broken. Now the app itself is the only thing Pavol ever has to run.
+async function ensureRepoCloned(log) {
+    if (fs.existsSync(REPO_ROOT)) return;
+
+    try {
+        await git(['--version'], os.homedir());
+    } catch {
+        throw new Error(
+            'Git není nainstalovaný. Stáhni a nainstaluj ho z https://git-scm.com/download/win, ' +
+            'pak appku spusť znovu.'
+        );
+    }
+
+    log('Poprvé na tomto počítači — stahuji repozitář s pravidly (jednorázově)...');
+    await git(['clone', 'https://github.com/hlancaric-ship-it/okfish-pricing-engine.git', REPO_ROOT], os.homedir());
+    log('Repozitář stažen.');
 }
 
 // Commits and pushes ONLY the one policy file the current save actually wrote
@@ -168,5 +191,6 @@ module.exports = {
     saveClearance,
     saveCouponPolicy,
     exportRuleCsv,
-    commitAndPush
+    commitAndPush,
+    ensureRepoCloned
 };

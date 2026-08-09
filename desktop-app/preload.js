@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
     revealFile: (filePath) => ipcRenderer.invoke('reveal-file', filePath),
     processProducts: (inputPath, alsoSyncWorker) => ipcRenderer.invoke('process-products', inputPath, alsoSyncWorker),
     processCustomers: (inputPath, alsoSyncWorker) => ipcRenderer.invoke('process-customers', inputPath, alsoSyncWorker),
+    ensureRepo: () => ipcRenderer.invoke('ensure-repo'),
     loadCatalog: (forceRefresh) => ipcRenderer.invoke('load-catalog', forceRefresh),
     computeDashboard: (payload) => ipcRenderer.invoke('compute-dashboard', payload),
     loadPolicies: () => ipcRenderer.invoke('load-policies'),

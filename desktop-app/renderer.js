@@ -542,6 +542,29 @@ document.getElementById('add-productOverrides').addEventListener('click', () => 
     document.getElementById('new-productOverrides-value').value = '';
     renderProductOverridesTable();
 });
+// Bulk variant of the same "Podle produktu" add above -- for pasting a batch of
+// exact codes (e.g. 20 SKUs from one brand) instead of adding them one at a time.
+// Only exact catalog codes, no name matching (a free-text name could ambiguously
+// match across many rows once you're pasting a whole list, unlike the single-add
+// field where the datalist already resolved it before submit).
+document.getElementById('add-bulk-productOverrides').addEventListener('click', () => {
+    const raw = document.getElementById('bulk-productOverrides-keys').value;
+    const pct = validPercent(document.getElementById('bulk-productOverrides-value').value);
+    const codes = raw.split(/[\s,;]+/).map((c) => c.trim()).filter(Boolean);
+    if (!codes.length || pct === null) return alert('Vlož aspoň jeden kód a zadej platné procento (0–100).');
+
+    const notFound = codes.filter((c) => !productByCode.has(c));
+    const found = codes.filter((c) => productByCode.has(c));
+    found.forEach((code) => { policies.productOverrides[code] = pct; });
+    renderProductOverridesTable();
+
+    document.getElementById('bulk-productOverrides-keys').value = notFound.join('\n');
+    document.getElementById('bulk-productOverrides-value').value = '';
+    if (notFound.length) {
+        alert(`Přidáno ${found.length} z ${codes.length}. Tyto kódy nebyly v katalogu nalezeny (necháno v poli): ${notFound.join(', ')}`);
+    }
+});
+
 document.querySelector('#table-productOverrides tbody').addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-productOverrides')) {
         delete policies.productOverrides[e.target.dataset.key];

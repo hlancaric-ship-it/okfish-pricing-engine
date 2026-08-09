@@ -181,9 +181,10 @@
     .panel { display: none; padding: 36px 44px; }
     .panel.active { display: block; }
     .row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    input[type=text], input[type=date], select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-size: 0.92em; color: var(--ink); }
+    input[type=text], input[type=date], select, textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; font-size: 0.92em; color: var(--ink); }
     input[type=text] { flex: 1; }
-    input[type=text]:focus, input[type=date]:focus, select:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px var(--red-dim); }
+    textarea { flex: 1; resize: vertical; font-family: inherit; }
+    input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px var(--red-dim); }
     button {
         padding: 9px 18px; border: none; border-radius: 8px; background: var(--red); color: white;
         font-weight: 600; font-size: 0.85em; cursor: pointer; transition: filter 0.12s, transform 0.05s;
@@ -421,6 +422,12 @@
             <div class="field grow"><label>Produkt</label><input type="text" id="new-productOverrides-key" list="product-datalist" placeholder="Kód nebo název produktu…"></div>
             <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" class="pct-input" id="new-productOverrides-value" placeholder="%"></div>
             <button id="add-productOverrides">Přidat</button>
+        </div>
+        <p class="hint" style="margin:18px 0 6px;"><strong>Víc kódů najednou:</strong> vlož přesné kódy produktů (jeden na řádek, nebo oddělené čárkou/mezerou) — stejné % se nastaví všem. Názvy produktů tu nefungují, jen kódy.</p>
+        <div class="add-form" style="align-items:flex-start;">
+            <div class="field grow"><label>Kódy produktů</label><textarea id="bulk-productOverrides-keys" rows="3" placeholder="např.&#10;12345&#10;67890, 11223"></textarea></div>
+            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" class="pct-input" id="bulk-productOverrides-value" placeholder="%"></div>
+            <button id="add-bulk-productOverrides">Přidat všechny</button>
         </div>
         <div class="row" style="margin-top:16px;">
             <button id="save-productOverrides">Uložit a nahrát na produkci</button>

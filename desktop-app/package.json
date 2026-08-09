@@ -1,6 +1,6 @@
 {
   "name": "l-code-pricing-engine",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "L-Code Pricing Engine — desktop nástroj pro přepočet ceníků a přiřazení věrnostních tierů zákazníků",
   "author": "L-Code Dynamics",
@@ -8,12 +8,14 @@
   "scripts": {
     "start": "electron .",
     "build:mac": "electron-builder --mac",
-    "build:win": "electron-builder --win"
+    "build:win": "electron-builder --win",
+    "publish:win": "electron-builder --win --publish always"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "csv-parse": "^5.6.0",
-    "csv-stringify": "^6.5.2"
+    "csv-stringify": "^6.5.2",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "electron": "^28.3.3",
@@ -38,6 +40,15 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "hlancaric-ship-it",
+      "repo": "okfish-pricing-engine"
     }
   }
 }

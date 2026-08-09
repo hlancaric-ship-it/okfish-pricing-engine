@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "L-Code Pricing Engine — desktop nástroj pro přepočet ceníků a přiřazení věrnostních tierů zákazníků",
+  "author": "L-Code Dynamics",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -15,14 +16,28 @@
     "csv-stringify": "^6.5.2"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
+    "electron": "^28.3.3",
     "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.l-code-dynamics.pricing-engine",
     "productName": "L-Code Pricing Engine",
-    "files": ["main.js", "preload.js", "index.html", "renderer.js", "lib/**/*", "assets/**/*"],
-    "mac": { "target": "dmg", "category": "public.app-category.business" },
-    "win": { "target": "nsis" }
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "lib/**/*",
+      "assets/**/*",
+      ".env"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    }
   }
 }

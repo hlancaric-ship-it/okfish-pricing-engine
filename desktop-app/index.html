@@ -37,6 +37,26 @@
         position: relative; z-index: 1;
     }
     header img { height: 24px; width: 24px; }
+    /* Splash: shown in a small, fixed window on launch while the product
+       catalog + rules load. Once ready, main.js grows the window to its
+       normal working size and this gets hidden -- see renderer.js's
+       notifyAppReady() and main.js's 'app-ready' handler. */
+    #splashScreen {
+        position: fixed; inset: 0; z-index: 100; background: var(--ink);
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        -webkit-app-region: drag;
+    }
+    #splashScreen.hidden { display: none; }
+    #splashScreen img { width: 64px; height: 64px; }
+    #splashScreen .splash-title { color: white; font-weight: 600; font-size: 1.05em; letter-spacing: 0.02em; }
+    #splashScreen .splash-status { color: var(--muted); font-size: 0.86em; min-height: 1.2em; text-align: center; padding: 0 24px; }
+    #splashScreen .splash-spinner {
+        width: 26px; height: 26px; border-radius: 50%;
+        border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--red);
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    body.app-loading .app-body { display: none; }
     .app-body { display: flex; align-items: stretch; flex: 1; min-height: 0; position: relative; z-index: 1; }
     .sidebar { width: 240px; flex-shrink: 0; background: var(--ink); overflow-y: auto; padding: 12px 0; display: flex; flex-direction: column; }
     .sidebar-logo-wrap {
@@ -175,6 +195,13 @@
     button.secondary:hover:not(:disabled) { background: #F3F3F4; filter: none; }
     button:disabled { background: #E4E4E6; color: #AEAEB2; cursor: not-allowed; }
     label.checkbox { display: flex; align-items: center; gap: 7px; font-size: 0.88em; font-weight: 500; color: var(--text-soft); }
+    .tiers-grid { display: grid; grid-template-columns: repeat(3, minmax(90px, 1fr)); gap: 10px 18px; max-width: 480px; }
+    /* Numeric %/discount inputs only ever hold 1-3 digits -- letting them
+       inherit input[type=text]{flex:1} (see below) stretched them to fill
+       whatever wide flex/table-cell container they sat in, looking like an
+       oversized empty box around a tiny number. Fixed, compact width instead. */
+    input.pct-input { flex: none !important; width: 72px !important; text-align: center; }
+    table.rules-table input.pct-input { width: 100% !important; max-width: 90px; }
     .hint { color: var(--muted); font-size: 0.82em; margin: 4px 0 14px; line-height: 1.55; }
     #log-bar {
         flex-shrink: 0; background: var(--card); border-bottom: 1px solid var(--border);
@@ -242,7 +269,14 @@
     .autocomplete-suggestions div:hover { background: var(--red-dim); }
 </style>
 </head>
-<body>
+<body class="app-loading">
+<div id="splashScreen">
+    <img src="assets/logo-nav.svg" alt="L-Code logo">
+    <div class="splash-title">L-Code Pricing Engine</div>
+    <div class="splash-spinner"></div>
+    <div class="splash-status" id="splashStatus">Spouštím…</div>
+</div>
+
 <div class="bg-watermark"></div>
 
 <header><img src="assets/logo-nav.svg" alt="L-Code logo"> L-Code Pricing Engine</header>
@@ -261,6 +295,7 @@
     </div>
     <div class="tab" data-tab="customers">Zákazníci</div>
     <div class="tab" data-tab="importexport">Importy a exporty</div>
+    <div class="tab" data-tab="settings">Nastavení</div>
 
     <div class="sidebar-logo-wrap">
         <div class="logo-3d-stage">
@@ -337,14 +372,15 @@
 
     <div class="rules-section" id="section-brandLimits">
         <h3>Maximální sleva podle značky</h3>
-        <p class="hint">Platí pro všechny produkty dané značky, pokud nemají vlastní pravidlo (viz níže).</p>
+        <p class="hint"><strong>Co to dělá:</strong> nastaví strop slevy pro VŠECHNY produkty dané značky najednou — žádný zákazník (ani ten s nejvyšším věrnostním tierem) u nich nikdy nedostane víc, než tady nastavíš. Platí jen tehdy, když produkt nemá svoje vlastní pravidlo v sekci "Podle produktu" níže (to má vždy přednost).<br>
+        <strong>Co zadat:</strong> vyber značku z nabídky a napiš číslo bez znaku % (např. <code>15</code> pro strop 15 %).</p>
         <table class="rules-table" id="table-brandLimits">
             <thead><tr><th>Značka</th><th style="width:130px;">Max. sleva %</th><th class="col-remove"></th></tr></thead>
             <tbody></tbody>
         </table>
         <div class="add-form">
             <div class="field grow"><label>Značka</label><select id="new-brandLimits-key"><option value="">Vyber značku…</option></select></div>
-            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" id="new-brandLimits-value" placeholder="%"></div>
+            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" class="pct-input" id="new-brandLimits-value" placeholder="%"></div>
             <button id="add-brandLimits">Přidat</button>
         </div>
         <div class="row" style="margin-top:16px;">
@@ -355,14 +391,15 @@
 
     <div class="rules-section" id="section-categoryLimits">
         <h3>Maximální sleva podle kategorie</h3>
-        <p class="hint">Platí, pokud produkt nemá vlastní pravidlo podle produktu ani podle značky (značka má přednost před kategorií).</p>
+        <p class="hint"><strong>Co to dělá:</strong> stejné jako pravidlo podle značky, ale pro celou kategorii produktů (např. "Pruty"). Použije se, jen když produkt nemá vlastní pravidlo podle produktu ANI podle značky — pořadí důležitosti je vždy Produkt → Značka → Kategorie.<br>
+        <strong>Co zadat:</strong> vyber kategorii z nabídky a napiš číslo bez znaku % (např. <code>10</code> pro strop 10 %).</p>
         <table class="rules-table" id="table-categoryLimits">
             <thead><tr><th>Kategorie</th><th style="width:130px;">Max. sleva %</th><th class="col-remove"></th></tr></thead>
             <tbody></tbody>
         </table>
         <div class="add-form">
             <div class="field grow"><label>Kategorie</label><select id="new-categoryLimits-key"><option value="">Vyber kategorii…</option></select></div>
-            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" id="new-categoryLimits-value" placeholder="%"></div>
+            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" class="pct-input" id="new-categoryLimits-value" placeholder="%"></div>
             <button id="add-categoryLimits">Přidat</button>
         </div>
         <div class="row" style="margin-top:16px;">
@@ -373,7 +410,8 @@
 
     <div class="rules-section" id="section-productOverrides">
         <h3>Maximální sleva podle konkrétního produktu</h3>
-        <p class="hint">Přebíjí pravidlo podle značky pro daný kód produktu.</p>
+        <p class="hint"><strong>Co to dělá:</strong> nastaví strop slevy jen pro TENTO JEDEN produkt — má přednost přede vším ostatním (před pravidlem podle značky i kategorie). Použij, když jeden konkrétní produkt potřebuje výjimku z pravidla, co platí pro zbytek značky.<br>
+        <strong>Co zadat:</strong> začni psát kód nebo název produktu, vyber ho z nabídky, a napiš číslo bez znaku % (např. <code>5</code> pro strop 5 %).</p>
         <input type="text" class="table-filter" data-filter-table="table-productOverrides" placeholder="Zadej kód nebo název — zobrazí se, jestli má produkt pravidlo…" style="margin-bottom:14px;">
         <table class="rules-table" id="table-productOverrides">
             <thead><tr><th>Kód</th><th>Produkt</th><th style="width:130px;">Max. sleva %</th><th class="col-remove"></th></tr></thead>
@@ -381,7 +419,7 @@
         </table>
         <div class="add-form">
             <div class="field grow"><label>Produkt</label><input type="text" id="new-productOverrides-key" list="product-datalist" placeholder="Kód nebo název produktu…"></div>
-            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" id="new-productOverrides-value" placeholder="%"></div>
+            <div class="field" style="width:100px;"><label>Max. sleva %</label><input type="text" class="pct-input" id="new-productOverrides-value" placeholder="%"></div>
             <button id="add-productOverrides">Přidat</button>
         </div>
         <div class="row" style="margin-top:16px;">
@@ -392,7 +430,8 @@
 
     <div class="rules-section" id="section-zeroDiscount">
         <h3>Produkty bez slevy (0 %)</h3>
-        <p class="hint">Tyto produkty nikdy nedostanou žádnou slevu, bez ohledu na tier zákazníka.</p>
+        <p class="hint"><strong>Co to dělá:</strong> úplně vypne slevu na tomto produktu — dostane ji za plnou cenu úplně každý zákazník, i ten s nejvyšším věrnostním tierem. Použij pro produkty, kde už je marže minimální (např. akční zboží od dodavatele) a další sleva by byla ztrátová.<br>
+        <strong>Co zadat:</strong> začni psát kód nebo název produktu a vyber ho z nabídky — žádné číslo se nezadává, sleva je vždy 0 %.</p>
         <input type="text" class="table-filter" data-filter-table="table-zeroDiscount" placeholder="Zadej kód nebo název — zobrazí se, jestli má produkt pravidlo…" style="margin-bottom:14px;">
         <table class="rules-table" id="table-zeroDiscount">
             <thead><tr><th>Kód</th><th>Produkt</th><th class="col-remove"></th></tr></thead>
@@ -410,7 +449,8 @@
 
     <div class="rules-section" id="section-clearance">
         <h3>Výprodej / clearance</h3>
-        <p class="hint">Fixní % sleva pro produkty ve výprodeji. Platnost od/do je volitelná — prázdné pole znamená bez omezení.</p>
+        <p class="hint"><strong>Co to dělá:</strong> nastaví pevnou výprodejovou slevu, která platí pro každého zákazníka stejně — i pro toho, co by jinak měl nárok na hlubší věrnostní slevu. Tím se zaručí, že se výprodejová cena nepřebije (ani nesečte) s věrnostním tierem, vždy vyhraje ta výhodnější, přesně stanovená cena.<br>
+        <strong>Co zadat:</strong> vyber produkt, napiš slevu v % (např. <code>22</code>), a volitelně datum "Platí od" / "Platí do" — necháš-li pole prázdné, výprodej platí bez časového omezení, dokud ho ručně nezrušíš.</p>
         <input type="text" class="table-filter" data-filter-table="table-clearance" placeholder="Zadej kód nebo název — zobrazí se, jestli má produkt pravidlo…" style="margin-bottom:14px;">
         <table class="rules-table" id="table-clearance">
             <thead><tr><th>Kód</th><th>Produkt</th><th style="width:90px;">Sleva %</th><th style="width:140px;">Platí od</th><th style="width:140px;">Platí do</th><th class="col-remove"></th></tr></thead>
@@ -418,7 +458,7 @@
         </table>
         <div class="add-form">
             <div class="field grow"><label>Produkt</label><input type="text" id="new-clearance-key" list="product-datalist" placeholder="Kód nebo název produktu…"></div>
-            <div class="field" style="width:90px;"><label>Sleva %</label><input type="text" id="new-clearance-value" placeholder="%"></div>
+            <div class="field" style="width:90px;"><label>Sleva %</label><input type="text" class="pct-input" id="new-clearance-value" placeholder="%"></div>
             <div class="field"><label>Platí od</label><input type="date" id="new-clearance-validFrom"></div>
             <div class="field"><label>Platí do</label><input type="date" id="new-clearance-validTo"></div>
             <button id="add-clearance">Přidat</button>
@@ -431,17 +471,18 @@
 
     <div class="rules-section" id="section-couponPolicy">
         <h3>Kupóny</h3>
-        <p class="hint">Řídí slevový kupón v košíku (checkbox "Slevový kupón" na produktu v Shoptetu) — platí i pro nepřihlášené (GUEST).</p>
+        <p class="hint"><strong>Co to dělá:</strong> řídí, kolik ještě smí ukrojit slevový kupón zadaný v košíku NAD RÁMEC slevy, kterou zákazník už má (věrnostní tier, výprodej). Engine si sám spočítá, jestli je na kupón ještě "místo" — pokud zákazník už má slevu vyšší nebo rovnou tomuto stropu, kupón mu nic dalšího nedá.</p>
 
         <div class="field" style="max-width:220px; margin-bottom:18px;">
             <label>Výchozí maximální sleva pro kupón (%)</label>
-            <input type="text" id="coupon-defaultMaxDiscount">
+            <input type="text" class="pct-input" id="coupon-defaultMaxDiscount">
         </div>
+        <p class="hint" style="margin-top:-10px; margin-bottom:18px;">Číslo bez %, např. <code>20</code> — to je celkový strop, do kterého se počítá jak sleva zákazníka, tak kupón dohromady.</p>
 
-        <p class="hint" style="margin-bottom:6px;">Tiery, které nikdy kupón nedostanou:</p>
-        <div class="row" id="coupon-lockedTiers-row" style="margin-bottom:22px;"></div>
+        <p class="hint" style="margin-bottom:6px;"><strong>Tiery, které nikdy kupón nedostanou</strong> (odškrtnuté = kupón u nich nefunguje, i kdyby ho zákazník zadal — typicky nejvyšší věrnostní tiery, co už mají tak hlubokou slevu, že kupón navrch by byl ztrátový):</p>
+        <div class="tiers-grid" id="coupon-lockedTiers-row" style="margin-bottom:22px;"></div>
 
-        <p class="hint" style="margin-bottom:6px;">Značky s úplně vypnutým kupónem (platnost od/do volitelná):</p>
+        <p class="hint" style="margin-bottom:6px;"><strong>Značky s úplně vypnutým kupónem</strong> — u těchto značek kupón nefunguje vůbec, bez ohledu na strop výše (platnost od/do volitelná, prázdné = bez omezení):</p>
         <table class="rules-table" id="table-coupon-disabledBrands">
             <thead><tr><th>Značka</th><th style="width:140px;">Od</th><th style="width:140px;">Do</th><th class="col-remove"></th></tr></thead>
             <tbody></tbody>
@@ -525,7 +566,24 @@
         <div class="result" id="result-export"></div>
     </div>
 </div>
+
+<div class="panel" id="panel-settings">
+    <div class="rules-section">
+        <h3>Přístup do Shoptetu (API klíč)</h3>
+        <p class="hint"><strong>Co to dělá:</strong> tenhle klíč appce dovoluje číst a měnit ceny/zákazníky přímo v Shoptetu — bez něj appka nemůže nic ukládat na produkci. Klíč se bezpečně uloží jen na tenhle počítač, nikdy se neposílá nikam jinam.<br>
+        <strong>Co zadat:</strong> API klíč z administrace Shoptetu (Nastavení e-shopu → API klíče → "Privátní API"). Pokud ho nemáš, vygeneruje ho L-Code Dynamics a pošle ti ho.</p>
+        <div class="field grow" style="max-width:520px;">
+            <label>Shoptet Privátní API klíč</label>
+            <input type="password" id="settings-apiKey" placeholder="Zadej API klíč…" autocomplete="off">
+        </div>
+        <div class="row" style="margin-top:14px;">
+            <button id="toggle-apiKey-visibility" class="secondary">Zobrazit/skrýt</button>
+            <button id="save-settings">Uložit</button>
+        </div>
+        <div class="result" id="result-settings"></div>
+    </div>
 </div>
+
 </div>
 </div>
 

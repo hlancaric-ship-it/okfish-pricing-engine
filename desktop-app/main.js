@@ -9,21 +9,53 @@ const policyManager = require('./lib/policyManager');
 const { fetchCatalog } = require('./lib/catalogFetcher');
 const shoptetApi = require('./lib/shoptetApi');
 const { computeDashboard } = require('./lib/dashboardCalculator');
+const settingsManager = require('./lib/settingsManager');
 
 let mainWindow;
 
 function createWindow() {
+    // Guard against the macOS 'activate' race: launched via `electron .` (not a
+    // packaged .app), 'activate' can fire before whenReady()'s createWindow()
+    // finishes, and BrowserWindow.getAllWindows() can still read as empty at that
+    // moment -- opening a second window, each running its own copy of
+    // renderer.js's startup catalog fetch (confirmed live: duplicate "Stahuji
+    // aktuální katalog produktů" log lines on every launch). Tracking mainWindow
+    // directly, set synchronously before the BrowserWindow constructor's async
+    // work even starts, closes that window.
+    if (mainWindow) return;
+    // Starts small (splash size) and not resizable -- grown to the real working
+    // size only once the renderer signals 'app-ready' (catalog + rules loaded),
+    // see the ipcMain.on('app-ready', ...) handler below. Avoids ever showing
+    // the full admin layout half-populated while data is still loading.
     mainWindow = new BrowserWindow({
-        width: 900,
-        height: 700,
+        width: 420,
+        height: 480,
+        resizable: false,
+        center: true,
+        // No fullscreen/green-button-maximize -- this is a fixed-layout admin
+        // tool, not a document window meant to fill the whole screen.
+        fullscreenable: false,
+        maximizable: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
+    mainWindow.on('closed', () => { mainWindow = null; });
     mainWindow.loadFile('index.html');
 }
+
+const WORKING_SIZE = { width: 900, height: 700, maxWidth: 1100, maxHeight: 820, minWidth: 760, minHeight: 560 };
+
+ipcMain.on('app-ready', () => {
+    if (!mainWindow) return;
+    mainWindow.setMinimumSize(WORKING_SIZE.minWidth, WORKING_SIZE.minHeight);
+    mainWindow.setMaximumSize(WORKING_SIZE.maxWidth, WORKING_SIZE.maxHeight);
+    mainWindow.setResizable(true);
+    mainWindow.setSize(WORKING_SIZE.width, WORKING_SIZE.height, true);
+    mainWindow.center();
+});
 
 app.whenReady().then(createWindow);
 
@@ -32,7 +64,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (!mainWindow) createWindow();
 });
 
 function log(msg) {
@@ -78,9 +110,9 @@ ipcMain.handle('compute-dashboard', async (event, { catalog, policies }) => {
     }
 });
 
-ipcMain.handle('load-catalog', async () => {
+ipcMain.handle('load-catalog', async (event, forceRefresh) => {
     try {
-        const data = await fetchCatalog(log);
+        const data = await fetchCatalog(log, !!forceRefresh);
         return { ok: true, data };
     } catch (e) {
         log(`CHYBA při načítání katalogu: ${e.message}`);
@@ -108,7 +140,7 @@ ipcMain.handle('save-policies', async (event, { section, data, commitMessage }) 
         else if (section === 'couponPolicy') policyManager.saveCouponPolicy(data);
         else throw new Error(`Neznámá sekce pravidel: ${section}`);
 
-        const result = await policyManager.commitAndPush(commitMessage, log);
+        const result = await policyManager.commitAndPush(section, commitMessage, log);
         return { ok: true, pushed: result.pushed };
     } catch (e) {
         log(`CHYBA při ukládání pravidel: ${e.message}`);
@@ -210,6 +242,25 @@ ipcMain.handle('process-customers', async (event, inputPath, alsoSyncWorker) => 
         return { ok: true, outputPath, ...result };
     } catch (e) {
         log(`CHYBA: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('load-settings', async () => {
+    try {
+        return { ok: true, data: settingsManager.getApiKeyStatus() };
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+});
+
+ipcMain.handle('save-settings', async (event, { apiKey }) => {
+    try {
+        settingsManager.setApiKey(apiKey);
+        log('API klíč byl uložen.');
+        return { ok: true };
+    } catch (e) {
+        log(`CHYBA při ukládání API klíče: ${e.message}`);
         return { ok: false, error: e.message };
     }
 });

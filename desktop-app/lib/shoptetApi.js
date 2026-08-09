@@ -13,7 +13,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const REPO_ROOT = path.join(__dirname, '..', '..');
+const os = require('os');
+// Packaged app can't resolve a repo-relative path (there is no repo inside
+// the .app bundle) -- Pavol needs an actual git clone on disk for both
+// reading policy JSON and git commit/push to work, so this points at a
+// fixed clone location instead. See README_PAVOL.txt for the one-time
+// git clone setup.
+const REPO_ROOT = path.join(os.homedir(), 'okfish-pricing-engine');
 const BASE_URL = 'https://api.myshoptet.com/api';
 
 // Same tier -> pricelist ID mapping as cloudflare-worker/src/coupon/tier-pricelist-map.ts,

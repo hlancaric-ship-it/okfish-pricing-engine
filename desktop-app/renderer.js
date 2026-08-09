@@ -3,8 +3,13 @@
 // Compact single-line status strip -- shows only the latest message, right-aligned
 // next to the "AKTIVITA" label, instead of a scrolling history block.
 const logEl = document.getElementById('log');
+const splashStatusEl = document.getElementById('splashStatus');
 window.api.onLog((line) => {
     logEl.textContent = line;
+    // Same log stream doubles as the splash screen's live status text while
+    // the window is still small/pre-ready (see startUpSequence below) -- once
+    // splashScreen is hidden this element no longer exists to update.
+    if (splashStatusEl) splashStatusEl.textContent = line.replace(/^\[\d{1,2}:\d{2}:\d{2}\]\s*/, '');
 });
 
 // Sidebar logo intro: draw segment 1, then segment 2, then flash, then hand off to
@@ -107,6 +112,14 @@ document.getElementById('pickCustomerFile').addEventListener('click', async () =
 let policies = null; // { brandLimits, categoryLimits, productOverrides, zeroDiscount: [...], clearance }
 let catalog = { brands: [], products: [] };
 let productByCode = new Map();
+// In-flight fetch, shared by every call site that needs the catalog loaded --
+// on startup, renderDashboard() and ensureRulesLoaded() both used to check
+// "is catalog empty?" and each independently kick off window.api.loadCatalog(),
+// firing the master-feed fetch twice concurrently (confirmed live: duplicate
+// "Stahuji aktuální katalog produktů" log lines on every launch). Memoizing the
+// promise here means every caller awaits the SAME in-flight fetch instead of
+// starting a new one.
+let catalogLoadPromise = null;
 
 function productLabel(code) {
     const p = productByCode.get(code);
@@ -129,7 +142,7 @@ function renderBrandLimitsTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${brand}</td>
-            <td><input type="text" data-key="${brand}" class="edit-brandLimits" value="${Math.round(ratio * 100)}"></td>
+            <td><input type="text" data-key="${brand}" class="edit-brandLimits pct-input" value="${Math.round(ratio * 100)}"></td>
             <td class="col-remove"><button data-key="${brand}" class="remove-brandLimits">✕</button></td>`;
         tbody.appendChild(tr);
     });
@@ -152,7 +165,7 @@ function renderCategoryLimitsTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${cat}</td>
-            <td><input type="text" data-key="${cat}" class="edit-categoryLimits" value="${Math.round(ratio * 100)}"></td>
+            <td><input type="text" data-key="${cat}" class="edit-categoryLimits pct-input" value="${Math.round(ratio * 100)}"></td>
             <td class="col-remove"><button data-key="${cat}" class="remove-categoryLimits">✕</button></td>`;
         tbody.appendChild(tr);
     });
@@ -175,7 +188,7 @@ function renderProductOverridesTable() {
         tr.innerHTML = `
             <td>${code}</td>
             <td>${productLabel(code)}</td>
-            <td><input type="text" data-key="${code}" class="edit-productOverrides" value="${pct}"></td>
+            <td><input type="text" data-key="${code}" class="edit-productOverrides pct-input" value="${pct}"></td>
             <td class="col-remove"><button data-key="${code}" class="remove-productOverrides">✕</button></td>`;
         tbody.appendChild(tr);
     });
@@ -218,7 +231,7 @@ function renderClearanceTable() {
         tr.innerHTML = `
             <td>${code}</td>
             <td>${productLabel(code)}</td>
-            <td><input type="text" data-key="${code}" class="edit-clearance-pct" value="${clearancePct(entry)}"></td>
+            <td><input type="text" data-key="${code}" class="edit-clearance-pct pct-input" value="${clearancePct(entry)}"></td>
             <td><input type="date" data-key="${code}" class="edit-clearance-from" value="${validFrom}"></td>
             <td><input type="date" data-key="${code}" class="edit-clearance-to" value="${validTo}"></td>
             <td class="col-remove"><button data-key="${code}" class="remove-clearance">✕</button></td>`;
@@ -335,33 +348,56 @@ async function loadPoliciesAndRender() {
     renderAllRuleTables();
 }
 
+// Forces a fresh fetch regardless of whether the catalog is already loaded --
+// used by the explicit "refresh" button. Also drives the shared memoized
+// loader below, so a manual refresh mid-flight replaces any in-flight startup
+// fetch instead of racing it.
+// forceRefresh=true bypasses BOTH the in-memory `catalog` state AND main
+// process's 10-minute on-disk cache (catalogFetcher.js) -- only the manual
+// "Obnovit" button should ever pass true. Startup code must pass false (the
+// default) so it uses the disk cache when available, instead of re-downloading
+// the ~58MB feed on every launch/tab-switch.
+async function loadCatalogFresh(forceRefresh = false) {
+    const promise = window.api.loadCatalog(forceRefresh).then((result) => {
+        if (!result.ok) throw new Error(result.error);
+        catalog = result.data;
+        productByCode = new Map(catalog.products.map((p) => [p.code, p]));
+        renderProductDatalist();
+        return catalog;
+    });
+    catalogLoadPromise = promise;
+    try {
+        return await promise;
+    } finally {
+        if (catalogLoadPromise === promise) catalogLoadPromise = null;
+    }
+}
+
+// Loads the catalog only if it isn't already loaded (or already loading) --
+// this is what startup code should call, never window.api.loadCatalog() directly.
+async function ensureCatalogLoaded() {
+    if (catalog.products.length > 0) return catalog;
+    if (catalogLoadPromise) return catalogLoadPromise;
+    return loadCatalogFresh(false);
+}
+
 document.getElementById('refreshCatalog').addEventListener('click', async () => {
     const statusEl = document.getElementById('catalogStatus');
     statusEl.textContent = 'Načítám…';
-    const result = await window.api.loadCatalog();
-    if (!result.ok) {
-        statusEl.textContent = `Chyba: ${result.error}`;
-        return;
+    try {
+        await loadCatalogFresh(true);
+        statusEl.textContent = `${catalog.brands.length} značek, ${catalog.products.length} produktů (načteno ${new Date().toLocaleTimeString('sk-SK')})`;
+        if (policies) renderAllRuleTables();
+    } catch (e) {
+        statusEl.textContent = `Chyba: ${e.message}`;
     }
-    catalog = result.data;
-    productByCode = new Map(catalog.products.map((p) => [p.code, p]));
-    statusEl.textContent = `${catalog.brands.length} značek, ${catalog.products.length} produktů (načteno ${new Date().toLocaleTimeString('sk-SK')})`;
-    renderProductDatalist();
-    if (policies) renderAllRuleTables();
 });
 
 async function renderDashboard() {
     const statusEl = document.getElementById('dashboardStatus');
     statusEl.textContent = 'Počítám…';
     if (!policies) await loadPoliciesAndRender();
-    if (catalog.products.length === 0) {
-        const catResult = await window.api.loadCatalog();
-        if (catResult.ok) {
-            catalog = catResult.data;
-            productByCode = new Map(catalog.products.map((p) => [p.code, p]));
-            renderProductDatalist();
-        }
-    }
+    await ensureCatalogLoaded();
 
     const result = await window.api.computeDashboard({ catalog, policies });
     if (!result.ok) {
@@ -400,17 +436,28 @@ async function renderDashboard() {
         <tr><td>Kategorie s vlastním stropem</td><td>${d.breakdown.categoryLimits}</td></tr>`;
 }
 document.getElementById('refreshDashboard').addEventListener('click', renderDashboard);
-renderDashboard();
 
-function ensureRulesLoaded() {
-    if (!policies) loadPoliciesAndRender();
-    if (catalog.products.length === 0) document.getElementById('refreshCatalog').click();
+async function ensureRulesLoaded() {
+    if (!policies) await loadPoliciesAndRender();
+    await ensureCatalogLoaded();
 }
 document.querySelectorAll('.tab[data-tab="rules"]').forEach((tab) => {
     tab.addEventListener('click', ensureRulesLoaded, { once: true });
 });
-// Pravidla is the landing tab, so load it immediately instead of waiting for a click.
-ensureRulesLoaded();
+
+// Runs once on launch, while the small splash window is showing: loads
+// policies + the (possibly cached) product catalog BEFORE any tab content is
+// revealed, then tells main.js to grow the window to its working size. Avoids
+// ever showing the admin UI half-populated with "(neznámý produkt, katalog
+// ještě nenačten)" placeholders while a cold-start fetch is still in flight.
+async function startUpSequence() {
+    await ensureRulesLoaded();
+    await renderDashboard();
+    document.body.classList.remove('app-loading');
+    document.getElementById('splashScreen')?.classList.add('hidden');
+    window.api.notifyAppReady();
+}
+startUpSequence();
 
 // Live filter for the product-code rule tables (data-filter-table="table-X") -- lets
 // Pavol type a code/name and immediately see whether that product already has a rule,
@@ -817,4 +864,58 @@ document.getElementById('runCustomers').addEventListener('click', async () => {
         resultEl.className = 'result error';
         resultEl.textContent = `Chyba: ${result.error}`;
     }
+});
+
+// --- Nastavení (API klíč) ---------------------------------------------------
+async function loadSettingsAndRender() {
+    const result = await window.api.loadSettings();
+    const input = document.getElementById('settings-apiKey');
+    if (result.ok && result.data.isSet) {
+        input.value = result.data.masked;
+        input.dataset.masked = 'true';
+    } else {
+        input.value = '';
+        input.dataset.masked = 'false';
+    }
+}
+document.querySelectorAll('.tab[data-tab="settings"]').forEach((tab) => {
+    tab.addEventListener('click', loadSettingsAndRender, { once: true });
+});
+
+document.getElementById('toggle-apiKey-visibility').addEventListener('click', () => {
+    const input = document.getElementById('settings-apiKey');
+    input.type = input.type === 'password' ? 'text' : 'password';
+});
+
+document.getElementById('save-settings').addEventListener('click', async () => {
+    const input = document.getElementById('settings-apiKey');
+    const resultEl = document.getElementById('result-settings');
+    // The field shows a masked placeholder (••••1234) when a key is already
+    // saved -- if the user didn't actually change it, re-saving that masked
+    // string would overwrite the real key with garbage. Only save when the
+    // field holds something other than the untouched mask.
+    if (input.dataset.masked === 'true') {
+        resultEl.className = 'result error';
+        resultEl.textContent = 'Klíč je už nastavený (skrytý). Klikni na "Zobrazit/skrýt" a přepiš ho, jen pokud ho chceš změnit.';
+        return;
+    }
+    if (!input.value.trim()) {
+        resultEl.className = 'result error';
+        resultEl.textContent = 'Zadej API klíč.';
+        return;
+    }
+    const result = await window.api.saveSettings({ apiKey: input.value.trim() });
+    if (result.ok) {
+        resultEl.className = 'result ok';
+        resultEl.textContent = 'API klíč byl uložen.';
+        await loadSettingsAndRender();
+    } else {
+        resultEl.className = 'result error';
+        resultEl.textContent = `Chyba: ${result.error}`;
+    }
+});
+// Typing into the field after a masked value was loaded means the user is
+// intentionally replacing it -- clear the "masked" guard so Save works.
+document.getElementById('settings-apiKey').addEventListener('input', (e) => {
+    e.target.dataset.masked = 'false';
 });

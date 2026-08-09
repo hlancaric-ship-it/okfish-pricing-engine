@@ -6,10 +6,12 @@ const os = require('os');
 const { execFile } = require('child_process');
 const { stringify } = require('csv-stringify/sync');
 
-// desktop-app/ lives one level inside the repo root -- policies live at
-// <repo-root>/src/config/policies/*.json, the exact same files the engine and
-// the Worker both import directly (see cloudflare-worker/src/engine/config.ts).
-const REPO_ROOT = path.join(__dirname, '..', '..');
+// Packaged app can't resolve a repo-relative path (there is no repo inside
+// the .app bundle) -- Pavol needs an actual git clone on disk for both
+// reading policy JSON and git commit/push to work, so this points at a
+// fixed clone location instead. See README_PAVOL.txt for the one-time
+// git clone setup.
+const REPO_ROOT = path.join(os.homedir(), 'okfish-pricing-engine');
 const POLICIES_DIR = path.join(REPO_ROOT, 'src', 'config', 'policies');
 
 const FILES = {
@@ -18,6 +20,20 @@ const FILES = {
     zeroDiscount: path.join(POLICIES_DIR, 'zero-discount-products.json'),
     clearance: path.join(POLICIES_DIR, 'clearance-sale-products.json'),
     couponPolicy: path.join(POLICIES_DIR, 'coupon-policy.json')
+};
+
+// Maps the UI "section" name (what actually got written to disk this save) to
+// the one FILES key it touches -- brandLimits/categoryLimits both live inside
+// policy-v1.json, everything else is 1:1. Used by commitAndPush so a save only
+// ever stages/commits the file it just wrote, never the other policy files --
+// see commitAndPush's own comment for why that matters.
+const SECTION_TO_FILE_KEY = {
+    brandLimits: 'policy',
+    categoryLimits: 'policy',
+    productOverrides: 'productOverrides',
+    zeroDiscount: 'zeroDiscount',
+    clearance: 'clearance',
+    couponPolicy: 'couponPolicy'
 };
 
 const ALL_TIERS = ['ZR4', 'ZR6', 'ZR8', 'ZR10', 'ZR12', 'ZR14', 'ZR16', 'ZR18', 'ZR20', 'ZR25'];
@@ -84,18 +100,28 @@ function git(args) {
     });
 }
 
-// Commits every changed policy file and pushes to origin/main -- the same
-// hourly sync.yml GitHub Action that already runs picks the new rules up on
-// its next scheduled/dispatched run, no separate deploy step needed.
-async function commitAndPush(message, log) {
+// Commits and pushes ONLY the one policy file the current save actually wrote
+// (via `section` -> SECTION_TO_FILE_KEY), never the other policy files. This
+// used to `git add`/commit every FILES entry regardless of section, which meant
+// a stray uncommitted change sitting in some OTHER policy file (e.g. left
+// behind by an earlier save whose push failed) would get silently swept up and
+// pushed under a commit message that only described the section the user
+// actually meant to save -- the same class of "nobody knows why this changed"
+// problem the repo cleanup was about. Same hourly sync.yml GitHub Action that
+// already runs picks the new rules up on its next scheduled/dispatched run, no
+// separate deploy step needed.
+async function commitAndPush(section, message, log) {
+    const fileKey = SECTION_TO_FILE_KEY[section];
+    if (!fileKey) throw new Error(`Neznámá sekce pravidel: ${section}`);
+    const relFile = path.relative(REPO_ROOT, FILES[fileKey]);
+
     log('Kontroluji, zda je repozitář aktuální (git pull)...');
     await git(['pull', '--ff-only']);
 
-    const relFiles = Object.values(FILES).map((f) => path.relative(REPO_ROOT, f));
-    log(`Ukládám změny do gitu: ${relFiles.join(', ')}`);
-    await git(['add', ...relFiles]);
+    log(`Ukládám změnu do gitu: ${relFile}`);
+    await git(['add', relFile]);
 
-    const status = await git(['status', '--porcelain', ...relFiles]);
+    const status = await git(['status', '--porcelain', relFile]);
     if (!status.trim()) {
         log('Žádná změna oproti poslední verzi, není co commitovat.');
         return { pushed: false };

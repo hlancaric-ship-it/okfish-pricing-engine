@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('api', {
     revealFile: (filePath) => ipcRenderer.invoke('reveal-file', filePath),
     processProducts: (inputPath, alsoSyncWorker) => ipcRenderer.invoke('process-products', inputPath, alsoSyncWorker),
     processCustomers: (inputPath, alsoSyncWorker) => ipcRenderer.invoke('process-customers', inputPath, alsoSyncWorker),
-    loadCatalog: () => ipcRenderer.invoke('load-catalog'),
+    loadCatalog: (forceRefresh) => ipcRenderer.invoke('load-catalog', forceRefresh),
     computeDashboard: (payload) => ipcRenderer.invoke('compute-dashboard', payload),
     loadPolicies: () => ipcRenderer.invoke('load-policies'),
     savePolicies: (payload) => ipcRenderer.invoke('save-policies', payload),
@@ -18,5 +18,8 @@ contextBridge.exposeInMainWorld('api', {
     setProductAvailability: (payload) => ipcRenderer.invoke('set-product-availability', payload),
     findCustomers: (email) => ipcRenderer.invoke('find-customers', email),
     setCustomerTier: (payload) => ipcRenderer.invoke('set-customer-tier', payload),
-    onLog: (callback) => ipcRenderer.on('log', (event, line) => callback(line))
+    loadSettings: () => ipcRenderer.invoke('load-settings'),
+    saveSettings: (payload) => ipcRenderer.invoke('save-settings', payload),
+    onLog: (callback) => ipcRenderer.on('log', (event, line) => callback(line)),
+    notifyAppReady: () => ipcRenderer.send('app-ready')
 });

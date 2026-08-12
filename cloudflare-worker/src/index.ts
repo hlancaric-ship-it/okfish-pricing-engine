@@ -426,6 +426,47 @@ export default {
             return jsonResponse({ ok: true, version: body.version, oldVersion });
         }
 
+        // === GET /v1/price-cache/:pricelistId ===
+        // Perzistentní náhrada za `.price_cache.json` (viz sync-orchestrator.ts) --
+        // ten soubor žil jen na disku GitHub Actions runneru a mezi jednotlivými
+        // běhy se NIKDY nezachoval (žádný actions/cache krok, žádný commit do
+        // repa), takže diff logika v orchestrátoru byla naživo neúčinná -- oldPrice
+        // byla vždy null, takže se do Shoptet ceníku posílal PATCH pro úplně
+        // všechny produkty při každém běhu, bez ohledu na to, jestli se cena
+        // reálně změnila. Jeden KV klíč na ceník (ne na produkt jako u
+        // product-discount cache) -- ceníky mají přirozeně malý, stabilní počet
+        // (řádově desítky), takže čtení/zápis celé mapy najednou je levnější než
+        // řešit diff po jednotlivých produktech přes GET-před-PUT jako u KV
+        // produktové cache.
+        if (path.startsWith('/v1/price-cache/') && request.method === 'GET') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const pricelistId = path.substring('/v1/price-cache/'.length);
+            if (!pricelistId) return jsonResponse({ error: 'Chybí pricelistId' }, 400);
+            const raw = await env.VIP_KV.get(`pricecache:${pricelistId}`);
+            const prices = raw ? JSON.parse(raw) : {};
+            return jsonResponse({ pricelistId, prices });
+        }
+
+        // === POST /v1/price-cache/:pricelistId ===
+        // Body: { updates: { [productCode]: price } } -- read-modify-write jednoho
+        // KV klíče. Volající (RemotePriceCache) sem posílá jen produkty, u kterých
+        // se cena reálně změnila oproti tomu, co GET výše vrátil.
+        if (path.startsWith('/v1/price-cache/') && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const pricelistId = path.substring('/v1/price-cache/'.length);
+            if (!pricelistId) return jsonResponse({ error: 'Chybí pricelistId' }, 400);
+            const body = await request.json() as { updates: Record<string, string> };
+            if (!body?.updates || typeof body.updates !== 'object') {
+                return jsonResponse({ error: 'Invalid payload' }, 400);
+            }
+            const key = `pricecache:${pricelistId}`;
+            const raw = await env.VIP_KV.get(key);
+            const prices = raw ? JSON.parse(raw) : {};
+            Object.assign(prices, body.updates);
+            await env.VIP_KV.put(key, JSON.stringify(prices));
+            return jsonResponse({ ok: true, pricelistId, updated: Object.keys(body.updates).length, total: Object.keys(prices).length });
+        }
+
         // === GET /v1/product-discount/:code/:tier ===
         // Public. Returns the REAL, product-specific discount for one tier (e.g. ZR4),
         // computed by the same engine that writes the live pricelist — so unlike the old

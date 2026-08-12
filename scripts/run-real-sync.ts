@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { SyncOrchestrator } from '../cloudflare-worker/src/shoptet-api/sync-orchestrator.ts';
-import { FileCacheProvider } from '../cloudflare-worker/src/shoptet-api/cache-provider.ts';
 import { RemoteCustomerCache, FileCustomerCache } from '../cloudflare-worker/src/shoptet-api/customer-cache.ts';
+import { RemotePriceCache } from '../cloudflare-worker/src/shoptet-api/remote-price-cache.ts';
 import { GlobalStats } from '../cloudflare-worker/src/shoptet-api/client.ts';
 import * as path from 'path';
 
@@ -70,19 +70,23 @@ async function run() {
         process.exit(1);
     }
 
-    // Inicializujeme cache - používáme souborovou, aby to fungovalo lokálně
-    const cacheProvider = new FileCacheProvider(path.resolve(process.cwd(), '.price_cache.json'));
-
     console.log("=== STARTING FULL / INCREMENTAL SYNC ===");
 
     // CF_WORKER_URL/TOKEN musí být vždy nastavené v ostrém běhu (dryRun: false).
     // Bez nich by se zákaznické tier-změny zapsaly jen do lokálního souboru a Worker
     // by o nich nikdy nevěděl -- přesně tohle se stalo 2026-08-06 (7 zákazníků, viz
     // .customers_cache.json verze customers_2026-08-06_0056, nikdy neodeslaná).
+    // Stejný důvod, proč cenová cache (cacheProvider) používá od 2026-08-12
+    // RemotePriceCache místo FileCacheProvider -- soubor na disku GitHub Actions
+    // runneru se mezi běhy nikdy nezachoval, takže diff proti Shoptet ceníku byl
+    // naživo neúčinný (viz INCIDENTS.md INC-007).
     let customerCache;
+    let cacheProvider;
     if (process.env.CF_WORKER_URL && process.env.CF_WORKER_TOKEN) {
         console.log("-> Using RemoteCustomerCache (CF Worker KV API)");
         customerCache = new RemoteCustomerCache(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
+        console.log("-> Using RemotePriceCache (CF Worker KV API)");
+        cacheProvider = new RemotePriceCache(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
     } else {
         console.error("❌ CHYBA: Chybí CF_WORKER_URL a/nebo CF_WORKER_TOKEN.");
         console.error("Ostrý běh (dryRun: false) bez nich by zapsal zákaznické tiery jen lokálně -- Worker by se o změně nikdy nedozvěděl.");

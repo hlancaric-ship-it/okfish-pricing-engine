@@ -289,9 +289,12 @@ export class SyncOrchestrator {
             const pStats = await pricelistWriter.processDiff(plId, plData.name, plData.diffs);
             pricelistStatsList.push(pStats);
 
-            // Po úspěšném zápisu zaktualizujeme Cache!
-            if (!this.options.dryRun && pStats.processed > 0) {
-                for (const d of plData.diffs) {
+            // Po úspěšném zápisu zaktualizujeme Cache! Jen za produkty z DÁVEK, které
+            // opravdu prošly (pStats.successfulDiffs) -- ne za celý plData.diffs, viz
+            // komentář v pricelist-writer.ts. Produkt z neúspěšné dávky se tak příští
+            // běh znovu pokusí zapsat, místo aby ho cache tiše "schovala" jako hotový.
+            if (!this.options.dryRun && pStats.successfulDiffs.length > 0) {
+                for (const d of pStats.successfulDiffs) {
                     await this.options.priceCache.setPrice(plId, d.code, d.newPrice.toFixed(2));
                 }
             }

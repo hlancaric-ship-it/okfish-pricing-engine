@@ -118,7 +118,7 @@ export class SyncOrchestrator {
             }
         } catch (error) {
             console.error('\n[FATAL ERROR] Nepodařilo se načíst seznam ceníků z API. Zápisová vrstva se okamžitě ukončuje.');
-            return;
+            throw error;
         }
 
         // 2. Vytvoření mapy ceníků (name -> id)

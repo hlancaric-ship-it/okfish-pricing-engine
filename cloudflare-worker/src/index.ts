@@ -396,10 +396,24 @@ export default {
             if (!body?.version || !Array.isArray(body.products)) {
                 return jsonResponse({ error: 'Invalid payload' }, 400);
             }
-            await Promise.all(body.products.map(p =>
-                env.VIP_KV.put(`product:${body.version}:${p.code}`, JSON.stringify(p.row))
-            ));
-            return jsonResponse({ ok: true, count: body.products.length });
+            // Diff-aware zápis (2026-08-12): dřív se sem posílal KOMPLETNÍ katalog při
+            // KAŽDÉM běhu (cron 15min i webhook) a každý produkt se zapsal pod novým
+            // verzovaným klíčem product:${version}:${code} bez ohledu na to, jestli se
+            // cokoliv změnilo -- potvrzeno živě: 16 708 KV zápisů za jeden běh, ~1.6M/den,
+            // a staré verze se navíc nikdy nemazaly (neomezeně rostoucí KV storage).
+            // Teď se zapisuje pod STABILNÍM klíčem (bez verze) a jen když se obsah
+            // opravdu liší od toho, co už v KV je -- žádné nové osiřelé klíče, žádné
+            // zbytečné zápisy za nezměněná data.
+            let written = 0, skipped = 0;
+            await Promise.all(body.products.map(async (p) => {
+                const key = `product:${p.code}`;
+                const newValue = JSON.stringify(p.row);
+                const existing = await env.VIP_KV.get(key);
+                if (existing === newValue) { skipped++; return; }
+                await env.VIP_KV.put(key, newValue);
+                written++;
+            }));
+            return jsonResponse({ ok: true, count: body.products.length, written, skipped });
         }
 
         // === POST /v1/products/import/finish ===
@@ -423,9 +437,16 @@ export default {
             const tier = parts[1];
             if (!code || !tier) return jsonResponse({ error: 'Usage: /v1/product-discount/:code/:tier' }, 400);
 
-            const activeVersion = await env.VIP_KV.get('active_product_version');
-            if (!activeVersion) return jsonResponse({ error: 'No active product data' }, 404);
-            const rowJson = await env.VIP_KV.get(`product:${activeVersion}:${code}`);
+            // Zkusí nejdřív stabilní klíč (bez verze) -- od 2026-08-12 zapisovaný jen
+            // při reálné změně dat, viz import/chunk níže. Padá zpátky na starý
+            // verzovaný klíč, dokud stabilní klíč pro daný kód ještě neexistuje
+            // (např. těsně po deployi, než proběhne první sync-products běh) --
+            // nedojde tak k žádnému výpadku dat během přechodu na nové schéma.
+            let rowJson = await env.VIP_KV.get(`product:${code}`);
+            if (rowJson === null) {
+                const activeVersion = await env.VIP_KV.get('active_product_version');
+                if (activeVersion) rowJson = await env.VIP_KV.get(`product:${activeVersion}:${code}`);
+            }
             if (rowJson === null) return jsonResponse({ error: 'Product not found' }, 404);
 
             const row = JSON.parse(rowJson) as CsvRow;

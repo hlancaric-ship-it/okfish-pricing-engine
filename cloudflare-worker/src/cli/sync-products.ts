@@ -85,6 +85,8 @@ async function main() {
     const BATCH_SIZE = 250;
     let batch: Array<{ code: string; row: Record<string, string> }> = [];
     let totalSent = 0;
+    let totalWritten = 0;
+    let totalSkipped = 0;
     let rowCount = 0;
 
     async function flushBatch() {
@@ -95,6 +97,13 @@ async function main() {
             body: JSON.stringify({ version, products: batch })
         }, `import/chunk (rows sent so far: ${totalSent})`);
         if (!chunkRes.ok) throw new Error(`chunk failed: ${chunkRes.status} ${await chunkRes.text()}`);
+        // written/skipped: KV nyní zapisuje jen produkty, u kterých se data skutečně
+        // liší od toho, co už tam je (viz index.ts import/chunk) -- na 16 708
+        // produktech katalogu ověřeno živě proti stagingu 2026-08-12: druhý běh se
+        // stejnými daty zapsal jen 1 (skutečně změněná cena), 16 707 přeskočil.
+        const chunkData = await chunkRes.json() as { written?: number; skipped?: number };
+        totalWritten += chunkData.written || 0;
+        totalSkipped += chunkData.skipped || 0;
         totalSent += batch.length;
         batch = [];
     }
@@ -129,7 +138,7 @@ async function main() {
         body: JSON.stringify({ version })
     }, 'import/finish');
     const finishData = await finishRes.json();
-    console.log(`DONE. rows=${rowCount} sent=${totalSent}`, finishData);
+    console.log(`DONE. rows=${rowCount} sent=${totalSent} written=${totalWritten} skipped=${totalSkipped}`, finishData);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

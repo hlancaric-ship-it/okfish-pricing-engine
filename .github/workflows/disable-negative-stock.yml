@@ -2,6 +2,11 @@ name: Disable negative stock ordering (one-off)
 
 on:
   workflow_dispatch:
+    inputs:
+      live:
+        description: 'Ostrý zápis? (jinak dry-run — jen spočítá a vypíše, co by se změnilo)'
+        type: boolean
+        default: false
 
 jobs:
   run:
@@ -24,9 +29,14 @@ jobs:
         working-directory: cloudflare-worker
         run: npm ci
 
-      - name: Vypnutí negativeStockAllowed (ostrý běh)
+      - name: Vypnutí negativeStockAllowed
         working-directory: cloudflare-worker
         env:
           MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
-        run: npx tsx src/cli/disable-negative-stock.ts --live
+        run: |
+          if [ "${{ github.event.inputs.live }}" = "true" ]; then
+            npx tsx src/cli/disable-negative-stock.ts --live
+          else
+            npx tsx src/cli/disable-negative-stock.ts
+          fi

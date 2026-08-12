@@ -35,17 +35,49 @@ const NEEDED_FIELDS = [
     'maxDiscount', 'percentVat', 'applyLoyaltyDiscount', 'manufacturer', 'categoryText'
 ];
 
+// Retries transient network/server failures (timeouts, dropped sockets, 5xx, 429)
+// with exponential backoff (1s, 3s, 9s). Does NOT retry 4xx responses — those are
+// real errors (bad token, bad request) that a retry can't fix and would only hide.
+// Added 2026-08-12 after a week of sync.yml failures that were all transient network
+// blips (HeadersTimeoutError, SocketError "other side closed", HTTP 502) — the cron
+// safety net caught them 15 min later regardless, but this avoids the noisy failure
+// + GitHub issue for a single hiccup.
+async function fetchWithRetry(url: string, init: RequestInit = {}, label: string, retries = 3): Promise<Response> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const res = await fetch(url, init);
+            if (!res.ok && (res.status >= 500 || res.status === 429) && attempt < retries) {
+                const delay = 1000 * 3 ** (attempt - 1);
+                console.warn(`[retry] ${label} -> HTTP ${res.status}, attempt ${attempt}/${retries}, retrying in ${delay}ms`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            return res;
+        } catch (e) {
+            lastErr = e;
+            if (attempt < retries) {
+                const delay = 1000 * 3 ** (attempt - 1);
+                console.warn(`[retry] ${label} -> ${(e as Error).message}, attempt ${attempt}/${retries}, retrying in ${delay}ms`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+        }
+    }
+    throw lastErr;
+}
+
 async function main() {
     if (!MASTER_FEED_URL) throw new Error('MASTER_FEED_URL not set in .env');
     if (!WORKER_URL || !TOKEN) throw new Error('CF_WORKER_URL / CF_WORKER_TOKEN not set in .env');
 
     console.log('Fetching master feed...');
-    const res = await fetch(MASTER_FEED_URL);
+    const res = await fetchWithRetry(MASTER_FEED_URL, {}, 'master feed fetch');
     if (!res.ok || !res.body) throw new Error(`Master feed fetch failed: HTTP ${res.status}`);
 
-    const beginRes = await fetch(`${WORKER_URL}/v1/products/import/begin`, {
+    const beginRes = await fetchWithRetry(`${WORKER_URL}/v1/products/import/begin`, {
         method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }
-    });
+    }, 'import/begin');
     if (!beginRes.ok) throw new Error(`begin failed: ${beginRes.status}`);
     const { version } = await beginRes.json() as { version: string };
     console.log('version:', version);
@@ -57,11 +89,11 @@ async function main() {
 
     async function flushBatch() {
         if (batch.length === 0) return;
-        const chunkRes = await fetch(`${WORKER_URL}/v1/products/import/chunk`, {
+        const chunkRes = await fetchWithRetry(`${WORKER_URL}/v1/products/import/chunk`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ version, products: batch })
-        });
+        }, `import/chunk (rows sent so far: ${totalSent})`);
         if (!chunkRes.ok) throw new Error(`chunk failed: ${chunkRes.status} ${await chunkRes.text()}`);
         totalSent += batch.length;
         batch = [];
@@ -91,11 +123,11 @@ async function main() {
     }
     await flushBatch();
 
-    const finishRes = await fetch(`${WORKER_URL}/v1/products/import/finish`, {
+    const finishRes = await fetchWithRetry(`${WORKER_URL}/v1/products/import/finish`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ version })
-    });
+    }, 'import/finish');
     const finishData = await finishRes.json();
     console.log(`DONE. rows=${rowCount} sent=${totalSent}`, finishData);
 }

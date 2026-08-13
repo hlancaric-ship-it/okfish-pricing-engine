@@ -188,24 +188,38 @@ li.col-xs-6.col-sm-6.col-lg-3.col-xl-3 {border: 1px solid #e8e8e8;}
 :where(.ums_forms_redesign--on) .compact-form {display: block;}
 
 /* --- L-CODE DYNAMICS: mobilní vyhledávání jako vlastní full-width řádek
-   pod ikonkami hlavičky, ne inline expand přes ně (viz header-line.js
-   setupMobileSearchRow) --- */
+   pod ikonkami hlavičky, ne inline expand přes ně. Shoptet přidává na
+   <body> třídu "search-window-visible", když je vyhledávání aktivní
+   (ověřeno živě 2026-08-13 přes DevTools -- žádné hádání, žádný JS
+   click-intercept, čistě CSS keyed off potvrzené třídy). #header .search
+   se z toku vyjme přes position:absolute ukotvenou k .header-top-wrapper,
+   takže se nikdy nemíchá s ikonkami v jedné flex řadě. --- */
 @media (max-width: 767px) {
-  #vip-mobile-search-row {
+  #header .header-top-wrapper {
+    position: relative;
+  }
+  #header .search {
     display: none;
+  }
+  body.search-window-visible #header .search {
+    display: block !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     width: 100%;
+    background: #fff;
     padding: 8px 12px;
+    z-index: 50;
     box-sizing: border-box;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
-  #vip-mobile-search-row.vip-active {
-    display: block;
-  }
-  #vip-mobile-search-row .search-form.compact-form {
+  body.search-window-visible #header .search .search-form.compact-form {
     display: flex !important;
     width: 100% !important;
     max-width: none !important;
   }
-  #vip-mobile-search-row .search-input {
+  body.search-window-visible #header .search .search-input {
     width: 100% !important;
     flex: 1 1 auto !important;
   }

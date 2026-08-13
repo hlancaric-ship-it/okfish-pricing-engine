@@ -7,6 +7,64 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (uzávěrka) — INC-011 souhrn celého zásahu, konec dne
+
+Konsolidovaný záznam celého dnešního kupónového zásahu na jednom místě
+(detailní průběh je rozeslán ve třech předchozích zápisech níže + v
+`INCIDENTS.md` INC-011 sedmý/osmý nález + `docs/CORE_LOGIC_AND_VALIDATION.md`
+§3.6) — pro rychlou orientaci bez nutnosti procházet celý den zpětně.
+
+**Vstupní stav (konec minulé session, INC-011 otevřen):** živý spot-check
+ukázal 61 kódů (ZR20+ZR25) s porušeným `discountCoupon` zámkem (Rule 4).
+ZR6-ZR18 a hlavní/GUEST ceník nikdy neprověřeny. Žádný Stage 4/5 pro kupóny
+neexistoval.
+
+**Co bylo postaveno (kód, trvalá ochrana):**
+1. `cloudflare-worker/src/cli/sync-coupon-fields-single-product.ts` — Stage 4
+   fail-closed fix (dřív tichy `stats.failed`, teď `throw`).
+2. `cloudflare-worker/src/cli/reconcile-coupon-drift.ts` (nový) — Stage 5,
+   read-only, `computeCouponWrites()` jako zdroj pravdy, všech 11 ceníků,
+   ZR20/ZR25 vlastní okamžitá alert kategorie, self-check.
+3. `.github/workflows/reconcile-coupon-drift.yml` (nový) — denní scheduled
+   běh, 03:30 UTC.
+4. `cloudflare-worker/src/cli/sync-coupon-fields-diff.ts` — sjednocena
+   `productMaxDiscount` konvence s ostatními třemi skripty (dosud jediný,
+   co četl feedovo `maxDiscount`).
+
+**Co bylo zjištěno (živě, read-only, celý katalog, 2 běhy před opravou
+skriptu, viz INCIDENTS.md pro čísla obou):** 122 potvrzených ZR20/ZR25
+lock-porušení (dvojnásobek dřívějšího odhadu 61 -- 61 kódů × 2 tiery), 0
+zcela chybějících záznamů, 13 460 hodnotových neshod napříč ZR4-ZR18+GUEST
+(první reálné ověření těchhle ceníků vůbec).
+
+**Co bylo naopraveno (živě, na Janovo explicitní zadání):** plošný zápis
+přes existující `sync-coupon-fields-live.ts` (nezměněný, už používal
+bezpečnou konvenci), všech 11 ceníků × 16 706 produktů, **0 selhání**,
+rollback snapshot před každým ceníkem. Nezávislé ověření po zápise:
+**183 766/183 766 kombinací sedí (100 %), 0 alertů jakéhokoli druhu,
+self-check OK.**
+
+**Výsledný stav:** INC-011 uzavřen. Kupónový pipeline má teď stejnou
+5-stupňovou ochranu jako cenový (od INC-010) -- Stage 1-3 (config/dry-run/
+testy) beze změny, Stage 4 (fail-closed) a Stage 5 (denní nezávislá
+reconciliace + self-check) nově postaveny a ověřeny na reálném katalogu.
+Všechny čtyři produkční skripty, co s kupóny pracují, teď sdílí jednu
+konzistentní `productMaxDiscount` konvenci -- žádný z nich dnes nečte
+feedovo `maxDiscount` jako produktový strop.
+
+**Commity dnešního zásahu (main):** `4e85729` (Stage 4/5 + náprava
+katalogu), `e531e6f` (merge s remote sync-timestamp commity před pushem),
+`3e28ce4` (sjednocení `sync-coupon-fields-diff.ts`).
+
+**Zbývá do budoucna (nic urgentního, nic blokujícího):**
+- Zítřejší a další scheduled běhy `reconcile-coupon-drift.yml` -- očekávaný
+  výsledek 0 alertů, self-check OK; cokoli jiného je nový drift od
+  dnešního zápisu.
+- `sync-coupon-fields-diff.ts` zůstává bez aktivního cronu (jen ruční
+  `npm run` příkazy) -- vědomé rozhodnutí, ne přehlédnutí, viz zápis výše.
+
+---
+
 ## 2026-08-13 (pokračování) — Coupon pipeline: Stage 4/5 postaveny + INC-011 dopověřen
 
 Navazuje na dřívější dnešní zápisy (Stage 5 pro ceny, "Price Truth Engine"

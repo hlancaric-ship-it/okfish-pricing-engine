@@ -7,6 +7,92 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Coupon pipeline: Stage 4/5 postaveny + INC-011 dopověřen
+
+Navazuje na dřívější dnešní zápisy (Stage 5 pro ceny, "Price Truth Engine"
+vize) -- stejný 5-stupňový model teď aplikován na kupónový pipeline, per
+Janovo explicitní zadání z konce minulé session (INC-011).
+
+**1. `sync-coupon-fields-single-product.ts` (Stage 4 fix):** `stats.failed`
+z `CouponSalesWriter.processTierBatch()` se dřív jen logoval, nikdy
+nepropagoval do exit code -- stejný silent-success tvar jako INC-010.
+Opraveno: `throw` na jakémkoli tieru s `stats.failed > 0`.
+
+**2. `cloudflare-worker/src/cli/reconcile-coupon-drift.ts` (nový, Stage 5)
++ `.github/workflows/reconcile-coupon-drift.yml`:** read-only, nikdy
+nezapisuje. `computeCouponWrites()` (produkční funkce) jako zdroj pravdy,
+porovnává KAŽDÝ produkt × všech 11 ceníků (10 ZR tierů + GUEST/hlavní
+ceník -- GUEST řeší otevřenou otázku "co s hlavním ceníkem" z minula, je
+to prostě jeden z výstupů `computeCouponWrites()`). ZR20/ZR25
+always-`false` je vlastní OKAMŽITÁ alert kategorie bez debounce (první/
+nejjednodušší kontrola, přesně dle zadání), zcela chybějící záznam taky
+okamžitě, hodnotový mismatch až po 2 po sobě jdoucích bězích
+(`.coupon_reconciliation_state.json`, stejný vzorec jako
+`.reconciliation_state.json`). Self-check mirror cenové obdoby (min. 5000
+produktů, min. 5000×11 kombinací, min. 5000 feed atributů). Scheduled
+denně 03:30 UTC (staggered vůči price reconciliation 03:00).
+
+**Živě spuštěno 2×** (první běh měl falešně nafouknutý počet neshod --
+porovnávání `minPriceRatio` i když `discountCoupon=false` na obou stranách,
+kde na tom nezáleží pro checkout; opraveno, `minPriceRatio` se teď
+porovnává jen když je kupón aspoň někde skutečně povolený). Druhý
+(opravený) běh, celý katalog:
+- 183 766 zkontrolovaných kombinací, 170 184 sedí (92,6 %).
+- **122 potvrzených ZR20/ZR25 lock-porušení** (dvojnásobek dřívějšího
+  odhadu 61 -- 61 kódů × 2 tiery, ne 61 celkem, rozsah tedy odpovídá).
+- 0 zcela chybějících záznamů.
+- **13 460 nových hodnotových neshod, rozloženo napříč VŠEMI tiery
+  ZR4-ZR18 i GUEST** -- **ZR6-ZR18 a hlavní ceník tedy PRVNÍ REÁLNÉ
+  ověření vůbec** (minule ověřeno jen ZR20/ZR25 checkbox a 5 vzorků na
+  ZR4). Vzorek ukazuje systematický vzorec (např. `0.9400` očekáváno vs
+  `0.880` skutečně) -- vypadá jako konzistentní drift, ne šum, ale root
+  cause NEZJIŠŤOVÁN dnes (mimo scope, viz INCIDENTS.md).
+- Self-check OK na obou bězích.
+
+Detail viz `INCIDENTS.md` INC-011, sedmý nález.
+
+**DOPLNĚNO TÝŽ DEN -- INC-011 UZAVŘEN:** na Janovo přímé zadání proveden živý zápis `sync-coupon-fields-live.ts` na celý katalog, všech 11 ceníků, 16706 produktů na každém, **0 selhání**. Nezávislé ověření po zápisu (`reconcile-coupon-drift.ts` znovu, celý katalog): **183 766/183 766 kombinací sedí (100 %), 0 ZR20/ZR25 lock-porušení (dřívějších 122 opraveno), 0 hodnotových neshod (dřívějších 13 460 opraveno), self-check OK.** Detail (per-tier tabulka, rollback snapshoty) v `INCIDENTS.md` INC-011, osmý nález.
+
+**Zbývá (aktualizováno po živém zápisu -- původní "Zbývá" ze sedmého nálezu
+je vyřešeno/zastaralé, nahrazeno tímto):**
+- Zítřejší scheduled běh (`reconcile-coupon-drift.yml`, 03:30 UTC) proběhne
+  jako běžná ostrahová kontrola, ne jako potvrzení pending neshod -- těch je
+  teď 0. Očekávaný výsledek: 0 alertů, self-check OK. Pokud vyleze cokoli
+  jiného, je to NOVÝ drift od dnešního zápisu, ne zbytek starého.
+- **`sync-coupon-fields-diff.ts` (řádek 185-186) stále čte feedovo
+  `maxDiscount` jako `productMaxDiscount`**, na rozdíl od
+  `sync-coupon-fields-live.ts`/`sync-coupon-fields-single-product.ts`/
+  `reconcile-coupon-drift.ts` (ty všechny `productMaxDiscount` nechávají
+  `undefined`, spoléhají jen na brandLimits/categoryLimits) -- otevřená
+  nekonzistence mezi produkčními skripty, NEOPRAVENO. Prakticky neaktivní
+  riziko dnes (žádný cron ten skript nespouští, `coupon-fields.yml` a
+  příbuzné byly archivovány 2026-08-12), ale kdyby ho někdo v budoucnu
+  znovu zapnul (cron nebo ruční spuštění s `--live`), mohl by přepsat dnes
+  opravený katalog zpátky na nekonzistentní hodnoty. Doporučeno opravit
+  před jakýmkoli budoucím použitím toho skriptu.
+- 122 lock-porušených produktů: OPRAVENO živým zápisem (viz výše), žádná
+  další akce.
+- Změněné/nové soubory z dnešního zásahu na kupónovém pipeline (nic
+  necommitnuto do gitu, čeká na Janovo schválení commitu):
+  - `cloudflare-worker/src/cli/sync-coupon-fields-single-product.ts`
+    (upraveno -- Stage 4 fail-closed fix).
+  - `cloudflare-worker/src/cli/reconcile-coupon-drift.ts` (nový -- Stage 5
+    read-only reconciliace).
+  - `.github/workflows/reconcile-coupon-drift.yml` (nový -- denní
+    scheduled běh reconciliace, 03:30 UTC).
+  - `.coupon_reconciliation_state.json` (nový, generovaný během
+    reconciliace -- debounce stav, prázdný/čistý po posledním běhu s 0
+    pending položek).
+  - `INCIDENTS.md`, `docs/PROGRESS_LOG.md` (tento zápis + INC-011 sedmý a
+    osmý nález).
+  - Živě zapsáno do Shoptetu (mimo git): `discountCoupon`/`minPriceRatio`
+    pole na všech 16706 produktech × 11 ceníků, přes existující
+    (nezměněný) `sync-coupon-fields-live.ts`. Rollback snapshoty pro
+    každý ceník v `.snapshots/coupon_sales_<pricelistId>_rollback_<epoch
+    ms>.json` (negitované, lokální).
+
+---
+
 ## 2026-08-13 (uzavření dne) — Živý full sync DOKONČEN + frontend úpravy nasazeny
 
 **Živý full sync (náprava 812 postižených produktů, INC-010) — VÝSLEDEK:**

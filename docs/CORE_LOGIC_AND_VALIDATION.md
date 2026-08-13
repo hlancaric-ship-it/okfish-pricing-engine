@@ -429,6 +429,86 @@ model does not recurse into "validate the validator's validator"; one
 absolute-threshold self-check is the deliberately-terminal answer to "how
 many meta-levels are enough."
 
+### 3.6 Stage 4/5 extended to the coupon pipeline (INC-011, 2026-08-13)
+
+The same two stages were built for the coupon pipeline (`discountCoupon` /
+`minPriceRatio` fields) the same day, in direct response to INC-011: a live
+spot-check found 61 product codes (122 pricelist entries — ZR20 and ZR25
+both) with `discountCoupon=TRUE` despite Rule 4's absolute-precedence lock,
+and confirmed *no* verification had ever been done for ZR6–ZR18 or the
+GUEST/"Hlavný cenník" pricelist. Same root-cause family as INC-010:
+`sync-coupon-fields-single-product.ts` only runs on a Shoptet
+`product:create`/`product:update` webhook that doesn't reliably fire, and
+every scheduled/plošný fallback (`coupon-fields.yml` and siblings) was
+archived to `.github/workflows-archive/` on 2026-08-12 with nothing put in
+its place.
+
+**Stage 4** (`sync-coupon-fields-single-product.ts`): the same silent-success
+shape as INC-010's `sync-orchestrator.ts` before its fix — `CouponSalesWriter
+.processTierBatch()`'s `stats.failed` was logged but never propagated, so a
+partial write failure (e.g. one Shoptet 5xx on one batch) exited 0. Fixed:
+the script now `throw`s if `stats.failed > 0` on any pricelist after the
+write loop.
+
+**Stage 5** (`cloudflare-worker/src/cli/reconcile-coupon-drift.ts` +
+`.github/workflows/reconcile-coupon-drift.yml`, daily `30 3 * * *`,
+staggered 30 minutes after the pricing reconciliation): read-only, mirrors
+`reconcile-pricelist-drift.ts`'s structure exactly, but the source of truth
+is `computeCouponWrites()` (`cloudflare-worker/src/coupon/compute-coupon-
+writes.ts`) instead of `calculateProductsPricing()`, and it checks all 11
+pricelists computeCouponWrites() produces items for — the 10 ZR tiers *plus*
+GUEST (`ALL_PRICELISTS_MAP`), which is how this model answers §1.2's earlier
+open question of "does the coupon rule apply the same way on the guest/
+default pricelist" — GUEST is simply one more entry in the same map, no
+special-cased logic. `productMaxDiscount` is deliberately left `undefined`
+when re-deriving expected values, mirroring the fixed, safe convention in
+`sync-coupon-fields-live.ts`/`sync-coupon-fields-single-product.ts` — reading
+it from the pricelist's own `sales.minPriceRatio` (or the feed's `maxDiscount`
+column) would be exactly the circular-dependency bug `coupon-sales-writer.ts`
+documents as fixed 2026-08-06 (the coupon output would become its own input).
+
+The ZR20/ZR25 lock check is a **separate, immediate-alert category**, ahead
+of the generic per-item diff — an explicit design choice, not an
+implementation detail: Rule 4 has no legitimate exception, so any
+`discountCoupon=true` observed on a locked tier is reported on its own
+(`ALERT -- ZR20/ZR25 lock porušen`), distinct from ordinary value mismatches,
+and it does **not** go through the two-run debounce a value mismatch does —
+same reasoning as a pricelist entry missing entirely in §3.5's model (no
+legitimate transient cause exists for either). A `minPriceRatio` mismatch is
+only compared/alerted when the coupon is actually enabled on at least one
+side (`expected.applyDiscountCoupon || actual.discountCoupon`) — comparing it
+when both sides agree the coupon is off produced a large false-positive
+count in this script's first live run (many products carry a stale/never-
+explicitly-set `minPriceRatio=0.000` instead of the engine's `1.0000` when
+`discountCoupon=false`, which is checkout-invisible either way).
+
+**First live read-only run** (before any write) found: 122 confirmed
+ZR20/ZR25 lock violations, 0 entirely-missing records, and 13,460 first-seen
+value mismatches spread across every tier (ZR4–ZR18 + GUEST) — the first real
+verification those tiers had ever had. **A full-catalog live write** was then
+run via the existing `sync-coupon-fields-live.ts` (unchanged — it already
+used the safe `productMaxDiscount=undefined` convention, so its output
+matches exactly what the reconciliation script calls "expected"): all 11
+pricelists, 16,706 products each, 0 failures, with a pre-write rollback
+snapshot per pricelist (`CouponSalesWriter`'s existing snapshot behavior). A
+second independent read-only reconciliation run afterward confirmed **0
+alerts of any kind across all 183,766 product×pricelist combinations**,
+self-check passing. Full detail, per-tier write counts, and the open
+follow-up item (see below) are in `INCIDENTS.md`'s INC-011, seventh and
+eighth findings.
+
+**Known open inconsistency (not yet fixed, low current risk):**
+`sync-coupon-fields-diff.ts` — a different, diff-aware write script not
+currently triggered by any active cron (its siblings were archived
+2026-08-12) — still reads the feed's `maxDiscount` column as
+`productMaxDiscount` (lines 185–186), unlike `sync-coupon-fields-live.ts`,
+`sync-coupon-fields-single-product.ts`, and `reconcile-coupon-drift.ts`,
+which all agree on leaving it `undefined`. This is dormant today (nothing
+runs that script), but re-enabling or manually invoking it with `--live`
+before fixing that line could reintroduce exactly the kind of drift this
+section just closed. Fix it to match the other three call sites before any
+future use.
+
 ## 4. Scaling This
 
 **More products.** The engine is O(products) per sync run with no per-product

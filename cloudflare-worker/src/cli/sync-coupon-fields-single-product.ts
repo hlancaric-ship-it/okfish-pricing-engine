@@ -146,11 +146,32 @@ async function main() {
         byTier[item.tier].push(item);
     }
 
+    // Stage 4 (run-level fail-closed, INC-011): dřív se `stats.failed` jen logovalo
+    // a nikdy se nepropagovalo -- přesně stejný tvar chyby jako INC-010's
+    // sync-orchestrator.ts před opravou (viz CORE_LOGIC_AND_VALIDATION.md §3.4).
+    // Webhook trigger (sync.yml's repository_dispatch) vidí jen exit code -- pokud
+    // tenhle skript tiše "doběhne" s částečným selháním zápisu, produkt zůstane
+    // navěky s prázdnými/špatnými kupónovými poli, stejně jako 103525 v INC-010/
+    // INC-011, a nikdo se to nedozví.
+    let anyTierFailed = false;
+    const failedTiers: string[] = [];
     for (const [tier, pricelistId] of Object.entries(ALL_PRICELISTS_MAP)) {
         const tierItems = byTier[tier] || [];
         if (tierItems.length === 0) continue;
         const stats = await writer.processTierBatch(pricelistId, tier, tierItems);
         console.log(`Tier ${tier}: zpracováno=${stats.processed} selhalo=${stats.failed}`);
+        if (stats.failed > 0) {
+            anyTierFailed = true;
+            failedTiers.push(tier);
+        }
+    }
+
+    if (anyTierFailed) {
+        throw new Error(
+            `Zápis kupónových polí pro produkt ${PRODUCT_CODE} selhal na tierech: ${failedTiers.join(', ')}. ` +
+            `Produkt zůstává s neúplnými/starými kupónovými poli -- fail-closed, exit code musí zčervenat, ` +
+            `aby to webhook step v sync.yml nahlásil.`
+        );
     }
 
     console.log(`=== HOTOVO: produkt ${PRODUCT_CODE} zapsán napříč tiery ===`);

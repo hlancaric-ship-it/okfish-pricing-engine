@@ -64,18 +64,41 @@
     }
 
     // Přesune "Strážiť" (watchdog) ikonku z .link-icons (pod tlačítkem "Do
-    // košíka") vedle ceny. Nezávislé na VIP slevovém badge výše -- musí
-    // fungovat pro každého návštěvníka, ne jen přihlášené VIP zákazníky.
+    // košíka") přímo VEDLE finální ceny (na stejný řádek jako €XXX,XX, ne
+    // pod celý .p-final-price-wrapper blok -- ten obsahuje i řádek "bez DPH"
+    // pod cenou, takže appendChild na wrapper dával ikonku pod všechno, ne
+    // vedle ceny z pohledu zákazníka). Cílí konkrétně na `strong.price-final`
+    // (element, co obaluje `€426,87`), tomu nastaví display:flex, aby watchdog
+    // seděl vpravo od čísla na stejném řádku. Přestylizováno na "Rybárska
+    // stráž" -- ikonka strážnika + dvouřádkový text. Nezávislé na VIP
+    // slevovém badge výše -- musí fungovat pro každého návštěvníka, ne jen
+    // přihlášené VIP zákazníky. Původní href (odkaz na :strazit-cenu/
+    // formulář) i klikací chování se zachovává beze změny -- mění se jen
+    // vzhled obsahu <a> elementu.
     function moveWatchdogNextToPrice() {
-        const wrapper = document.querySelector(".p-final-price-wrapper");
+        const priceFinal = document.querySelector(".price-final");
         const watchdog = document.querySelector(".link-icon.watchdog");
-        if (!wrapper || !watchdog || watchdog.dataset.vipMoved) return;
+        if (!priceFinal || !watchdog || watchdog.dataset.vipMoved) return;
 
         watchdog.dataset.vipMoved = "1";
         watchdog.style.display = "inline-flex";
         watchdog.style.alignItems = "center";
-        watchdog.style.marginLeft = "12px";
-        wrapper.appendChild(watchdog);
+        watchdog.style.gap = "8px";
+        watchdog.style.marginLeft = "14px";
+        watchdog.style.textDecoration = "none";
+        watchdog.style.verticalAlign = "middle";
+        watchdog.innerHTML = `
+            <span style="font-size:1.6em;line-height:1;">👮</span>
+            <span style="display:flex;flex-direction:column;line-height:1.2;">
+                <span style="font-weight:700;color:#333;font-size:0.9em;">Rybárska stráž</span>
+                <span style="color:#888;font-size:0.78em;">Stráži dostupnosť produktu</span>
+            </span>
+        `;
+
+        priceFinal.style.display = "flex";
+        priceFinal.style.alignItems = "center";
+        priceFinal.style.flexWrap = "wrap";
+        priceFinal.appendChild(watchdog);
     }
 
     function init() {

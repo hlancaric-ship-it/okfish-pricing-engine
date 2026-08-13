@@ -1,13 +1,27 @@
-# Core Pricing/Coupon Decision Logic & the 3-Stage Validation Model
+# Core Pricing/Coupon Decision Logic & the 5-Stage Validation Model
 
 Engineering reference for two things: (1) the exact precedence rules the
 engine applies when computing a price or a coupon decision, and (2) the
-**3-stage validation model** the codebase now implements to keep a bad config
-from ever reaching a live price. This document assumes the reader has already
-read `ENGINE_TECHNICAL_TEMPLATE.md` for the general architecture (two
+**5-stage validation model** the codebase now implements to keep a bad config
+from ever reaching a live price, AND to keep a live price that already went
+wrong from staying wrong unnoticed. This document assumes the reader has
+already read `ENGINE_TECHNICAL_TEMPLATE.md` for the general architecture (two
 engines, sync pipeline, tier system) — it is not repeated here. This is a
 build/scale/validate reference for standing up the next client, not a repeat
 of the architecture tour.
+
+**Extended from 3 to 5 stages on 2026-08-13 (INC-010).** The original 3
+stages (config-load, pre-write dry-run, regression tests) all answer variants
+of "is this *change* safe to make." None of them answer a different
+question that INC-010 exposed the hard way: "did the code that's *supposed*
+to keep prices correct actually work, for the last 12 days, across the whole
+catalog?" A `getProductDetail()` bug silently no-op'd the incremental price
+pipeline for 12 days — every single sync run reported `SUCCESS`, Stage 1–3
+all stayed green throughout, and 812 products (~4.9% of the catalog) quietly
+drifted to a wrong or missing wholesale tier price with zero errors, zero
+alerts, zero test failures. Stages 1–3 protect a *change*. Stages 4–5 (new)
+protect the *outcome*, independently of whether any individual run ever
+reported failure.
 
 ## 1. Core Decision Logic (Precedence, Precisely)
 
@@ -138,27 +152,36 @@ are tuned to the new catalog size is a live-price incident waiting to happen.
    wrong tier→pricelist mapping is invisible in the UI but silently wrong at
    checkout.
 
-## 3. The 3-Stage Validation Model
+## 3. The 5-Stage Validation Model
 
 **Central principle: a new client's config should never be able to reach a
-live price change unless it passes all three stages.** Each stage catches a
-different failure mode, at a different point in the pipeline, at a different
-cost:
+live price change unless it passes stages 1-3, AND a price that already went
+live should never be able to silently stay wrong unless it survives stages
+4-5 too.** Each stage catches a different failure mode, at a different point
+in the pipeline, at a different cost:
 
 | Stage | When | Catches | Cost |
 |---|---|---|---|
 | 1 — config-load-time | Module import, before any price is computed | Static self-contradictions between policy JSON files | Free, no I/O, fails in milliseconds |
 | 2 — pre-write/dry-run | Every sync run, before any Shoptet API write | Dynamic/data-driven anomalies (bad feed, mapping regression, renamed pricelist) | One feed fetch + optional one API call |
 | 3 — regression tests | Every push/PR, in CI | Logic regressions from human code changes | ~7s local, full CI run remotely |
+| 4 — run-level fail-closed | Every sync run, after fetch/compute, before declaring success | Incomplete/invalid data for a *specific* product within an otherwise-successful run | Zero extra I/O — reclassifies data already fetched |
+| 5 — reconciliation | Scheduled, independent of any sync run | Silent logic bugs that make every individual run report `SUCCESS` while the *aggregate outcome* drifts wrong over time | One full-catalog read pass (all pricelists), no writes |
 
 No single stage is sufficient alone: Stage 1 can't see a corrupted feed
 (it only checks static files); Stage 2 can't see a logic bug in code that
 produces plausible-looking wrong numbers within the change-ratio threshold;
 Stage 3 can't see a config file that is internally fine but contradicts
 another config file, or a feed that's broken *today* but wasn't when the
-test fixtures were written. All three together are what makes it safe to
-hand this engine to a new client's config without re-auditing every policy
-JSON by hand.
+test fixtures were written; Stage 4 can't see a bug that makes a run
+under-process silently *without ever reaching an invalid-data branch* (e.g.
+`getProductDetail()` returning `undefined` for a reason the code doesn't
+distinguish from "nothing to do"); Stage 5 is the only one that doesn't
+trust any run's own self-report at all — it re-derives the expected answer
+independently and compares against reality. All five together are what
+makes it safe to both (a) hand this engine to a new client's config without
+re-auditing every policy JSON by hand, and (b) trust that a catalog left
+running unattended for weeks hasn't quietly drifted wrong.
 
 ### 3.1 Stage 1 — Config-load-time validation (`config.ts`)
 
@@ -288,6 +311,92 @@ authoritative regression gate for the decision logic in §1. What it locks in:
   would fail if `resolveEffectiveLimit()` ever drifted out of sync with the
   price engine's cap lookup — the single invariant most directly protecting
   the client's margin from a coupon stacking beyond an intended cap.
+
+### 3.4 Stage 4 — Run-level fail-closed validation (INC-010, 2026-08-13)
+
+Implemented across three files, all added/fixed the same day, closing a
+chain of three silent-success bugs found investigating why 2 products
+(99459, 103525) never got a computed wholesale price despite `sync.yml`
+reporting green every time:
+
+**`products-reader.ts`** — a product whose `perPricelistPrices` entry is
+missing for the base pricelist (common right after creation — Shoptet
+propagation lag) is excluded from the run's results and recorded in
+`incompleteCodes`, instead of the old behavior of fabricating `basePrice=0`
+and letting it flow through as a "valid" (but wrong) price. Same treatment
+applied when `getProductDetail()` itself returns `null`/`undefined` — this
+used to be a bare `if (!detail) continue` with zero record kept anywhere.
+
+**`pricing-bridge.ts`** — every `validateInput`/`validateResult` failure,
+engine `rejected` result, or thrown exception is now logged
+(`console.warn` naming the SKU + tier + reason) and collected into a
+`failures` array returned to the caller, instead of a bare
+`catch (e) { /* Ignore calculation errors for specific products */ }` that
+discarded the failure with no trace at all.
+
+**`sync-orchestrator.ts`** — `isSuccess` now factors in both
+`incompleteCodes.length` and `pricingFailures.length`, not just
+write-failure counts. On any non-success: `lastSync` is deliberately **not**
+advanced (so the affected product re-enters the next incremental window
+instead of aging out of it), and the function `throw`s at the end — which
+propagates through `run-real-sync.ts`'s `catch` block to a non-zero exit
+code, which fails the GitHub Actions job, which fires the issue-notification
+step that already existed in `sync.yml` (from INC-006) but had never
+actually triggered for this failure class because nothing before today ever
+threw for it.
+
+**What Stage 4 does *not* catch** (the gap Stage 5 exists to close): a bug
+in the code path itself that makes it silently process *zero* products
+without ever reaching an invalid-data branch. `getProductDetail()` reading
+`json.data.product` instead of `json.data` returned `undefined` for every
+call, unconditionally — but the *caller* only routes that into
+`incompleteCodes` when it has a specific change to attribute the failure
+to. When `changes.length === 0` for a given run (most runs, most of the
+time), there was nothing to attribute anything to, so nothing looked wrong
+— the run just did less work than it should have, forever, with a clean
+`SUCCESS`. Stage 4 hardens what a run does with problems it encounters;
+it cannot invent problems a code-path bug prevented it from encountering
+in the first place.
+
+### 3.5 Stage 5 — Reconciliation (proposed 2026-08-13, not yet implemented)
+
+**Status: designed, not yet built.** Documented here so the model is
+complete even though the code isn't; see `docs/PROGRESS_LOG.md`'s
+2026-08-13 "Architektonický závěr INC-010" entry for the live discussion
+that produced this.
+
+**The question Stage 5 answers, that Stages 1-4 structurally cannot:**
+"has every run's `SUCCESS` actually corresponded to correct output, over
+weeks of unattended operation?" A read-only audit script
+(`audit-catalog-drift-all.ts`, currently a scratchpad prototype, not yet in
+`cloudflare-worker/src/cli/`) answered this for the live catalog on
+2026-08-13: for each of the 10 tier pricelists, it recomputes the expected
+price via the *same production function* (`calculateProductsPricing`) from
+the live base pricelist, and diffs it against what Shoptet actually has
+written. Result: 812 of 16,705 products (~4.9%) had a wrong or entirely
+missing tier price, accumulated silently over the 12 days `getProductDetail()`
+was broken, with every individual sync run reporting `SUCCESS` throughout.
+
+**Why this must be independent of the sync run's own reporting**: Stage 4
+can only be as good as the code doing the reporting. A bug in the reporting
+code itself (which is exactly what INC-010 was) makes Stage 4 blind to its
+own blind spot. Stage 5 doesn't ask the sync run "did you succeed" — it
+independently re-derives the answer from first principles (live base price
++ policy config) and compares against observed reality, so it catches bugs
+Stage 4 has no way to catch by construction, not just bugs Stage 4 happened
+to miss by omission.
+
+**Planned shape** (pending build): move the script into
+`cloudflare-worker/src/cli/reconcile-pricelist-drift.ts`, add a scheduled
+GitHub Actions workflow (daily), and have it `throw` on finding drift beyond
+a tuned tolerance — routing into the same fail-closed → GitHub-issue
+mechanism Stage 4 uses, so a Stage 5 finding is exactly as loud as a Stage 4
+one. Open design question: debounce/threshold tuning so routine 15-minute
+sync latency (a price that changed 10 minutes ago and hasn't been picked up
+by cron yet) doesn't fire false alarms — current thinking is alert
+immediately on "entirely missing from a tier" (unambiguous) but require
+persistence across 2 consecutive daily runs before alerting on a "value
+mismatch" (which has legitimate transient causes).
 
 ## 4. Scaling This
 

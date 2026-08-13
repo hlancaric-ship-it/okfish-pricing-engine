@@ -7,6 +7,65 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Architektonický závěr INC-010: 5 pilířů trvalé ochrany
+
+**Zadání (Jan):** oprava 812 postižených produktů je jen half práce.
+Skutečná otázka: jak zajistit, aby se tenhle typ tichého driftu nikdy
+znovu nemohl vytvořit, aniž by to systém okamžitě poznal. Pojmenováno
+5 pilířů: validace, reconciliation, alerting, fail-closed chování,
+auditní trail.
+
+**Stav zjištěný auditem vlastního kódu (co z toho dnes vzniklo, co chybí):**
+
+1. **Validace (fail-closed na vstupu)** — HOTOVO dnes (INC-010, chyby 1–2).
+   `products-reader.ts`/`pricing-bridge.ts` odmítají neúplná data
+   (`incompleteCodes`/`pricingFailures`) místo fabrikace ceny 0.
+2. **Fail-closed chování** — HOTOVO dnes (INC-010, chyba 3).
+   `sync-orchestrator.ts` hodí `throw` při jakémkoli selhání, `lastSync`
+   se neposune, GH Actions job zčervená místo tichého "success".
+3. **Auditní trail** — JIŽ EXISTOVAL, nezávisle na dnešním zásahu.
+   `pricelist-writer.ts:120` loguje `[AUDIT LOG]` s
+   timestamp/entity/id/endpoint/requestId/HTTP status/oldValue/newValue
+   na každý zápis do Shoptet ceníku.
+4. **Alerting** — ČÁSTEČNĚ. GH issue se vytvoří při selhání BĚŽÍCÍHO
+   `sync.yml` (mechanismus z INC-006, dnes konečně funkční). Nepokrývá
+   ale drift, co vznikne tiše mimo aktuální běh (přesně scénář 812
+   produktů — žádný jednotlivý běh nikdy "neselhal", jen se roky
+   kumulovaly nezapsané změny).
+5. **Reconciliation** — CHYBÍ ÚPLNĚ. Dnešní `audit-catalog-drift-all.ts`
+   (porovnání očekávané vs. skutečně zapsané ceny napříč celým katalogem)
+   JE reconciliation logika, ale žije jen ve scratchpadu, spustila se
+   jednou ručně na explicitní požádání a jinak nikde neběží.
+
+**Navržené uzavření smyčky (spojuje pilíře 4+5, ČEKÁ NA JANOVO SCHVÁLENÍ,
+zatím nic neimplementováno):**
+- Přesunout audit skript do repa jako
+  `cloudflare-worker/src/cli/reconcile-pricelist-drift.ts` (read-only,
+  žádný zápis -- stejná logika jako dnešní scratchpad verze, jen
+  zabudovaná a testovaná).
+- Nový scheduled GitHub Actions workflow (denní cron), co ho spouští.
+- Pokud najde mismatch/missing nad rozumnou toleranci, `throw` -> stejný
+  fail-closed mechanismus jako `sync.yml` dnes -- GH issue, ne tichý log.
+- Otevřená otázka k doladění: threshold/debounce, aby to nebylo hlučné
+  na drobnou volatilitu (cena se právě změnila, cron ji ještě
+  nedohnal do 15 min) -- např. alertovat na "úplně chybějící" (55-typ)
+  okamžitě (jednoznačný signál), na "mismatch" až při přetrvání přes
+  2 po sobě jdoucí denní běhy.
+- Rozšíření o kupónovou politiku (INC-010, pátý nález) zvažováno jako
+  navazující krok, ne součást první verze.
+
+**Proč to takhle a ne jinak:** pilíře 1–3 řeší "co se stane, když sync
+běží a něco selže". Pilíř 5 (reconciliation) řeší jinou otázku: "co když
+sync běžel roky bez jediného selhání, a přesto výsledek nesedí, protože
+sám kód měl chybu v logice" — přesně INC-010, chyba 5
+(`json.data.product`), 12 dní, žádné selhání, 812 postižených produktů.
+Bez pravidelné nezávislé kontroly "co je vs. co by mělo být" tenhle typ
+chyby žádný fail-closed mechanismus nikdy neodhalí, protože fail-closed
+chrání jen běh, který se skutečně spustil a skutečně selhal -- ne
+tichou logickou chybu uvnitř úspěšného běhu.
+
+---
+
 ## 2026-08-13 (pokračování) — Náprava 812 postižených produktů: dry-run full sync, PRÁVĚ BĚŽÍ
 
 **Rozhodnutí (Jan):** z navržených dvou variant nápravy (vynucený full sync

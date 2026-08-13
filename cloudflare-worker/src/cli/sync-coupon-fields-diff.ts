@@ -182,8 +182,15 @@ async function main() {
         if (!basePrice || basePrice.lessThanOrEqualTo(0)) continue;
 
         const actionPrice = parseNumber(row['actionPrice']);
-        const maxDiscountPct = parseNumber(row['maxDiscount']);
-        const productMaxDiscount = maxDiscountPct !== undefined ? maxDiscountPct.dividedBy(100) : undefined;
+        // Fixed 2026-08-13 (INC-011): this used to read the feed's `maxDiscount`
+        // column as productMaxDiscount, unlike every other coupon write/reconcile
+        // script (sync-coupon-fields-live.ts, sync-coupon-fields-single-product.ts,
+        // reconcile-coupon-drift.ts). That column is GUEST's own coupon-room field
+        // (self-referential -- same circular-dependency bug documented in
+        // coupon-sales-writer.ts, fixed there 2026-08-06 but never mirrored here).
+        // resolveEffectiveLimit() falls back to brandLimits/categoryLimits on its
+        // own when this is undefined.
+        const productMaxDiscount = undefined;
         const manufacturer = row['manufacturer'] || undefined;
         const category = row['categoryText'] || undefined;
         const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);

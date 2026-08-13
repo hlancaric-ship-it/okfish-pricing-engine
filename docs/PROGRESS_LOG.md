@@ -51,6 +51,16 @@ porovnává jen když je kupón aspoň někde skutečně povolený). Druhý
 
 Detail viz `INCIDENTS.md` INC-011, sedmý nález.
 
+**DOPLNĚNO TÝŽ DEN -- `sync-coupon-fields-diff.ts` nekonzistence opravena:**
+řádek 185-186 (čtení feedova `maxDiscount` jako `productMaxDiscount`)
+sjednocen se zbytkem pipeline (`productMaxDiscount = undefined`, mirror
+2026-08-06 opravy z `coupon-sales-writer.ts`). Skript zůstává nepoužívaný
+(žádný aktivní cron ho nespouští, jen `npm run sync-coupon-fields-diff`/
+`-live` ruční příkazy) -- ne zakomentovaný/smazaný, protože je to
+legitimní diff-aware alternativa k `sync-coupon-fields-live.ts` (zapisuje
+jen změny, ne celý katalog), jen bez aktivního cronu od archivace
+`coupon-fields.yml` 12.8.
+
 **DOPLNĚNO TÝŽ DEN -- INC-011 UZAVŘEN:** na Janovo přímé zadání proveden živý zápis `sync-coupon-fields-live.ts` na celý katalog, všech 11 ceníků, 16706 produktů na každém, **0 selhání**. Nezávislé ověření po zápisu (`reconcile-coupon-drift.ts` znovu, celý katalog): **183 766/183 766 kombinací sedí (100 %), 0 ZR20/ZR25 lock-porušení (dřívějších 122 opraveno), 0 hodnotových neshod (dřívějších 13 460 opraveno), self-check OK.** Detail (per-tier tabulka, rollback snapshoty) v `INCIDENTS.md` INC-011, osmý nález.
 
 **Zbývá (aktualizováno po živém zápisu -- původní "Zbývá" ze sedmého nálezu

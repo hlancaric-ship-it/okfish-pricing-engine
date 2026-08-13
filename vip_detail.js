@@ -63,16 +63,53 @@
         wrapper.prepend(box);
     }
 
+    // Jednorázově vloží <style> s responzivní media query -- inline styly
+    // (element.style.xxx) nejdou media-query podmínit, proto se rozložení
+    // (mezera od ceny, velikosti textu, zalomení pod cenu na mobilu) řeší
+    // přes CSS třídy, ne přes inline hodnoty.
+    function ensureWatchdogStyles() {
+        if (document.getElementById("vip-watchdog-style")) return;
+        const style = document.createElement("style");
+        style.id = "vip-watchdog-style";
+        style.textContent = `
+            .price-final { flex-wrap: wrap; }
+            .vip-watchdog-block {
+                display: inline-flex !important;
+                align-items: center;
+                gap: 6px;
+                margin-left: 32px;
+                text-decoration: none;
+                vertical-align: middle;
+                text-transform: none;
+                white-space: nowrap;
+                background: none !important;
+                background-image: none !important;
+            }
+            .vip-watchdog-icon { font-size: 20px; line-height: 1; }
+            .vip-watchdog-title { font-weight: 700; color: #333; font-size: 12px; }
+            .vip-watchdog-sub { color: #888; font-size: 8px; white-space: nowrap; }
+            @media (max-width: 600px) {
+                .vip-watchdog-block {
+                    margin-left: 0;
+                    margin-top: 6px;
+                    flex-basis: 100%;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     // Přesune "Strážiť" (watchdog) ikonku z .link-icons (pod tlačítkem "Do
     // košíka") přímo VEDLE finální ceny (na stejný řádek jako €XXX,XX, ne
     // pod celý .p-final-price-wrapper blok -- ten obsahuje i řádek "bez DPH"
     // pod cenou, takže appendChild na wrapper dával ikonku pod všechno, ne
     // vedle ceny z pohledu zákazníka). Cílí konkrétně na `strong.price-final`
     // (element, co obaluje `€426,87`), tomu nastaví display:flex, aby watchdog
-    // seděl vpravo od čísla na stejném řádku. Přestylizováno na "Rybárska
-    // stráž" -- ikonka strážnika + dvouřádkový text. Nezávislé na VIP
-    // slevovém badge výše -- musí fungovat pro každého návštěvníka, ne jen
-    // přihlášené VIP zákazníky. Původní href (odkaz na :strazit-cenu/
+    // seděl vpravo od čísla na stejném řádku (na mobilu se zalomí pod cenu,
+    // viz @media výše -- nikdy horizontální přetečení). Přestylizováno na
+    // "Rybárska stráž" -- ikonka strážnika + dvouřádkový text. Nezávislé na
+    // VIP slevovém badge výše -- musí fungovat pro každého návštěvníka, ne
+    // jen přihlášené VIP zákazníky. Původní href (odkaz na :strazit-cenu/
     // formulář) i klikací chování se zachovává beze změny -- mění se jen
     // vzhled obsahu <a> elementu.
     function moveWatchdogNextToPrice() {
@@ -81,37 +118,22 @@
         if (!priceFinal || !watchdog || watchdog.dataset.vipMoved) return;
 
         watchdog.dataset.vipMoved = "1";
-        // Pevné (ne em) velikosti -- .price-final má vlastní obří font-size
-        // pro číslo ceny, takže cokoliv v "em" jednotkách zdědilo tu obří
-        // velikost a text-transform:uppercase. Text musí být viditelně
-        // menší než cena, ne stejně velký.
-        watchdog.style.cssText = `
-            display: inline-flex !important;
-            align-items: center;
-            gap: 6px;
-            margin-left: 32px;
-            text-decoration: none;
-            vertical-align: middle;
-            text-transform: none;
-            white-space: nowrap;
-            flex-shrink: 0;
-            background: none !important;
-            background-image: none !important;
-        `;
+        ensureWatchdogStyles();
+
         // Nativní ikonka psa (Shoptet šablona) je background-image na
         // .link-icon.watchdog, ne DOM obsah -- innerHTML níže ji nesmaže.
         watchdog.classList.remove("watchdog");
+        watchdog.classList.add("vip-watchdog-block");
         watchdog.innerHTML = `
-            <span style="font-size:20px;line-height:1;">👮</span>
+            <span class="vip-watchdog-icon">👮</span>
             <span style="display:flex;flex-direction:column;line-height:1.15;text-transform:none;">
-                <span style="font-weight:700;color:#333;font-size:12px;">Rybárska stráž</span>
-                <span style="color:#888;font-size:8px;white-space:nowrap;">Stráži dostupnosť produktu</span>
+                <span class="vip-watchdog-title">Rybárska stráž</span>
+                <span class="vip-watchdog-sub">Stráži dostupnosť produktu</span>
             </span>
         `;
 
         priceFinal.style.display = "flex";
         priceFinal.style.alignItems = "center";
-        priceFinal.style.flexWrap = "nowrap";
         priceFinal.appendChild(watchdog);
     }
 

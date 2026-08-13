@@ -27,11 +27,23 @@ VYPÍNAT (Rule 4, absolutní precedence, viz `CORE_LOGIC_AND_VALIDATION.md`
   správně. Nepoužitelný jako důkaz, potřeba testovat na produktu, který
   nikdo ručně neopravoval.
 
+**ROZSAH ZJIŠTĚN (živá kontrola celého katalogu, ZR20+ZR25):**
+Z 16 712 položek na ZR20 i ZR25: **61 produktů má `discountCoupon: TRUE`**
+(porušuje lock), **16 644 je v pořádku** (`false`, lock funguje), 7 nemá
+cenu vůbec. Stejných 61 kódů na obou tierech. Vzorek kódů: `101256,
+101283, 101607, 110400, 112054-112070...` -- **velká část se překrývá s
+ranním seznamem "55 úplně chybějících produktů"** z katalogového auditu
+(INC-010). **Závěr: NENÍ to celoplošný bug -- je to omezené na malou
+skupinu (~0,4 % katalogu) nových/nedokončeně synchronizovaných produktů,
+stejná rodina příčiny jako hlavní dnešní incident, ne nový nezávislý
+celoplošný problém.** Zámek ZR20/ZR25 funguje správně pro 99,6 % katalogu.
+
 **Co NENÍ ověřeno / čeká na příští session (kontext došel, nedokončeno
 poctivě, ne uzavřeno):**
-- Skutečný rozsah problému napříč katalogem -- kolik produktů má
-  checkbox zaškrtnutý bez odpovídající hodnoty, kolik má ZR20/ZR25
-  nesprávně odemčené.
+- Přesný seznam všech 61 kódů (jen vzorek 15 zaznamenán) -- uložit celý
+  seznam a porovnat 1:1 s ranním seznamem 55 chybějících.
+- Jestli je to VŽDY stejná skupina produktů co chybí na cenách i kupónech
+  (jeden root cause, dva projevy), nebo částečně odlišné množiny.
 - Root cause -- podezření na stejnou třídu problémů jako INC-010
   (`sync-coupon-fields-single-product.ts` běží jen na webhook, žádný
   plošný fallback po archivaci `coupon-fields.yml`/`coupon-fields-full-live.yml`

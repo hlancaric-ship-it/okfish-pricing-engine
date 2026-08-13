@@ -190,10 +190,18 @@ Souběžně (nezávisle zjištěno ve stejný den, viz commit `85de937`): Shopte
 - `sync-orchestrator.ts`: `isSuccess` zohledňuje `incompleteCodes` i `pricingFailures`; při neúspěchu se `lastSync` neposune (produkt se zkusí znovu za 15 min) a na konci se hodí `throw` — GitHub Actions job zčervená a spustí se issue-notifikace (mechanismus v `sync.yml` existoval už z INC-006, jen se tady nikdy nespustil).
 - `FLACARP` zvažován pro `brandLimits` (10% strop) — vědomě NEpřidán teď, platit má až od 2026-08-14 na Janovo přání.
 
+**Merge se souběžnou opravou (85de937, jiná session, stejný den):**
+Při nasazení se zjistilo, že mezitím na `origin/main` přibylo 60 commitů (většina automatické `chore: aktualizace času poslední synchronizace [skip ci]` z cronu, ale 7 reálných: INC-005 až INC-009 dokumentované výše + `85de937` "force-sync escape hatch pro 99459/103525"). `85de937` řeší JINOU příčinu stejného incidentu: Shoptet `/products/changes` endpoint tyhle dva produkty vůbec nikdy nenahlásil jako změněné (potvrzeno přímým dotazem na živé API přes 2+ dny), takže by je inkrementální sync nenašel, ani kdyby `perPricelistPrices` bylo v pořádku. Řešení: `force-sync-products.json` se seznamem `{code, guid}` párů, které se natáhnou vždy navíc, mimo `/products/changes`.
+
+Konflikt v `products-reader.ts` a `sync-orchestrator.ts` vyřešen ručním sloučením obou oprav (`git merge`, ne rebase) — force-sync větev teď taky respektuje `incompleteCodes` ochranu (nefabrikuje cenu 0, pokud `perPricelistPrices` chybí i pro force-synced produkt).
+
+**Zjištění PO mergi (důležité):** `force-sync-products.json` se mezi commitem `85de937` (07:57 CEST) a mergem vyprázdnil na `[]` (commit `5b978d6`, 08:11 UTC) — starý `SyncOrchestrator` produkty zpracoval (list smazal jako "hotovo"), ale to bylo ještě PŘED touhle opravou `pricing-bridge.ts`/`products-reader.ts`. Živý screenshot Shoptet admin z 08:36 UTC pořád ukazoval prázdná pole ZR4–ZR25 pro 103525 — potvrzuje, že ten běh se jen tvářil úspěšně, ceny reálně nezapsal. Seznam byl proto ručně doplněn zpátky (commit `0b271aa`), aby je opravená logika zpracovala doopravdy.
+
 **Zbývá:**
-- Po nasazení počkat na první incrementální běh — 99459/103525 by se měly dopočítat samy (Janův ruční zápis ceny je "změnil", takže spadnou do inkrementálního okna, navíc jsou i ve `force-sync-products.json`).
-- Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli `manufacturer` (case-sensitive match v `DiscountLimitPolicy`) — ověřit před přidáním zítra.
+- Po nasazení (push `0b271aa`, cca 2026-08-13 11:05 CEST) počkat na první inkrementální běh — 99459/103525 jsou ve `force-sync-products.json`, takže je natáhne bez ohledu na `/products/changes`. Ověřováno živě (viz ScheduleWakeup níže).
+- Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli `manufacturer` (case-sensitive match v `DiscountLimitPolicy`) — ověřit před přidáním zítra (2026-08-14).
 - Stejná třída tichého polykání chyb může existovat i jinde v pipeline (`customerWriter`/`pricelistWriter` interní retry logika) — nekontrolováno v rámci tohoto zásahu.
+- Obecné poučení: `force-sync-products.json` se automaticky čistí po "úspěšném" zpracování, ale "úspěch" před touto opravou neznamenal, že se cena reálně zapsala — jen že žádná výjimka nespadla. Stejný vzorec jako hlavní bug (INC-010 výše). Stojí za úvahu, jestli by se force-sync list neměl čistit až po ověření, že produkt má NEPRÁZDNÁ `prices` pro všechny tiery, ne jen po doběhnutí bez chyby.
 
 **Verze:**
 main (2026-08-13)

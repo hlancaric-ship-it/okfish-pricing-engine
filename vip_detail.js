@@ -63,12 +63,31 @@
         wrapper.prepend(box);
     }
 
+    // Přesune "Strážiť" (watchdog) ikonku z .link-icons (pod tlačítkem "Do
+    // košíka") vedle ceny. Nezávislé na VIP slevovém badge výše -- musí
+    // fungovat pro každého návštěvníka, ne jen přihlášené VIP zákazníky.
+    function moveWatchdogNextToPrice() {
+        const wrapper = document.querySelector(".p-final-price-wrapper");
+        const watchdog = document.querySelector(".link-icon.watchdog");
+        if (!wrapper || !watchdog || watchdog.dataset.vipMoved) return;
+
+        watchdog.dataset.vipMoved = "1";
+        watchdog.style.display = "inline-flex";
+        watchdog.style.alignItems = "center";
+        watchdog.style.marginLeft = "12px";
+        wrapper.appendChild(watchdog);
+    }
+
     function init() {
         renderDetail();
+        moveWatchdogNextToPrice();
         let timeout;
         const observer = new MutationObserver(() => {
             clearTimeout(timeout);
-            timeout = setTimeout(renderDetail, 200);
+            timeout = setTimeout(() => {
+                renderDetail();
+                moveWatchdogNextToPrice();
+            }, 200);
         });
         if (document.body) {
             observer.observe(document.body, { childList: true, subtree: true });
@@ -81,5 +100,8 @@
         init();
     }
 
-    window.addEventListener("vipReady", renderDetail);
+    window.addEventListener("vipReady", () => {
+        renderDetail();
+        moveWatchdogNextToPrice();
+    });
 })();

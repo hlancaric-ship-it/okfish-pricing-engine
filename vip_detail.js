@@ -72,7 +72,7 @@
         const style = document.createElement("style");
         style.id = "vip-watchdog-style";
         style.textContent = `
-            .price-final { flex-wrap: wrap; }
+            .price-final { flex-wrap: nowrap; }
             .vip-watchdog-block {
                 display: inline-flex !important;
                 align-items: center;
@@ -86,14 +86,13 @@
                 background-image: none !important;
             }
             .vip-watchdog-icon { font-size: 20px; line-height: 1; }
-            .vip-watchdog-title { font-weight: 700; color: #333; font-size: 12px; }
+            .vip-watchdog-title { font-weight: 700; color: #333; font-size: 12px; white-space: nowrap; }
             .vip-watchdog-sub { color: #888; font-size: 8px; white-space: nowrap; }
             @media (max-width: 600px) {
-                .vip-watchdog-block {
-                    margin-left: 0;
-                    margin-top: 6px;
-                    flex-basis: 100%;
-                }
+                .vip-watchdog-block { margin-left: 10px; gap: 4px; }
+                .vip-watchdog-icon { font-size: 14px; }
+                .vip-watchdog-title { font-size: 9px; }
+                .vip-watchdog-sub { font-size: 6px; }
             }
         `;
         document.head.appendChild(style);

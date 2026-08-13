@@ -89,13 +89,18 @@
             display: inline-flex !important;
             align-items: center;
             gap: 6px;
-            margin-left: 14px;
+            margin-left: 32px;
             text-decoration: none;
             vertical-align: middle;
             text-transform: none;
             white-space: nowrap;
             flex-shrink: 0;
+            background: none !important;
+            background-image: none !important;
         `;
+        // Nativní ikonka psa (Shoptet šablona) je background-image na
+        // .link-icon.watchdog, ne DOM obsah -- innerHTML níže ji nesmaže.
+        watchdog.classList.remove("watchdog");
         watchdog.innerHTML = `
             <span style="font-size:20px;line-height:1;">👮</span>
             <span style="display:flex;flex-direction:column;line-height:1.15;text-transform:none;">

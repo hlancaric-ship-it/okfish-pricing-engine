@@ -7,7 +7,7 @@ why, and what's still open.
 
 ---
 
-## 2026-08-13 (pokračování) — Katalogový audit dopadu chyby 5 (INC-010), PRŮBĚŽNÝ ZÁPIS
+## 2026-08-13 (pokračování) — Katalogový audit dopadu chyby 5 (INC-010), DOKONČENO
 
 **Kontext:** Po vyřešení INC-010 (99459/103525) vyšlo najevo, že `getProductDetail()`
 bug (`json.data.product`) existoval v repu minimálně od **2026-08-01** (12 dní,
@@ -34,21 +34,63 @@ skutečně zapsáno): `01011` 44,91 vs 49,90 | `101800` 577,46 vs 692,96 |
 99459/103525, potvrzuje že to byl širší problém s nedávno přidanými/měněnými
 produkty, ne jen ty dva nahlášené.
 
-**Právě běží:** stejný audit napříč VŠEMI 10 tiery (ZR4–ZR25) na pozadí, jen
-čtení, nic nezapisuje. Skript: `audit-catalog-drift-all.ts` ve scratchpadu.
-Výstup: `/tmp/audit-summary.json` (souhrn), `/tmp/audit-<TIER>-mismatches.json`
-a `/tmp/audit-<TIER>-missing.json` (detail po kódech) pro každý tier. Odhad
-doby běhu 15–20 min (11× stažení ~16-17k položek + manufacturer feed).
-**Tenhle zápis bude doplněn celkovým souhrnem, jakmile audit doběhne — zatím
-neuzavírat jako hotovo.**
+**FINÁLNÍ VÝSLEDEK — audit přes všech 10 tierů dokončen:**
 
-**Co z toho vyplývá už teď (i bez plného souhrnu):** rozsah dopadu chyby 5
-je řádově stovky produktů, ne jen 2. Až doběhne plný audit, bude potřeba
-navrhnout hromadnou opravu (pravděpodobně jednorázový "catch-up" běh, který
-force-synce/přepočítá VŠECHNY produkty s nesedící cenou napříč všemi tiery —
-ne force-sync-products.json po jednom kódu, to by bylo pro stovky kódů
-nepraktické). Zatím se nic hromadně nezapisovalo, čeká se na kompletní
-obrázek a schválení postupu.
+| Tier | Celkem | Sedí | Nesedí | Chybí |
+|------|--------|------|--------|-------|
+| ZR4  | 16705  | 16400| 250    | 55    |
+| ZR6  | 16705  | 16344| 306    | 55    |
+| ZR8  | 16705  | 16303| 347    | 55    |
+| ZR10 | 16705  | 16301| 349    | 55    |
+| ZR12 | 16705  | 16237| 413    | 55    |
+| ZR14 | 16705  | 16082| 568    | 55    |
+| ZR16 | 16705  | 15912| 738    | 55    |
+| ZR18 | 16705  | 15910| 740    | 55    |
+| ZR20 | 16705  | 15910| 740    | 55    |
+| ZR25 | 16705  | 15895| 755    | 55    |
+
+**812 unikátních produktových kódů** (~4,9 % katalogu) má špatnou cenu na
+alespoň jednom tieru. **Stejných 55 kódů chybí úplně na VŠECH 10 tierech**
+(žádný záznam v pricelistu vůbec) — pravděpodobně nedávno založené
+produkty se stejným osudem jako 99459/103525 (potvrzeno: obě už v seznamu
+chybějících nejsou, oprava fungovala). Vzorek chybějících: `110400`,
+`112054`–`112076`, `112416`, `112417`, ... (plný seznam
+`/tmp/audit-<TIER>-missing.json`, stejná sada napříč tiery).
+
+Pozorování: čím vyšší tier (víc slevy), tím víc nesedí (ZR4: 250 → ZR25:
+755) — konzistentní s tím, že produkty s brand/produktovými stropy
+(jako HASWING) se při špatném/neaktualizovaném výpočtu odchylují víc na
+vyšších tierech, kde by strop měl zasáhnout.
+
+**Rozsah příčiny:** přesně to, co jsme čekali — `getProductDetail()` bug
+existoval od 2026-08-01, celých 12 dní žádná normální produktová změna
+(nová cena, akční cena, nový strop) nepropsala do wholesale ceníků, pokud
+produkt neprošel jinou cestou (např. plošný full sync, který ale od
+2026-08-01 neproběhl ani jednou, nebo ruční CLI zásah).
+
+**Co zůstává otevřené / navrhované další kroky:**
+1. **Hromadná náprava** — 812 kódů je moc na `force-sync-products.json`
+   (ten je určený pro jednotky výjimek, ne stovky). Potřeba buď (a) vynutit
+   jednorázový FULL SYNC (smazat/ignorovat `.sync_state.json` na jeden běh
+   — `ProductsReader` pak jde přes `getPricelistProducts()`, úplně jinou,
+   nepostiženou cestu), nebo (b) napsat cílený "bulk catch-up" skript, co
+   vezme přesně těch 812 kódů a přepočítá/zapíše jen je. Varianta (a) je
+   jednodušší a bezpečnější (stejná cesta jako produkce), ale zapíše i
+   těch ~15,9k správných produktů znovu (neškodné, jen zbytečné API volání
+   navíc — cca 16-17k PATCH požadavků). **Nerozhodnuto, čeká na Janovo
+   rozhodnutí. Nic z tohohle auditu se zatím nezapsalo, byl to čistě
+   read-only audit.**
+2. Ověřit, jestli těch 55 "úplně chybějících" kódů má taky prázdnou
+   kupónovou politiku (stejný vzorec jako 103525 dnes ráno) — pravděpodobné,
+   nekontrolováno.
+3. Zvážit trvalý monitoring/alerting: pravidelný (např. týdenní) běh
+   tohohle read-only audit skriptu, aby podobný 12denní tichý drift příště
+   nezůstal bez povšimnutí měsíce. Skript zatím žije jen ve scratchpadu,
+   ne v repu — pokud se má používat trvale, přesunout do
+   `cloudflare-worker/src/cli/`.
+
+**Verze:** main (2026-08-13), audit proveden read-only proti živému
+produkčnímu Shoptet API, žádný zápis.
 
 ---
 

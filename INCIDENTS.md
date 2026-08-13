@@ -246,6 +246,60 @@ main (2026-08-13)
 
 ---
 
+**INC-010 šestý nález — katalogový dopad chyby 5, kvantifikováno auditem (11:00–12:00 UTC):**
+Jan se zeptal, jestli chyba 5 (`getProductDetail()` vracelo `undefined` odjakživa,
+existovalo od `git log -S` potvrzeného data 2026-08-01, 12 dní) zasáhla i jiné
+produkty než 99459/103525. Spuštěn READ-ONLY audit (žádný zápis): pro každý
+z 10 tierových ceníků porovnána cena spočítaná stejnou produkční funkcí
+(`calculateProductsPricing`) ze živé základní ceny (`Hlavný cenník`, id 1)
+proti tomu, co je skutečně zapsáno na tierovém ceníku.
+
+**Výsledek:**
+
+| Tier | Celkem | Sedí | Nesedí | Chybí |
+|------|--------|------|--------|-------|
+| ZR4  | 16705  | 16400| 250    | 55    |
+| ZR6  | 16705  | 16344| 306    | 55    |
+| ZR8  | 16705  | 16303| 347    | 55    |
+| ZR10 | 16705  | 16301| 349    | 55    |
+| ZR12 | 16705  | 16237| 413    | 55    |
+| ZR14 | 16705  | 16082| 568    | 55    |
+| ZR16 | 16705  | 15912| 738    | 55    |
+| ZR18 | 16705  | 15910| 740    | 55    |
+| ZR20 | 16705  | 15910| 740    | 55    |
+| ZR25 | 16705  | 15895| 755    | 55    |
+
+**812 unikátních kódů (~4,9 % katalogu) má špatnou cenu na aspoň jednom
+tieru. 55 kódů chybí úplně na všech 10 tierech** (stejný osud jako
+99459/103525 před opravou -- ty už v seznamu chybějících nejsou, potvrzuje
+funkčnost dnešní opravy). Vyšší tiery (víc slevy) mají víc nesedících --
+konzistentní s tím, že brand/produktové stropy se při neaktualizovaném
+výpočtu odchylují víc, čím vyšší je nominální sleva, kterou by měly
+osekávat.
+
+**Rozhodnutí:** Zatím se NIC hromadně nezapisovalo -- audit byl čistě
+read-only. Rozhodnutí o nápravném postupu (vynucený full sync vs. cílený
+bulk catch-up skript pro 812 kódů) čeká na Jana.
+
+**Detailní data:** `/tmp/audit-summary.json` (souhrn + seznam 812 kódů),
+`/tmp/audit-<TIER>-mismatches.json` a `-missing.json` (po tierech) --
+lokální, není commitnuto do repa (citlivá/objemná provozní data).
+Audit skript: `audit-catalog-drift-all.ts`, zatím jen ve scratchpadu, ne
+v repu.
+
+**Zbývá:**
+- Rozhodnout a provést hromadnou nápravu (viz PROGRESS_LOG.md pro detaily
+  obou navrhovaných variant).
+- Ověřit, jestli 55 úplně chybějících kódů má taky prázdnou kupónovou
+  politiku (stejný vzorec jako 103525).
+- Zvážit trvalý periodický read-only audit (týdenní?) jako včasný
+  varovný signál proti podobnému tichému driftu v budoucnu.
+
+**Verze:**
+main (2026-08-13)
+
+---
+
 *(Řádky výše jsou první reálné produkční incidenty. Formát pro další záznamy viz vzor níže.)*
 
 <!-- Vzor záznamu:

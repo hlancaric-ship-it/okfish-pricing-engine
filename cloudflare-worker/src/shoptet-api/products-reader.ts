@@ -1,11 +1,43 @@
 import { ShoptetApiClient } from './client';
 import Decimal from 'decimal.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface ShoptetProduct {
     code: string;
     price: Decimal;
     actionPrice?: Decimal;
     productMaxDiscount?: Decimal;
+}
+
+interface ForceSyncEntry {
+    code: string;
+    guid: string;
+}
+
+// Shoptet's /products/changes endpoint has been observed to never report a
+// change event for some products created directly in the admin UI (seen
+// with codes 99459 and 103525 on 2026-08-13 — confirmed absent from the
+// changes list across a 2+ day window despite existing and being priced in
+// the product export). Since incremental sync only ever looks at that
+// endpoint, an affected product would otherwise be skipped forever. This
+// file is a manual escape hatch: codes listed here get their detail
+// fetched and merged in on every incremental run regardless of what the
+// changes API reports, and the list is cleared automatically once they've
+// been synced (see SyncOrchestrator).
+const FORCE_SYNC_FILE = path.join(process.cwd(), 'force-sync-products.json');
+
+export function loadForceSyncEntries(): ForceSyncEntry[] {
+    try {
+        if (!fs.existsSync(FORCE_SYNC_FILE)) return [];
+        const raw = fs.readFileSync(FORCE_SYNC_FILE, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((e): e is ForceSyncEntry => !!e?.code && !!e?.guid);
+    } catch (e) {
+        console.warn(`[ForceSync] Nepodařilo se načíst ${FORCE_SYNC_FILE}, pokračuji bez něj:`, e);
+        return [];
+    }
 }
 
 export class ProductsReader {
@@ -79,6 +111,20 @@ export class ProductsReader {
                     actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
                     productMaxDiscount
                 });
+            }
+
+            const forceEntries = loadForceSyncEntries();
+            const alreadyCovered = new Set(products.map(p => p.code));
+            for (const entry of forceEntries) {
+                if (alreadyCovered.has(entry.code)) continue;
+                console.log(`ProductsReader: [ForceSync] Doplňuji produkt ${entry.code}, chybí v Shoptet changes API.`);
+                const detail = await this.apiClient.getProductDetail(entry.guid);
+                if (!detail) {
+                    console.warn(`ProductsReader: [ForceSync] Produkt ${entry.code} (guid ${entry.guid}) nenalezen v API.`);
+                    continue;
+                }
+                const basePrice = detail.price ? parseFloat(detail.price.withVat || detail.price.withoutVat || "0") : 0;
+                products.push({ code: detail.code || entry.code, price: new Decimal(basePrice) });
             }
 
             console.log(`ProductsReader: Staženo a zpracováno ${products.length} změněných produktů.`);

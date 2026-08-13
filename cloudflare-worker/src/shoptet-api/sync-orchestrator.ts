@@ -9,6 +9,8 @@ import { ICustomerCache } from './customer-cache';
 import { FileStateProvider, ISyncStateProvider } from './state-provider';
 import { CsvParserStream } from '../csv/csv-parser';
 import Decimal from 'decimal.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // The Shoptet Private API's pricelist-items endpoint (used by ProductsReader)
 // never returns `manufacturer` -- it's a product-catalog attribute, not a
@@ -383,6 +385,19 @@ export class SyncOrchestrator {
             // Zapíšeme state pouze pokud neselhal ani jeden zápis!
             await stateProvider.setLastSync(syncStartedAt);
             console.log(`[State] Uložen nový lastSync: ${syncStartedAt}`);
+
+            // Force-synced codes have now gone through the normal diff/write
+            // path like any other product — clear the escape hatch so they
+            // don't get force-refetched on every future run.
+            try {
+                const forceSyncFile = path.join(process.cwd(), 'force-sync-products.json');
+                if (fs.existsSync(forceSyncFile)) {
+                    fs.writeFileSync(forceSyncFile, '[]\n', 'utf-8');
+                    console.log('[ForceSync] force-sync-products.json vyčištěn po úspěšném běhu.');
+                }
+            } catch (e) {
+                console.warn('[ForceSync] Nepodařilo se vyčistit force-sync-products.json:', e);
+            }
         } else {
             console.log(`NO`);
             if (this.options.dryRun) console.log(`- Zrušte dryRun flag pro ostrý běh (lastSync nebyl zapsán)`);

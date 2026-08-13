@@ -101,7 +101,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: aktualizace času poslední synchronizace [skip ci]"
-          file_pattern: .sync_state.json
+          file_pattern: .sync_state.json force-sync-products.json
 
       # Nový, IZOLOVANÝ krok -- pouze pro webhook product:create/product:update.
       # Vědomě na samém konci, PO už ověřeném a funkčním hlavním syncu i

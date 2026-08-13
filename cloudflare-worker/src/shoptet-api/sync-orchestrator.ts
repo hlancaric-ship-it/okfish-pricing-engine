@@ -152,7 +152,10 @@ export class SyncOrchestrator {
         GlobalStats.phase = 'fetch-products';
         console.log(`\n3. Stahování produktů ze základního ceníku (ID: ${basePricelistId})...`);
         const productsReader = new ProductsReader(this.client);
-        const sourceProducts = await productsReader.fetchProducts(basePricelistId, this.options.maxPages, lastSync);
+        const { products: sourceProducts, incompleteCodes } = await productsReader.fetchProducts(basePricelistId, this.options.maxPages, lastSync);
+        if (incompleteCodes.length > 0) {
+            console.warn(`\n[WARNING] ${incompleteCodes.length} produkt(y) vynechány z tohoto běhu (chybí perPricelistPrices, typicky čerstvě založený produkt): ${incompleteCodes.join(', ')}`);
+        }
 
         GlobalStats.phase = 'manufacturer-map';
         console.log('   Stahování feedu pro mapování manufacturer (nutné pro brandLimits stropy)...');
@@ -177,9 +180,16 @@ export class SyncOrchestrator {
         // 5. Výpočet cen (Pricing Engine Black Box)
         GlobalStats.phase = 'pricing-engine';
         let calculated: any[] = [];
+        let pricingFailures: Array<{code: string, tier: string, reason: string}> = [];
         if (engineProducts.length > 0) {
             console.log('\n5. Spouštění výpočtu Pricing Engine...');
-            calculated = calculateProductsPricing(engineProducts, pricelists);
+            const pricingResult = calculateProductsPricing(engineProducts, pricelists);
+            calculated = pricingResult.results;
+            pricingFailures = pricingResult.failures;
+            if (pricingFailures.length > 0) {
+                console.warn(`\n[WARNING] ${pricingFailures.length} tier-výpočet(ů) selhalo/zamítnuto engine:`);
+                for (const f of pricingFailures) console.warn(`   - ${f.code} / ${f.tier}: ${f.reason}`);
+            }
         } else {
             console.log('\n5. Optimalizace: Žádné produkty ke změně, vynechávám Pricing Engine.');
         }
@@ -370,14 +380,22 @@ export class SyncOrchestrator {
         console.log(`Peak memory: ${memoryUsage}`);
         console.log(`Execution time: ${durationSec}s\n`);
 
-        const isSuccess = (totalPricelistFails === 0 && customerStats.failed === 0);
+        // incompleteCodes a pricingFailures se NESMÍ ignorovat -- právě tohle byla
+        // díra z INCIDENTU 2026-08-12 (99459, 103525): produkt beze ceny na tieru
+        // prostě zmizel z výstupu, nikdy se nepočítal jako "failed", run doběhl
+        // jako SUCCESS a lastSync se posunul dál, takže se produkt už nikdy znovu
+        // nezkusil, dokud ho někdo ručně neopravil.
+        const isSuccess = (totalPricelistFails === 0 && customerStats.failed === 0
+            && incompleteCodes.length === 0 && pricingFailures.length === 0);
         console.log(`FINAL RESULT:`);
         console.log(`${isSuccess ? 'SUCCESS' : 'FAILED'}\n`);
 
         console.log(`READY FOR PRODUCTION:`);
         if (isSuccess && !this.options.dryRun) {
             console.log(`YES`);
-            // Zapíšeme state pouze pokud neselhal ani jeden zápis!
+            // Zapíšeme state pouze pokud neselhal ani jeden zápis A nic nebylo
+            // vynecháno pro chybějící data -- jinak by se nedokončený produkt už
+            // nikdy nedostal do dalšího inkrementálního okna.
             await stateProvider.setLastSync(syncStartedAt);
             console.log(`[State] Uložen nový lastSync: ${syncStartedAt}`);
         } else {
@@ -385,7 +403,24 @@ export class SyncOrchestrator {
             if (this.options.dryRun) console.log(`- Zrušte dryRun flag pro ostrý běh (lastSync nebyl zapsán)`);
             if (totalPricelistFails > 0) console.log(`- Selhal zápis produktů (${totalPricelistFails})`);
             if (customerStats.failed > 0) console.log(`- Selhal zápis zákazníků (${customerStats.failed})`);
+            if (incompleteCodes.length > 0) console.log(`- Vynecháno pro chybějící ceníková data (${incompleteCodes.length}): ${incompleteCodes.join(', ')}`);
+            if (pricingFailures.length > 0) console.log(`- Selhal výpočet tieru (${pricingFailures.length}) -- viz WARNING výše`);
+            if (!this.options.dryRun) {
+                console.log(`[State] lastSync NEPOSUNUT -- příští běh (cron za 15 min) tyto produkty zkusí znovu.`);
+            }
         }
         console.log();
+
+        // Musí se propagovat jako reálné selhání (throw), ne jen tisk do konzole --
+        // jinak run-real-sync.ts vidí exit 0, GitHub Actions job je zelený, žádný
+        // issue se nevytvoří a nikdo se to nedozví (přesně to se stalo 2026-08-12).
+        if (!isSuccess && !this.options.dryRun) {
+            const parts: string[] = [];
+            if (totalPricelistFails > 0) parts.push(`${totalPricelistFails}x selhal zápis ceníku`);
+            if (customerStats.failed > 0) parts.push(`${customerStats.failed}x selhal zápis zákazníka`);
+            if (incompleteCodes.length > 0) parts.push(`${incompleteCodes.length}x chybí ceníková data (${incompleteCodes.join(', ')})`);
+            if (pricingFailures.length > 0) parts.push(`${pricingFailures.length}x selhal výpočet tieru`);
+            throw new Error(`Synchronizace neúspěšná: ${parts.join('; ')}`);
+        }
     }
 }

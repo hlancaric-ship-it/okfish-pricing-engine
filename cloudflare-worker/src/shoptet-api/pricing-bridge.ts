@@ -4,13 +4,25 @@ import { CustomerTier, PricingInput } from '../../../src/core/interfaces.js';
 import Decimal from 'decimal.js';
 import * as path from 'path';
 
-export function calculateProductsPricing(products: Array<any>, pricelists: Array<{name: string, id: number}>) {
+export interface PricingFailure {
+    code: string;
+    tier: string;
+    reason: string;
+}
+
+export function calculateProductsPricing(products: Array<any>, pricelists: Array<{name: string, id: number}>): { results: Array<{code: string, prices: Record<string, string>}>; failures: PricingFailure[] } {
     // Používáme stávající v1.json konfiguraci
     const configPath = path.join(process.cwd(), 'src/config/policies/policy-v1.json');
     const engine = EngineBuilder.fromConfig(configPath).build();
     const validationEngine = new ValidationEngine();
 
     const results: Array<{code: string, prices: Record<string, string>}> = [];
+    // Dřív se sem sbíralo NIC -- selhání validace/výpočtu se prostě zahodilo (viz
+    // INCIDENT 2026-08-12: 99459 a 103525 skončily bez ceny na několika tierech a
+    // run přesto doběhl jako "SUCCESS", protože žádný chybějící tier se nikde
+    // nepočítal jako failure). Teď se každé tiché selhání jmenovitě loguje a hlásí
+    // nahoru orchestrátoru, který podle toho běh označí jako neúspěšný.
+    const failures: PricingFailure[] = [];
 
     for (const p of products) {
         const itemResult: {code: string, prices: Record<string, string>} = {
@@ -57,19 +69,35 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
 
             try {
                 const inputValidation = validationEngine.validateInput(input);
-                if (inputValidation.valid) {
-                    const res = engine.calculatePrice(input);
-                    const resultValidation = validationEngine.validateResult(res);
-                    if (resultValidation.valid && !res.rejected) {
-                        itemResult.prices[pl.name] = res.finalPrice.toFixed(4);
-                    }
+                if (!inputValidation.valid) {
+                    const reason = `input invalid: ${inputValidation.reason}`;
+                    console.warn(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
+                    failures.push({ code: p.code, tier: pl.name, reason });
+                    continue;
                 }
+                const res = engine.calculatePrice(input);
+                const resultValidation = validationEngine.validateResult(res);
+                if (!resultValidation.valid) {
+                    const reason = `result invalid: ${resultValidation.reason}`;
+                    console.warn(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
+                    failures.push({ code: p.code, tier: pl.name, reason });
+                    continue;
+                }
+                if (res.rejected) {
+                    const reason = `rejected by engine: ${res.rejectReason}`;
+                    console.warn(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
+                    failures.push({ code: p.code, tier: pl.name, reason });
+                    continue;
+                }
+                itemResult.prices[pl.name] = res.finalPrice.toFixed(4);
             } catch (e) {
-                // Ignore calculation errors for specific products
+                const reason = `exception: ${(e as Error).message}`;
+                console.warn(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
+                failures.push({ code: p.code, tier: pl.name, reason });
             }
         }
         results.push(itemResult);
     }
 
-    return results;
+    return { results, failures };
 }

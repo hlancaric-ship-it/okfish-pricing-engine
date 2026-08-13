@@ -7,6 +7,62 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13
+
+**Incident:** 99459 a 103525 (nové produkty přidané Yopni 2026-08-12) neměly
+vůbec dopočítané tier-ceny na wholesale ceníku — Jan je musel dopisovat
+ručně. Na frontendu se přihlášenému ZR25 zákazníkovi zobrazovalo jen -10 %
+místo -25 %. Root cause: `sync.yml` doběhl zeleně, i když ceny fakticky
+chybely — tři na sobě navazující tiché-selhání bugy:
+
+1. `cloudflare-worker/src/shoptet-api/products-reader.ts` (inkrementální
+   větev): když Shoptet ještě nepropsal `perPricelistPrices` pro nově
+   založený produkt na základní ceník, kód fabrikoval `basePrice=0` a
+   produkt přesto poslal dál do pricing enginu.
+2. `cloudflare-worker/src/shoptet-api/pricing-bridge.ts`: `validateInput` /
+   `validateResult` / `res.rejected` / vyhozená výjimka se pro konkrétní
+   SKU+tier prostě zahodily (`catch (e) { /* Ignore */ }`) — bez logu, bez
+   počítání jako failure.
+3. `cloudflare-worker/src/shoptet-api/sync-orchestrator.ts`: `isSuccess`
+   se sice vypočítal a vypsal do konzole jako `FAILED`, ale nikdy se
+   nepropagoval jako throw — `run-real-sync.ts` tak viděl exit 0, GitHub
+   Actions job zůstal zelený, žádný issue se nevytvořil.
+
+**Fix (jen v repu, zatím nenasazeno na produkci):**
+- `products-reader.ts`: chybějící `perPricelistPrices` entry produkt vynechá
+  z běhu (`incompleteCodes`), nefabrikuje se cena 0.
+- `pricing-bridge.ts`: každé selhání validace/výpočtu/zamítnutí se teď loguje
+  (`console.warn` s SKU+tier+reason) a vrací se v poli `failures`.
+- `sync-orchestrator.ts`: `isSuccess` teď zohledňuje `incompleteCodes` i
+  `pricingFailures`; při neúspěchu se `lastSync` NEPOSUNE (produkt se zkusí
+  znovu příští cron běh za 15 min) a na konci se hodí `throw` — takže
+  GitHub Actions job zčervená a vytvoří se issue (mechanismus v sync.yml už
+  existoval, jen se nikdy nespustil).
+- Aktualizovány testy `cloudflare-worker/tests/products-reader.test.ts`
+  (nový regresní test na fabrikaci ceny 0) a `scripts/verify-pricing-bridge-samples.ts`
+  na nový návratový tvar. Celá sada 236/236 zelená.
+- Přidán `FLACARP` do `brandLimits` v `src/config/policies/policy-v1.json`
+  (10% strop) — jediný zdroj pravdy, sdílený wholesale enginem
+  (`pricing-bridge.ts`) i frontend/coupon enginem
+  (`cloudflare-worker/src/engine/config.ts` ho importuje přímo). Název
+  značky odhadnut z produktových názvů ve `products.csv` ("FLACARP") —
+  pokud `manufacturer` pole z master feedu používá jiný casing, lookup je
+  case-sensitive a strop se potichu neuplatní; stojí za ověření na živém
+  feedu.
+
+**Co je pořád otevřené:**
+- 99459 a 103525 samotné se dopočítají automaticky na dalším syncu POTÉ,
+  co se tenhle fix nasadí (produkt musí být znovu "changed" — Janův ruční
+  zápis ceny to už vyvolal, takže by měly naskočit hned v prvním běhu po
+  merge). Není nasazeno — čeká na review/merge/deploy.
+- Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli
+  `manufacturer` (case-sensitive match v `DiscountLimitPolicy`).
+- Stejná třída tichého polykání chyb může existovat i jinde v pipeline
+  (např. `customerWriter`/`pricelistWriter` interní retry logika) —
+  nekontrolováno v rámci tohoto zásahu.
+
+---
+
 ## 2026-08-08
 
 **Done:**

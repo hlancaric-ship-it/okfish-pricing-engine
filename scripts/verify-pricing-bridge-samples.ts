@@ -45,11 +45,12 @@ async function main() {
         console.log(`\n=== ${item.code} ===`);
         console.log(`  basePrice=${basePrice} actionPrice=${actionPrice} live minPriceRatio=${ratio} (=> old-code would've used productMaxDiscount=${productMaxDiscount})`);
 
-        const results = calculateProductsPricing(
+        const { results, failures } = calculateProductsPricing(
             [{ code: item.code, basePrice, actionPrice, productMaxDiscount, manufacturer: SAMPLE_MANUFACTURER[item.code] }],
             pricelists.map(p => ({ name: p.name, id: p.id }))
         );
         console.log('  Vypočtené ceny (fixed pricing-bridge):', JSON.stringify(results[0]?.prices, null, 2));
+        if (failures.length > 0) console.log('  SELHÁNÍ:', JSON.stringify(failures, null, 2));
     }
 }
 

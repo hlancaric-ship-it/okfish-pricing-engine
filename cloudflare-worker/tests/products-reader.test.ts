@@ -31,9 +31,10 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
             { pricelistId: BASE_PRICELIST_ID, price: { price: '650.00' }, sales: { minPriceRatio: 0.95 } }, // 5% max discount
         ]));
 
-        const products = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
 
         expect(products).toHaveLength(1);
+        expect(incompleteCodes).toHaveLength(0);
         expect(products[0].price.toNumber()).toBe(650);
         expect(products[0].productMaxDiscount).toBeDefined();
         expect(products[0].productMaxDiscount!.toNumber()).toBeCloseTo(0.05);
@@ -44,21 +45,26 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
             { pricelistId: BASE_PRICELIST_ID, price: { price: '650.00', actionPrice: { price: '500.00' } }, sales: { minPriceRatio: 0.95 } },
         ]));
 
-        const products = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
+        const { products } = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
 
         expect(products[0].actionPrice).toBeDefined();
         expect(products[0].actionPrice!.toNumber()).toBe(500);
     });
 
-    it('leaves productMaxDiscount undefined (not a wrong 0) when the pricelist entry for this product is missing entirely', async () => {
+    // Regression test for INCIDENT 2026-08-12 (99459, 103525): a product changed
+    // (e.g. just created) but Shoptet hasn't yet propagated it into perPricelistPrices
+    // for the base pricelist. The old code fabricated basePrice=0 and wrote that as a
+    // real price -- silently. The fix: exclude the product from this run's results
+    // entirely and report it via incompleteCodes, so the orchestrator can refuse to
+    // advance lastSync and retry it on the next run instead of losing it forever.
+    it('excludes the product and reports it via incompleteCodes when the pricelist entry is missing entirely (does NOT fabricate price=0)', async () => {
         const reader = new ProductsReader(fakeClient([
             { pricelistId: 999, price: { price: '1000.00' }, sales: { minPriceRatio: 0.5 } }, // only a foreign pricelist present
         ]));
 
-        const products = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
 
-        expect(products).toHaveLength(1);
-        expect(products[0].price.toNumber()).toBe(0);
-        expect(products[0].productMaxDiscount).toBeUndefined();
+        expect(products).toHaveLength(0);
+        expect(incompleteCodes).toEqual(['SKU-1']);
     });
 });

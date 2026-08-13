@@ -7,6 +7,81 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Dry-run full sync DOKONČEN + vize "Price Truth Engine"
+
+### Dry-run full sync — výsledek (náprava 812 produktů)
+Běh trval 2404s (~40 min): 16 711 produktů, 47 918 zákazníků, 191 856
+objednávek. Přes všech 10 tierů by se ostře zapsalo **54 886 cenových
+položek**, `Products failed: 0`, `Customers failed: 0`, `FINAL RESULT:
+SUCCESS`, žádný jediný 4xx/5xx z 51 974 GET požadavků. Číslo 54 886 je
+vyšší než 812 (počet reálně postižených) záměrně -- `FileCacheProvider`
+je při čerstvém běhu prázdný, takže se diffuje proti ničemu a "změněné"
+je úplně všechno, ne jen to špatné. To je očekávané chování full syncu,
+ne problém. **`READY FOR PRODUCTION: NO` jen kvůli `dryRun` flagu
+samotnému** -- žádný jiný blokující nález. Čeká se na Janovo schválení
+ostrého běhu.
+
+### Vize: Price Truth Engine (Janův návrh, rozšiřuje Stage 5)
+Jan navrhl přejmenovat/rozšířit dnešní Stage 5 (reconciliation) na
+samostatně pojmenovanou komponentu **Price Truth Engine**, se 4 vrstvami
+pravdy a 5 kategoriemi driftu:
+
+**4 vrstvy pravdy:**
+1. **Business Truth** -- co má pravidlo skutečně být (např. "HASWING max
+   sleva 4 %"). Žije mimo kód -- v hlavě obchodníka / v rozhodnutí klienta.
+2. **Policy Truth** -- co je zapsáno v `policy-v1.json` a dalších policy
+   souborech (např. `"HASWING": 0.10`).
+3. **Calculated Truth** -- co engine z Policy Truth spočítá
+   (`calculateProductsPricing()`).
+4. **Stored Truth** -- co Shoptet skutečně obsahuje.
+
+**5 kategorií driftu (rozšířeno o RULE DRIFT a POLICY CONFLICT):**
+
+| Situace | Kategorie | Automatizovatelné dnes? |
+|---|---|---|
+| Policy Truth = Calculated Truth, ale Shoptet nesedí | **PRICE DRIFT** | ANO -- hotovo (`reconcile-pricelist-drift.ts`) |
+| Produkt v tier ceníku vůbec není | **MISSING** | ANO -- hotovo |
+| Dva policy soubory si tiše protiřečí na stejném klíči | **POLICY CONFLICT** | ČÁSTEČNĚ -- viz níže |
+| Policy Truth ≠ Calculated Truth (engine nepočítá podle vlastní konfigurace) | **RULE DRIFT** (užší význam) | ANO, teoreticky -- ale v současné architektuře by to znamenalo bug v samotném engine, ne v datech; žádný známý dnešní případ |
+| Business Truth ≠ Policy Truth (pravidlo v JSON je jinak, než má být) | **BUSINESS RULE DRIFT** | **NE bez externího zdroje** -- viz klíčová otevřená otázka níže |
+
+### Klíčová otevřená otázka: kde žije Business Truth?
+PRICE DRIFT, MISSING a (užší) RULE DRIFT jsou čistě odvoditelné z kódu --
+nepotřebují nic zvenčí, systém porovnává sám sebe se sebou na různých
+úrovních. **BUSINESS RULE DRIFT je jiná kategorie**: "HASWING má být 4 %"
+není nikde v repu zapsáno jako strojově čitelný fakt -- je to jen
+tvrzení, které buď Jan ví, nebo neví. Bez existujícího externího zdroje
+pravdy (schválená tabulka? pole v Shoptet adminu s "official" hodnotou?
+podpisový/schvalovací proces při změně `policy-v1.json`?) to žádný
+automatizovaný systém nemůže sám objevit -- nejde o chybějící kód, jde o
+chybějící ZDROJ DAT. **Čeká na Janovo rozhodnutí, kam by Business Truth
+měl reálně patřit**, než se BUSINESS RULE DRIFT dá vůbec navrhovat, natož
+implementovat.
+
+### POLICY CONFLICT -- co už částečně existuje
+Stage 1 (`config.ts`'s `assertNoCrossFileConflicts()`) už dnes detekuje
+kolizi na úrovni PRODUKTOVÝCH kódů mezi třemi soubory
+(`zero-discount-products.json`, `clearance-sale-products.json`,
+`product-max-discount-overrides.json`) -- to JE POLICY CONFLICT detekce,
+jen omezená na tyhle tři soubory a jen na produktovou úroveň.
+
+Janův ilustrační příklad (dva soubory nesouhlasí na stejné ZNAČCE,
+"brand-policy.json HASWING=10%" vs "product-limits.json HASWING=4%")
+**nemá v současné architektuře přímou obdobu** -- `brandLimits` (per
+značka) a `product-max-discount-overrides.json` (per produktový kód) žijí
+na různých klíčích ve stejné hierarchii (Produkt → Značka → Kategorie),
+takže se strukturálně nemohou "přít" o stejnou hodnotu stejným způsobem,
+jako by mohly dva soubory se stejným klíčovým prostorem. Obecný princip
+(dvě pravidla, jedna otázka, rozdílná odpověď) ale platí i tak -- stojí za
+prozkoumání, jestli existuje jiná reálná dvojice zdrojů v tomhle repu, kde
+by ke kolizi dojít mohlo, než se bude stavět nová detekce.
+
+**Zatím se nic z tohohle nezačalo implementovat** -- tenhle zápis je
+zachycení architektury/rozhodnutí, ne dokončená práce. Čeká se na Janovu
+odpověď k otázce Business Truth zdroje, než se půjde dál.
+
+---
+
 ## 2026-08-13 (pokračování) — Stage 5 postaveno: Reconciliation / Price Integrity Layer + self-check
 
 **Postaveno (kód existuje, ještě není commitnuté/pushnuté v době psaní

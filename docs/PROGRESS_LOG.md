@@ -7,6 +7,50 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Zadání: Reconciliation / Price Integrity Layer, PRÁVĚ ZAČÍNÁ STAVBA
+
+**Zadání (Jan), doslovně:** Stage 5 z návrhu výše (`CORE_LOGIC_AND_VALIDATION.md`
+§3.5) se má postavit hned, ne jen zůstat navržený. Přesná specifikace
+formátu alertu, jak ji Jan zadal:
+
+> Reconciliation / Price Integrity Layer, který pravidelně řekne:
+> „Tahle cena měla být X. Shoptet má Y. Rozdíl = Z. Produkt nebyl
+> synchronizován. → ALERT."
+>
+> Pak už nikdy nemusíš čekat, až někdo náhodou otevře produkt 99459 a
+> řekne: „Hele, proč tam mám -10 % místo -25 %?" Systém ti to řekne sám.
+
+Cíl: stejná diagnostika, co dnes odhalila 812 postižených produktů
+(`audit-catalog-drift-all.ts`, zatím jen scratchpad), ale jako TRVALÁ,
+naplánovaná součást pipeline — ne jednorázový ruční běh na požádání.
+
+**Co se bude stavět (podle §3.5 návrhu):**
+1. Přesun/přepis skriptu do `cloudflare-worker/src/cli/reconcile-pricelist-drift.ts`
+   -- read-only, žádný zápis, stejná core logika jako dnešní scratchpad
+   verze (porovnání `calculateProductsPricing()` výstupu proti živému
+   stavu na Shoptet tierových ceníkách), ale výstup ve formátu, co Jan
+   zadal: pro každý nesedící produkt konkrétně "Tahle cena měla být X,
+   Shoptet má Y, rozdíl Z, produkt nebyl synchronizován."
+2. Scheduled GitHub Actions workflow (denní cron), co skript spouští.
+3. Fail-closed napojení na alerting: při nálezu driftu nad toleranci
+   `throw` -> stejný mechanismus jako `sync.yml` dnes (GH Actions job
+   zčervená, vytvoří/aktualizuje se issue) -- žádný tichý log, žádné
+   čekání, až si toho někdo všimne ručně na frontendu.
+4. Debounce/threshold (viz §3.5): "úplně chybí" alertovat okamžitě,
+   "hodnota nesedí" až při přetrvání přes 2 po sobě jdoucí denní běhy,
+   aby to nebylo hlučné na běžnou 15minutovou latenci cronu.
+
+**Stav:** implementace právě začíná (tenhle zápis je "start" marker,
+psaný podle Janova pokynu ihned, ne až po dokončení). Souběžně pořád
+běží dry-run full sync (náprava 812 produktů, viz předchozí zápis) --
+obě věci jsou nezávislé, dry-run se nezastavuje kvůli stavbě
+reconciliation vrstvy.
+
+**Zatím se nic nezapsalo, nic není nasazené.** Bude doplněno dalším
+zápisem, jakmile bude Stage 5 hotová a otestovaná.
+
+---
+
 ## 2026-08-13 (pokračování) — Architektonický závěr INC-010: 5 pilířů trvalé ochrany
 
 **Zadání (Jan):** oprava 812 postižených produktů je jen half práce.

@@ -150,6 +150,15 @@ main (2026-08-12, commit `122ff37`)
 
 ---
 
+### Ověření stability (2026-08-13) — issue #3 zavřen
+Po opravách z 12.8. (retry logika, propagace chyby, diff-aware KV) proběhlo 15+ po sobě jdoucích úspěšných běhů `sync.yml`, žádné selhání. Zachycen i první reálný test po opravě: běh 12.8. 20:09 správně zpracoval a zapsal 1 zákazníka se změněným věrnostním tierem (`CustomerWriter: Nalezeno 1 zákazníků`, `Customers processed: 1`). Issue #3 zavřen s odkazem na tuhle stabilitu.
+
+**Zjištění k zákaznické cache (ne bug, jen upřesnění rozsahu):** ověřeno v `customer-adapter.ts` — `processCustomers()` v inkrementálním režimu volá `getCustomerChanges(lastSync)`, tedy filtruje už na úrovni Shoptet API, ne až lokálně. Zákaznická cache sice (na rozdíl od produktové) nemá diff-aware zápis do KV — co se načte, to se zapíše bez porovnání se starou hodnotou — ale protože se běžně načítá jen hrstka změněných zákazníků za běh (potvrzeno v logu: `Customers loaded` 0–4, nikdy 47 800), reálný dopad plýtvání je malý. Všech ~47 800 zákazníků se zapíše najednou jen při **full syncu** (`isFullSync=true`, tj. když `.sync_state.json` nemá `lastSync` — první běh nebo ruční reset stavu).
+
+**Zbývá (odloženo, ne urgentní):** stejná diff-aware oprava jako u produktů (INC-007) by šla udělat i pro zákaznickou KV cache — nízká priorita vzhledem k výše uvedenému zjištění, plánováno jako samostatný budoucí úkol.
+
+---
+
 ### Provozní úklid (ne incident, ale součást stejného zásahu)
 Bezpečnostní/architektonický audit (2026-08-12) odhalil ~30 jednorázových debug/export/find/fix/verify workflow souborů z incident-response práce (3.–6. 8. 2026), které už splnily účel a jen zbytečně zahlcovaly seznam GitHub Actions tlačítek. Přesunuty do `.github/workflows-archive/` (git historie zachována, GitHub Actions je už nevidí/nenabízí ke spuštění). `sync-guest-coupon-cap.yml` mezi nimi — jeho rozbitá logika už jednou způsobila reálný incident (přepis stropů slev na 14 606 produktech, 5.8.2026), cron byl vypnutý, ale skript samotný nikdy opraven — archivace ho znepřístupnila i pro manuální spuštění.
 

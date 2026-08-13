@@ -44,6 +44,34 @@ poctivě, ne uzavřeno):**
   seznam a porovnat 1:1 s ranním seznamem 55 chybějících.
 - Jestli je to VŽDY stejná skupina produktů co chybí na cenách i kupónech
   (jeden root cause, dva projevy), nebo částečně odlišné množiny.
+
+**HODNOTY (ne jen boolean) ověřeny na 5 náhodných "starých" produktech
+(100798-100802, ZR4):** `computeCouponWrites()` (produkční funkce) spočítala
+`minPriceRatio=0.8400` u všech pěti, živá hodnota v Shoptetu **přesně
+sedí** (`0.840`) u všech pěti. Na tomhle vzorku je tedy potvrzeno: pro
+již plně synchronizované produkty jsou kupónové HODNOTY (ne jen
+zámek/checkbox) správně dopočítané a zapsané, ne jen náhodou "vypadají
+OK". Malý vzorek (5 kusů) -- ne vyčerpávající důkaz, ale konzistentní se
+závěrem výše (problém omezen na ~61 nedokončených produktů, ne
+celoplošný).
+
+**ZADÁNÍ PRO PŘÍŠTÍ SESSION (Jan, explicitně, vysoká priorita):**
+Kupónový pipeline potřebuje **stejný 5-stupňový validační model jako
+pricing** (viz `CORE_LOGIC_AND_VALIDATION.md` §3, Stage 1-5) **VČETNĚ
+self-check vrstvy** (validace toho, že samotná validace/reconciliation
+proběhla smysluplně, ne jen "0 alertů" bez záruky, že se vůbec něco
+zkontrolovalo -- stejný vzorec jako `reconcile-pricelist-drift.ts`'s
+self-check sekce). Konkrétně potřeba postavit:
+1. Stage 4 (run-level fail-closed) pro `sync-coupon-fields-single-product.ts`
+   a příbuzné skripty -- pokud dnes tiše nezapíšou, nikdo se to nedozví.
+2. Stage 5 (reconciliation) pro kupóny -- návrh už je výše (obdoba
+   `reconcile-pricelist-drift.ts`, `computeCouponWrites()` jako zdroj
+   pravdy, ZR20/ZR25 always-false jako první/nejjednodušší kontrola).
+3. Self-check uvnitř té Stage 5 kupónové reconciliace -- stejný vzorec:
+   minimální očekávaný počet zkontrolovaných produktů×tierů, jinak
+   "0 alertů" není důvěryhodné.
+Tohle NENÍ dnes postavené -- jen navržené a zdůvodněné. Priorita na
+začátek příští session dle Jana.
 - Root cause -- podezření na stejnou třídu problémů jako INC-010
   (`sync-coupon-fields-single-product.ts` běží jen na webhook, žádný
   plošný fallback po archivaci `coupon-fields.yml`/`coupon-fields-full-live.yml`

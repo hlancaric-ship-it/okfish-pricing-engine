@@ -1,0 +1,116 @@
+name: Price Integrity Reconciliation (Stage 5)
+
+# Stage 5 validace (docs/CORE_LOGIC_AND_VALIDATION.md §3.5) -- nezávisle na
+# tom, jestli sync.yml hlásí SUCCESS, znovu spočítá, jaká cena by MĚLA být,
+# a porovná to s tím, co Shoptet skutečně má. Zavedeno po INC-010
+# (2026-08-13), kdy 12 dní tichého bugu nechalo 812 produktů se špatnou
+# cenou, aniž by jediný sync.yml běh kdy selhal.
+
+on:
+  schedule:
+    # Jednou denně, mimo špičku syncu (ten běží každých 15 min). Hodnota
+    # mismatche potřebuje přetrvat 2 po sobě jdoucí běhy, než zaalertuje
+    # (viz reconcile-pricelist-drift.ts), takže denní frekvence -- ne 15min.
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Možnost manuálního spuštění přes UI
+
+concurrency:
+  group: price-integrity-reconciliation
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout repozitáře
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Příprava Node.js prostředí
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalace závislostí
+        run: npm ci
+
+      - name: Spuštění reconciliace (read-only, nic nezapisuje do Shoptetu)
+        id: reconcile_run
+        env:
+          SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
+          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
+        run: |
+          set -o pipefail
+          npx tsx cloudflare-worker/src/cli/reconcile-pricelist-drift.ts | tee reconciliation.log
+
+      # .reconciliation_state.json se commitne VŽDY (i při selhání výše) --
+      # potřebujeme si pamatovat, co bylo "poprvé spatřeno dnes", i když
+      # tenhle běh skončil s alertem. Jinak by debounce logika (2 po sobě
+      # jdoucí běhy) nikdy nefungovala pro věci, co ALERT vyvolaly.
+      - name: Sladění s remote před commitem
+        if: always()
+        run: |
+          git fetch origin main
+          git merge -X ours origin/main --no-edit || {
+            git checkout --ours .reconciliation_state.json 2>/dev/null || true
+            git add .reconciliation_state.json
+            git commit --no-edit || true
+          }
+
+      - name: Uložení stavu reconciliace do repozitáře
+        if: always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: aktualizace stavu price integrity reconciliace [skip ci]"
+          file_pattern: .reconciliation_state.json
+
+      - name: Uložení logu v případě selhání
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconciliation-log
+          path: reconciliation.log
+          retention-days: 30
+
+      - name: Notifikace při nalezeném driftu / selhání (GitHub Issue)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "🟠 Price Integrity: nalezen cenový drift nebo selhal self-check (reconcile-pricelist-drift.yml)";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Reconciliation běh ${new Date().toISOString()} našel neshodu mezi očekávanou a skutečnou cenou (nebo selhal jeho vlastní self-check -- viz Stage 5 v CORE_LOGIC_AND_VALIDATION.md).\n\nDetail běhu: ${runUrl}\n\nLog je uložený jako artifact \`reconciliation-log\` u tohoto běhu. Formát alertu v logu: "Tahle cena měla být X. Shoptet má Y. Rozdíl = Z. Produkt nebyl synchronizován."`;
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'price-integrity'
+            });
+            const existing = issues.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['price-integrity'],
+                assignees: ['hlancaric-ship-it']
+              });
+            }

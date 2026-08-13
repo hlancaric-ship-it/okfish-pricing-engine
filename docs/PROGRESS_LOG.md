@@ -7,6 +7,85 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Stage 5 postaveno: Reconciliation / Price Integrity Layer + self-check
+
+**Postaveno (kód existuje, ještě není commitnuté/pushnuté v době psaní
+tohohle zápisu -- viz "Zbývá" níže):**
+
+### 1. `cloudflare-worker/src/cli/reconcile-pricelist-drift.ts` (nový soubor)
+Read-only skript, nikdy nezapisuje do Shoptetu. Přesně podle Janovy
+specifikace formátu alertu:
+
+> „Tahle cena měla být X. Shoptet má Y. Rozdíl = Z. Produkt nebyl
+> synchronizován. → ALERT."
+
+Logika:
+- Stáhne základní ceník + manufacturer mapu z feedu, spočítá očekávané ceny
+  přes `calculateProductsPricing()` -- STEJNOU funkci, co používá produkce.
+- Pro každý tier stáhne skutečný stav a porovná.
+- **Debounce:** "produkt zcela chybí v tier ceníku" alertuje OKAMŽITĚ (žádná
+  legitimní příčina pro tenhle stav neexistuje). "Hodnota nesedí" alertuje
+  až když přetrvá přes 2 po sobě jdoucí denní běhy (stav trackovaný v novém
+  `.reconciliation_state.json`, committed do repa jako `.sync_state.json`)
+  -- aby běžná 15minutová latence cronu (cena se právě změnila, ještě
+  nestihla doběhnout) negenerovala planý poplach.
+- Při nálezu ALERTu (jakéhokoli typu) `throw` -> stejný fail-closed
+  mechanismus jako `sync.yml`.
+
+### 2. Self-check / meta-validace (Janovo doplňující zadání)
+Přesná citace zadání: „i kdyz dopadne dobre projede to jeste jedna
+celkova validace jestli validace neudelala chybu". Přidáno na konec
+skriptu, PŘED vyhodnocením alertů: kontroluje, jestli reconciliace sama
+proběhla na plausibilním objemu dat --
+- základní ceník vrátil alespoň 5000 produktů (mirror `MIN_EXPECTED_PRODUCTS`
+  vzoru ze Stage 2, `sync-coupon-fields-diff.ts`),
+- zkontrolováno alespoň `5000 × (počet tierů - 1)` produkt×tier kombinací,
+- nalezeno alespoň 5 tierových ceníků,
+- výpočetních selhání (`pricing-bridge.ts` failures) není víc než 50 %
+  produktů.
+
+**Proč tohle nestačí jen "0 alertů = OK":** `0 alertů` je nerozeznatelné od
+"reconciliace se sama potichu rozbila (např. selhala autentizace, feed
+vrátil prázdno) a nezkontrolovala skoro nic" -- PŘESNĚ ten samý tvar
+chyby jako INC-010 samotné (`getProductDetail()` vracelo `undefined`, run
+hlásil `SUCCESS`, protože nikdy nedošel do větve "něco je špatně"). Kdyby
+se sanity-check nepřidal, Stage 5 by mohla mít stejnou slepou skvrnu, jakou
+má opravovat -- validátor by potřeboval vlastního validátora do
+nekonečna, kdyby se to nezastavilo aspoň jedním explicitním, absolutním
+(ne relativním) prahem. Self-check selhání se hlásí ODDĚLENĚ od
+běžných alertů (`RECONCILIATION SELF-CHECK SELHAL`), i kdyby alerty byly
+nulové.
+
+### 3. `.github/workflows/reconcile-pricelist-drift.yml` (nový soubor)
+Scheduled denní cron (03:00 UTC, mimo špičku 15minutového `sync.yml`) +
+`workflow_dispatch` pro ruční spuštění. Při selhání (alert NEBO self-check)
+-- upload logu jako artifact + GitHub issue (label `price-integrity`,
+stejný vzor jako `sync.yml`'s `sync-failure` notifikace). Stav
+(`.reconciliation_state.json`) se commituje VŽDY, i při selhání --
+debounce logika potřebuje vědět, co bylo "poprvé spatřeno dnes", i když
+tenhle běh skončil alertem.
+
+**Ověřeno:** `npx tsc --noEmit` -- 0 chyb v novém souboru. Celá test suite
+239/239 zelených (nedotčena, nový skript zatím nemá vlastní dedikované
+testy -- stejná mezera jako u ostatních CLI skriptů v `cloudflare-worker/src/cli/`,
+žádný z nich testy nemá).
+
+**Zbývá:**
+- Commit + push (probíhá souběžně s tímhle zápisem).
+- Skript zatím NENÍ spuštěný proti živému API ani jednou -- na rozdíl od
+  `audit-catalog-drift-all.ts` (scratchpad), který dnes už reálně
+  odhalil 812 produktů. Před prvním scheduled během doporučeno jedno
+  ruční `workflow_dispatch` spuštění pro ověření, že self-check i alerty
+  fungují na reálných datech, ne jen že kód typecheckuje.
+- `.reconciliation_state.json` ještě neexistuje (první běh ho založí).
+- Rozšíření na kupónovou politiku (INC-010, pátý nález) zůstává mimo
+  scope -- tenhle Stage 5 pokrývá jen wholesale tier ceny, ne
+  `discountCoupon`/`minPriceRatio` pole.
+- Souběžně stále běží dry-run full sync (náprava 812 produktů) na pozadí,
+  nezávisle na tomhle zápisu.
+
+---
+
 ## 2026-08-13 (pokračování) — Zadání: Reconciliation / Price Integrity Layer, PRÁVĚ ZAČÍNÁ STAVBA
 
 **Zadání (Jan), doslovně:** Stage 5 z návrhu výše (`CORE_LOGIC_AND_VALIDATION.md`

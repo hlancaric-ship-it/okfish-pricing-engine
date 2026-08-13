@@ -358,12 +358,14 @@ time), there was nothing to attribute anything to, so nothing looked wrong
 it cannot invent problems a code-path bug prevented it from encountering
 in the first place.
 
-### 3.5 Stage 5 — Reconciliation (proposed 2026-08-13, not yet implemented)
+### 3.5 Stage 5 — Reconciliation (implemented 2026-08-13)
 
-**Status: designed, not yet built.** Documented here so the model is
-complete even though the code isn't; see `docs/PROGRESS_LOG.md`'s
-2026-08-13 "Architektonický závěr INC-010" entry for the live discussion
-that produced this.
+**Status: built.** `cloudflare-worker/src/cli/reconcile-pricelist-drift.ts`
++ `.github/workflows/reconcile-pricelist-drift.yml`. See
+`docs/PROGRESS_LOG.md`'s 2026-08-13 "Stage 5 postaveno" entry for the build
+log; not yet run against production even once as of that entry — a manual
+`workflow_dispatch` verification run is the recommended next step before
+trusting the first scheduled run.
 
 **The question Stage 5 answers, that Stages 1-4 structurally cannot:**
 "has every run's `SUCCESS` actually corresponded to correct output, over
@@ -386,17 +388,46 @@ independently re-derives the answer from first principles (live base price
 Stage 4 has no way to catch by construction, not just bugs Stage 4 happened
 to miss by omission.
 
-**Planned shape** (pending build): move the script into
-`cloudflare-worker/src/cli/reconcile-pricelist-drift.ts`, add a scheduled
-GitHub Actions workflow (daily), and have it `throw` on finding drift beyond
-a tuned tolerance — routing into the same fail-closed → GitHub-issue
-mechanism Stage 4 uses, so a Stage 5 finding is exactly as loud as a Stage 4
-one. Open design question: debounce/threshold tuning so routine 15-minute
-sync latency (a price that changed 10 minutes ago and hasn't been picked up
-by cron yet) doesn't fire false alarms — current thinking is alert
-immediately on "entirely missing from a tier" (unambiguous) but require
-persistence across 2 consecutive daily runs before alerting on a "value
-mismatch" (which has legitimate transient causes).
+**Shape as built:** daily scheduled GitHub Actions workflow (`0 3 * * *`,
+off-peak from the 15-minute `sync.yml` cron) + `workflow_dispatch`. On
+finding an alert (or failing its own self-check, see below), it `throw`s —
+routing into the same fail-closed → GitHub-issue mechanism Stage 4 uses
+(upload log artifact, create/update a `price-integrity`-labeled issue), so
+a Stage 5 finding is exactly as loud as a Stage 4 one.
+
+**Debounce** (the open design question, now resolved): a product entirely
+missing from a tier pricelist alerts immediately — there is no legitimate
+reason a product with a computed expected price has zero entry in a live
+tier pricelist. A *value* mismatch only alerts once it has persisted across
+two separate runs, tracked via `.reconciliation_state.json` (committed to
+the repo, same pattern as `.sync_state.json`) keyed by `${code}::${tier}`
+with a `firstSeen` date — a price that changed 10 minutes ago and hasn't
+been picked up by the 15-minute sync cron yet is not a bug, and alerting on
+it immediately would just train people to ignore the alert.
+
+**Alert format** (specified verbatim by the client, preserved exactly):
+
+```
+Tahle cena měla být X. Shoptet má Y. Rozdíl = Z. Produkt {code}
+(tier {tier}) nebyl synchronizován. -> ALERT.
+```
+
+**Self-check (meta-validation) — Stage 5 validating itself.** Before
+evaluating alerts, the script asserts its own run was meaningful: base
+pricelist returned ≥5,000 products (mirrors Stage 2 Guard A's
+`MIN_EXPECTED_PRODUCTS` pattern), at least `5,000 × (tier count − 1)`
+product×tier combinations were actually checked, at least 5 tier
+pricelists were found, and pricing-bridge calculation failures didn't
+exceed 50% of products. **Why this exists**: "zero alerts" is
+indistinguishable from "reconciliation silently broke and checked almost
+nothing" — the *exact* shape of INC-010 itself (a run reporting `SUCCESS`
+because it never reached a branch that would say otherwise). Without this,
+Stage 5 could have the same blind spot it exists to catch. A self-check
+failure is reported as a distinct error (`RECONCILIATION SELF-CHECK
+SELHAL`) from a normal drift alert, and fails the run either way — the
+model does not recurse into "validate the validator's validator"; one
+absolute-threshold self-check is the deliberately-terminal answer to "how
+many meta-levels are enough."
 
 ## 4. Scaling This
 

@@ -55,6 +55,17 @@ OK". Malý vzorek (5 kusů) -- ne vyčerpávající důkaz, ale konzistentní se
 závěrem výše (problém omezen na ~61 nedokončených produktů, ne
 celoplošný).
 
+**DŮLEŽITÁ MEZERA V OVĚŘENÍ (Jan se explicitně ptal, přiznáno):**
+Hodnotový test proběhl JEN na tieru **ZR4** (5 vzorků) a zámek
+(discountCoupon boolean) jen na **ZR20+ZR25** (celý katalog). **NEOVĚŘENO
+vůbec:** ZR6, ZR8, ZR10, ZR12, ZR14, ZR16, ZR18 (ani hodnoty, ani
+zámek/lock), a **NEOVĚŘENO hlavní/základní ceník** ("Hlavný cenník",
+pricelist id 1) -- u toho navíc není ani jasné, jestli tam kupónová
+logika platí stejným způsobem (guest/výchozí ceník, jiný kontext než
+tier ceníky). Před jakýmkoli tvrzením "kupóny jsou v pořádku napříč
+celým katalogem" je potřeba tohle doplnit -- zatím je to ověřeno jen na
+2 z 10 tier ceníků plus vůbec ne na základním ceníku.
+
 **ZADÁNÍ PRO PŘÍŠTÍ SESSION (Jan, explicitně, vysoká priorita):**
 Kupónový pipeline potřebuje **stejný 5-stupňový validační model jako
 pricing** (viz `CORE_LOGIC_AND_VALIDATION.md` §3, Stage 1-5) **VČETNĚ

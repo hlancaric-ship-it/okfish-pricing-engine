@@ -6,6 +6,51 @@ Každý záznam by měl obsahovat: datum, popis problému, příčinu, řešení
 
 ---
 
+## 2026-08-13 -- INC-011: Kupónová pole napříč katalogem nespolehlivá (OTEVŘENO, NEDOŘEŠENO)
+
+**Popis (Jan, živě z adminu):** Kupónová pole (`Slevový kupón` checkbox + skutečná
+hodnota `minPriceRatio`/kolik % kupónu) nejsou napříč katalogem spolehlivě
+doplněná. Konkrétně: checkbox `Slevový kupón` je u některých produktů
+zaškrtnutý, ale reálná hodnota (kolik % kupónu = jak moc `minPriceRatio`
+dovoluje) není správně dopočítaná/zapsaná. U tierů **ZR20 a ZR25** má
+`coupon-policy.json` (`lockedTiers: ["ZR20", "ZR25"]`) kupón automaticky
+VYPÍNAT (Rule 4, absolutní precedence, viz `CORE_LOGIC_AND_VALIDATION.md`
+§1.2) -- Jan potvrzuje, že se to na živých datech neděje spolehlivě.
+
+**Co je ověřeno:**
+- `coupon-policy.json` skutečně definuje `lockedTiers: ["ZR20", "ZR25"]` --
+  záměr v konfiguraci je správný.
+- Živá kontrola na 103525/ZR20 a ZR25 ukázala `discountCoupon: false,
+  minPriceRatio: "0.000"` -- VYPADÁ to správně, ale **Jan potvrdil, že tenhle
+  konkrétní produkt opravil RUČNĚ sám** (stejný stopgap jako u cen ráno) --
+  tenhle test tedy NEDOKAZUJE, že automatizovaný coupon pipeline funguje
+  správně. Nepoužitelný jako důkaz, potřeba testovat na produktu, který
+  nikdo ručně neopravoval.
+
+**Co NENÍ ověřeno / čeká na příští session (kontext došel, nedokončeno
+poctivě, ne uzavřeno):**
+- Skutečný rozsah problému napříč katalogem -- kolik produktů má
+  checkbox zaškrtnutý bez odpovídající hodnoty, kolik má ZR20/ZR25
+  nesprávně odemčené.
+- Root cause -- podezření na stejnou třídu problémů jako INC-010
+  (`sync-coupon-fields-single-product.ts` běží jen na webhook, žádný
+  plošný fallback po archivaci `coupon-fields.yml`/`coupon-fields-full-live.yml`
+  do `.github/workflows-archive/`), ale NEOVĚŘENO na reálných datech pro
+  tenhle konkrétní projev (checked-bez-hodnoty, ZR20/25 lock neaplikovaný).
+- Navrhovaný přístup pro příště: obdoba `reconcile-pricelist-drift.ts`
+  (Stage 5), ale pro kupónová pole -- pro každý produkt×tier spočítat
+  očekávaný `discountCoupon`/`minPriceRatio` přes `computeCouponWrites()`
+  (stejná produkční funkce) a porovnat s tím, co Shoptet skutečně má.
+  ZR20/ZR25 by měly VŽDY vyjít `discountCoupon:false` bez ohledu na
+  cokoliv jiného (Rule 4 absolutní precedence) -- to je nejjednodušší
+  a nejjednoznačnější první kontrola.
+- Jan: "tohle nas klient roseka na kusy" -- vysoká priorita, business-critical,
+  ne kosmetická věc. Řešit hned na začátku příští session, ne odkládat.
+
+**Verze:** main (2026-08-13), NEUZAVŘENO.
+
+---
+
 ## 2026-08-03
 
 ### INC-001

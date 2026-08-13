@@ -79,11 +79,17 @@ async function main() {
     if (GUID_PATTERN.test(PRODUCT_CODE_OR_GUID)) {
         console.log(`${PRODUCT_CODE_OR_GUID} vypadá jako Shoptet GUID, ne merchant kód -- dohledávám skutečný code přes API...`);
         const product = await client.getProductDetail(PRODUCT_CODE_OR_GUID);
-        if (!product?.code) {
+        // BUG (opraveno 2026-08-13, součást INC-010): `product.code` na top-level
+        // NEEXISTUJE -- Shoptet vrací merchant kód jen uvnitř `product.variants[].code`
+        // (ověřeno živě proti reálnému GUID). Tenhle skript byl proto rozbitý stejně
+        // jako products-reader.ts, jen si toho nikdo nevšiml, protože Shoptet webhook
+        // pro tyhle produkty (99459/103525) vůbec nespustil krok, který ho volá.
+        const resolvedCode = product?.variants?.[0]?.code || product?.code;
+        if (!resolvedCode) {
             console.warn(`[WARNING] Produkt s GUID ${PRODUCT_CODE_OR_GUID} nebyl nalezen (smazaný, nebo se ještě nestihl propsat). Přeskakuji.`);
             return;
         }
-        PRODUCT_CODE = product.code;
+        PRODUCT_CODE = resolvedCode;
         console.log(`Dohledáno: GUID ${PRODUCT_CODE_OR_GUID} -> code ${PRODUCT_CODE}`);
     }
 

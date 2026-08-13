@@ -228,6 +228,19 @@ Přímým laděním proti živému Shoptet API (read-only GET, žádný zápis) 
 - Stejná třída tichého polykání chyb může existovat i jinde v pipeline (`customerWriter`/`pricelistWriter` interní retry logika) — nekontrolováno v rámci tohoto zásahu.
 - Obecné poučení, potvrzené počtvrté za jeden den: "run doběhl bez chyby" a "produkt se skutečně zpracoval" jsou dvě různá tvrzení a kód je nesmí zaměňovat. Dnešní vyšetřování jednoho hlášeného incidentu (2 produkty bez ceny) postupně odkrylo čtyři samostatné, na sobě nezávislé silent-failure díry v téže pipeline: fabrikace ceny 0, polykání chyb v pricing-bridge, early-return přeskakující force-sync, a `json.data.product`/`variants[]` chyby v samotném API klientovi. Žádná z nich nezpůsobila crash — všechny se tvářily jako úspěch.
 
+**INC-010 pátý nález — kupónová politika (09:30–10:00 UTC):**
+Po opravě pricelistu (viz výše) Jan potvrdil na frontendu: ceny i badge už jsou správně, VČETNĚ HASWING brandového stropu na 99459 (474,30 € × (1−0,10) = 426,87 € pro ZR25 přihlášeného zákazníka -- ne bug, `policy-v1.json`'s `HASWING: 0.10` funguje přesně jak má, Jan potvrdil, že nemá být výjimka).
+
+Zbylo: **kupónová politika** (`Slevový kupón`/`discountCoupon`+`minPriceRatio` pole v Shoptet adminu) zůstala u 103525 prázdná. Příčina: `sync-coupon-fields-single-product.ts` se spouští VÝHRADNĚ na Shoptet webhook `product:create`/`product:update` (`sync.yml`, `repository_dispatch`) -- a stejně jako `/products/changes`, tenhle webhook se pro 99459/103525 nikdy nespustil (stejná Shoptet-strana anomálie jako u INC-010 hlavního nálezu). Žádný jiný krok kupónová pole nevyplňuje -- VŠECHNY plošné/scheduled coupon-fields workflows (`coupon-fields.yml`, `coupon-fields-full-live.yml`, `sync-guest-coupon-cap.yml`, ...) byly archivovány do `.github/workflows-archive/` v rámci úklidu 12.8. (commit `93084a1`), takže žádný pravidelný fallback pro tuhle pipeline neexistuje.
+
+Navíc: i kdyby webhook fungoval, `sync-coupon-fields-single-product.ts` měl STEJNOU chybu jako `products-reader.ts` z bodu výše -- guid→code lookup četl `product.code` (top-level), který po opravě `client.ts` víme, že neexistuje (jen `product.variants[].code`). Opraveno (`resolvedCode = product?.variants?.[0]?.code || product?.code`), nekonzultováno testem (mimo scope, žádná existující test suite pro tenhle skript).
+
+**Rozhodnutí:** Jan kupónová pole pro 103525 doplnil RUČNĚ v Shoptet adminu (stopgap, stejně jako u pricelistu ráno) -- živý zápis skriptem (`sync-coupon-fields-single-product.ts PRODUCT_CODE=99459/103525`) se VĚDOMĚ nespustil, aby nepřepsal jeho ruční zásah.
+
+**Zbývá (nové, mimo scope dnešního zásahu):**
+- Kupónová politika nemá žádný scheduled/plošný fallback po archivaci `coupon-fields.yml` -- pokud Shoptet webhook pro nový produkt selže (jako tady), kupónová pole zůstanou navěky prázdná bez jakékoli notifikace, dokud si toho někdo nevšimne ručně na frontendu. Stejný "SUCCESS bez skutečné práce" vzorec jako celý zbytek INC-010, jen v jiné pipeline. Stojí za zvážení: buď vrátit nějakou formu pravidelného/force-sync fallbacku pro kupóny (obdobu `force-sync-products.json`), nebo aspoň přidat 99459 (stejné riziko jako 103525, zatím neověřeno/nedoplněno) do manuální kontroly.
+- 99459 kupónová pole nebyla zmíněna jako ručně doplněná -- ověřit, jestli je taky potřeba doplnit.
+
 **Verze:**
 main (2026-08-13)
 

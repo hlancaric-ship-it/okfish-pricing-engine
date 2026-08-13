@@ -81,23 +81,32 @@
         if (!priceFinal || !watchdog || watchdog.dataset.vipMoved) return;
 
         watchdog.dataset.vipMoved = "1";
-        watchdog.style.display = "inline-flex";
-        watchdog.style.alignItems = "center";
-        watchdog.style.gap = "8px";
-        watchdog.style.marginLeft = "14px";
-        watchdog.style.textDecoration = "none";
-        watchdog.style.verticalAlign = "middle";
+        // Pevné (ne em) velikosti -- .price-final má vlastní obří font-size
+        // pro číslo ceny, takže cokoliv v "em" jednotkách zdědilo tu obří
+        // velikost a text-transform:uppercase. Text musí být viditelně
+        // menší než cena, ne stejně velký.
+        watchdog.style.cssText = `
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            margin-left: 14px;
+            text-decoration: none;
+            vertical-align: middle;
+            text-transform: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        `;
         watchdog.innerHTML = `
-            <span style="font-size:1.6em;line-height:1;">👮</span>
-            <span style="display:flex;flex-direction:column;line-height:1.2;">
-                <span style="font-weight:700;color:#333;font-size:0.9em;">Rybárska stráž</span>
-                <span style="color:#888;font-size:0.78em;">Stráži dostupnosť produktu</span>
+            <span style="font-size:20px;line-height:1;">👮</span>
+            <span style="display:flex;flex-direction:column;line-height:1.15;text-transform:none;">
+                <span style="font-weight:700;color:#333;font-size:12px;">Rybárska stráž</span>
+                <span style="color:#888;font-size:10px;">Stráži dostupnosť produktu</span>
             </span>
         `;
 
         priceFinal.style.display = "flex";
         priceFinal.style.alignItems = "center";
-        priceFinal.style.flexWrap = "wrap";
+        priceFinal.style.flexWrap = "nowrap";
         priceFinal.appendChild(watchdog);
     }
 

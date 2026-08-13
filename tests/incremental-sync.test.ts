@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SyncOrchestrator } from '../cloudflare-worker/src/shoptet-api/sync-orchestrator.ts';
 import { ICacheProvider } from '../cloudflare-worker/src/shoptet-api/cache-provider.ts';
-import * as fs from 'fs';
+
+// Isolate from the repo's real force-sync-products.json (ProductsReader's force-sync
+// escape hatch now always runs, even with zero regular changes -- see INC-010
+// follow-up) -- without this, whatever's actually listed there (e.g. live incident
+// codes) makes this test fire a real, unmocked Shoptet API call and fail on auth.
+vi.mock('fs', () => ({ existsSync: () => false, readFileSync: () => '[]' }));
 
 // Mock pro ISyncStateProvider
 vi.mock('../cloudflare-worker/src/shoptet-api/state-provider.ts', () => {

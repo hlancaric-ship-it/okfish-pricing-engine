@@ -58,15 +58,24 @@ export class ProductsReader {
         if (lastSync) {
             console.log(`ProductsReader: INKREMENTÁLNÍ REŽIM - Hledám změněné produkty od ${lastSync}...`);
             const changes = await this.apiClient.getProductChanges(lastSync);
-
-            if (changes.length === 0) {
-                console.log(`ProductsReader: Žádné produkty nebyly od ${lastSync} změněny.`);
-                return { products: [], incompleteCodes: [] }; // Orchestrátor podle toho vynechá pricing engine
-            }
-
-            console.log(`ProductsReader: Nalezeno ${changes.length} změn produktů. Stahuji detaily (s ohledem na rate limity)...`);
             const products: ShoptetProduct[] = [];
             const incompleteCodes: string[] = [];
+
+            // BUG (opraveno 2026-08-13): dřív se tady dělal `return` hned, pokud
+            // `changes.length === 0` -- TAKŽE se force-sync smyčka níže (pro produkty,
+            // co Shoptet /products/changes vůbec nikdy nenahlásí, viz FORCE_SYNC_FILE)
+            // nikdy nespustila, kdykoli nebyly žádné běžné změny. force-sync-products.json
+            // se přitom orchestrátorem stejně vyčistil jako "úspěšně zpracováno" -- takže
+            // 99459/103525 zůstaly navěky nedopočítané, i když byly ve force-sync listu
+            // (potvrzeno živě: běh 2026-08-13 09:00 UTC, "Products loaded: 0", žádný
+            // "[ForceSync] Doplňuji produkt" v logu, a přesto se soubor vyčistil).
+            // Teď se force-sync smyčka spustí VŽDY, bez ohledu na to, kolik běžných
+            // změn Shoptet nahlásil.
+            if (changes.length === 0) {
+                console.log(`ProductsReader: Žádné produkty nebyly od ${lastSync} změněny.`);
+            } else {
+                console.log(`ProductsReader: Nalezeno ${changes.length} změn produktů. Stahuji detaily (s ohledem na rate limity)...`);
+            }
 
             let processed = 0;
             for (const change of changes) {

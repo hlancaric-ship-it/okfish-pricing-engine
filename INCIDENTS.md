@@ -197,11 +197,19 @@ Konflikt v `products-reader.ts` a `sync-orchestrator.ts` vyřešen ručním slou
 
 **Zjištění PO mergi (důležité):** `force-sync-products.json` se mezi commitem `85de937` (07:57 CEST) a mergem vyprázdnil na `[]` (commit `5b978d6`, 08:11 UTC) — starý `SyncOrchestrator` produkty zpracoval (list smazal jako "hotovo"), ale to bylo ještě PŘED touhle opravou `pricing-bridge.ts`/`products-reader.ts`. Živý screenshot Shoptet admin z 08:36 UTC pořád ukazoval prázdná pole ZR4–ZR25 pro 103525 — potvrzuje, že ten běh se jen tvářil úspěšně, ceny reálně nezapsal. Seznam byl proto ručně doplněn zpátky (commit `0b271aa`), aby je opravená logika zpracovala doopravdy.
 
+**Třetí díra, objevena při živém ověřování (09:00–09:11 UTC):**
+Po nasazení merge (`0b271aa`) první běh po pushi (run `31684235933`, dokončen ~08:59 UTC) `force-sync-products.json` znovu vyprázdnil na `[]` a `Products loaded: 0` — TAKŽE se 99459/103525 zase nezpracovaly, potřetí. Příčina: `ProductsReader.fetchProducts()` dělal `return` OKAMŽITĚ, když `getProductChanges()` vrátilo 0 běžných změn — TAKŽE se force-sync smyčka (o pár řádků níž) nikdy nespustila, kdykoli nebyly žádné jiné změny. `sync-orchestrator.ts` mezitím `force-sync-products.json` vyčistil bez ohledu na to, jestli se cokoli z něj reálně zpracovalo — vyčištění je podmíněné jen `isSuccess` (nic neselhalo), ne tím, že force-sync entries doopravdy proběhly. Přesně ten samý vzorec jako hlavní bug výše: "nic nespadlo" ≠ "práce se udělala".
+
+**Oprava:**
+`products-reader.ts`: `return` na `changes.length === 0` odstraněn, force-sync smyčka se teď spouští VŽDY, bez ohledu na počet běžných změn. Přidán regresní test (`cloudflare-worker/tests/products-reader.test.ts`: "still processes force-sync entries even when getProductChanges() returns zero changes") a opraveny 2 testy (`products-reader.test.ts`, `tests/incremental-sync.test.ts`), které bez mockování `fs` četly skutečný `force-sync-products.json` z repa a nechtěně tak závisely na aktuálním stavu produkce.
+
+`force-sync-products.json` naplněn potřetí (99459, 103525) — tentokrát s opravenou logikou, ověřeno testem, že se force-sync entries doopravdy zpracují i při 0 běžných změnách.
+
 **Zbývá:**
-- Po nasazení (push `0b271aa`, cca 2026-08-13 11:05 CEST) počkat na první inkrementální běh — 99459/103525 jsou ve `force-sync-products.json`, takže je natáhne bez ohledu na `/products/changes`. Ověřováno živě (viz ScheduleWakeup níže).
+- Sledovat první běh po tomhle pushi živě (`gh run list`/`gh run view --log`) — hledat `[ForceSync] Doplňuji produkt 99459` a `103525` v logu, ne jen "vyčištěn po úspěšném běhu".
 - Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli `manufacturer` (case-sensitive match v `DiscountLimitPolicy`) — ověřit před přidáním zítra (2026-08-14).
 - Stejná třída tichého polykání chyb může existovat i jinde v pipeline (`customerWriter`/`pricelistWriter` interní retry logika) — nekontrolováno v rámci tohoto zásahu.
-- Obecné poučení: `force-sync-products.json` se automaticky čistí po "úspěšném" zpracování, ale "úspěch" před touto opravou neznamenal, že se cena reálně zapsala — jen že žádná výjimka nespadla. Stejný vzorec jako hlavní bug (INC-010 výše). Stojí za úvahu, jestli by se force-sync list neměl čistit až po ověření, že produkt má NEPRÁZDNÁ `prices` pro všechny tiery, ne jen po doběhnutí bez chyby.
+- Obecné poučení, potvrzené potřetí za jeden den: "run doběhl bez chyby" a "produkt se skutečně zpracoval" jsou dvě různá tvrzení a kód je nesmí zaměňovat. `force-sync-products.json` čištění zůstává vázané na `isSuccess`, což teď (po dnešních opravách) skutečně znamená "incompleteCodes i pricingFailures jsou prázdné" — ale stálo to tři samostatné nálezy během jednoho dne, než to bylo zavřené na všech úrovních.
 
 **Verze:**
 main (2026-08-13)

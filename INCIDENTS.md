@@ -205,11 +205,28 @@ Po nasazení merge (`0b271aa`) první běh po pushi (run `31684235933`, dokonče
 
 `force-sync-products.json` naplněn potřetí (99459, 103525) — tentokrát s opravenou logikou, ověřeno testem, že se force-sync entries doopravdy zpracují i při 0 běžných změnách.
 
+**Sledování živě po pushi `02f015b` — čtvrtá, nejzávažnější díra objevena (09:20–09:25 UTC):**
+Po nasazení opravy z předchozí sekce first run (`31686381527`, 09:24 UTC) konečně SPRÁVNĚ spustil force-sync smyčku (`[ForceSync] Doplňuji produkt 99459/103525` v logu) — ale oba produkty skončily jako `nenalezen v API`, přestože GUIDy ve `force-sync-products.json` byly správné (ověřeno přímým GET `/products/code/{code}` dotazem: shodují se přesně). Run správně nahlas selhal (`FINAL RESULT: FAILED`, GitHub issue vytvořen) místo tichého úspěchu — to je funkční pojistka.
+
+Přímým laděním proti živému Shoptet API (read-only GET, žádný zápis) se našly DVĚ samostatné, systémové chyby v `client.ts`:
+
+1. **`getProductDetail()` (řádek 215):** `return json.data.product;` — ale API vrací produkt PŘÍMO jako `json.data` (klíče `guid`, `type`, `variants[]`, ...), žádný vnořený `.product` klíč neexistuje. Funkce tak vracela `undefined` doslova pro KAŽDÝ produkt, odjakživa. Volající kód (`if (!detail) continue`) to tiše přeskakoval bez logu a bez záznamu v `incompleteCodes` — takže celá cesta "běžná změna → `/products/changes` → `getProductDetail()` → cena" byla fakticky mrtvá pro úplně všechny produkty procházející inkrementálním syncem, ne jen pro 99459/103525. Tohle je pravděpodobně hlubší, dlouhodobější příčina než cokoliv popsané výše v INC-010.
+2. **`perPricelistPrices` umístění:** i po opravě bodu 1 není `perPricelistPrices` na produktu přímo, ale uvnitř `variants[].perPricelistPrices` (pole variant, obvykle 1 položka pro jednoduché produkty, `variant.code` musí odpovídat merchant kódu). `products-reader.ts` četl `detail.perPricelistPrices` (top-level) — vždy `undefined`.
+
+**Oprava:**
+- `client.ts`: `getProductDetail()` vrací `json.data` místo `json.data.product`.
+- `products-reader.ts` (obě větve — běžné změny i force-sync): `pricelistEntry` se teď hledá přes `detail.variants.find(v => v.code === ...).perPricelistPrices`, ne přes `detail.perPricelistPrices`. `code` se čte primárně z `variant.code`.
+- `products-reader.ts`: `if (!detail) continue;` (getProductDetail vrátil null/undefined) se teď taky počítá jako `incompleteCodes`, ne tichý skip bez záznamu.
+- 2 nové regresní testy (`cloudflare-worker/tests/products-reader.test.ts`): "finds perPricelistPrices nested inside variants[]" a "reports the product as incomplete... when getProductDetail() returns null". Celková sada testů aktualizována na reálný tvar API (`variants[]`), 239/239 zelených.
+- Ověřeno přímým živým GET dotazem (ne přes CI): `getProductDetail()` teď pro oba GUIDy vrací `FOUND` s reálnými cenami (99459: 474,30 €, 103525: 365,00 €, oba na základním ceníku ID 1, žádný `minPriceRatio` strop).
+
 **Zbývá:**
-- Sledovat první běh po tomhle pushi živě (`gh run list`/`gh run view --log`) — hledat `[ForceSync] Doplňuji produkt 99459` a `103525` v logu, ne jen "vyčištěn po úspěšném běhu".
+- Sledovat další běh `sync.yml` po tomhle pushi — poprvé očekávám SKUTEČNÝ zápis tierových cen pro 99459/103525, ne jen "nalezeno".
+- **Prověřit dopad bodu 1 (`json.data.product`) šířeji** — pokud tahle funkce vracela `undefined` odjakživa, je otázka, jak dlouho a jak moc byl celý `/products/changes` → `getProductDetail` pricing pipeline fakticky nefunkční pro BĚŽNÉ (ne jen force-sync) produktové změny. Nekontrolováno v rámci dnešního zásahu, mimo scope 99459/103525 — doporučuji samostatný audit, kolik produktů za poslední dny/týdny touhle cestou prošlo a nedostalo přepočítanou cenu.
+- `sync-coupon-fields-single-product.ts` (jiný consumer `getProductDetail()`) čte `product?.code` přímo — po opravě bodu 1 tenhle top-level `code` pořád neexistuje (jen `variant.code`), takže guid→code lookup tam může být taky rozbitý. Nekontrolováno, mimo scope dnešního zásahu.
 - Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli `manufacturer` (case-sensitive match v `DiscountLimitPolicy`) — ověřit před přidáním zítra (2026-08-14).
 - Stejná třída tichého polykání chyb může existovat i jinde v pipeline (`customerWriter`/`pricelistWriter` interní retry logika) — nekontrolováno v rámci tohoto zásahu.
-- Obecné poučení, potvrzené potřetí za jeden den: "run doběhl bez chyby" a "produkt se skutečně zpracoval" jsou dvě různá tvrzení a kód je nesmí zaměňovat. `force-sync-products.json` čištění zůstává vázané na `isSuccess`, což teď (po dnešních opravách) skutečně znamená "incompleteCodes i pricingFailures jsou prázdné" — ale stálo to tři samostatné nálezy během jednoho dne, než to bylo zavřené na všech úrovních.
+- Obecné poučení, potvrzené počtvrté za jeden den: "run doběhl bez chyby" a "produkt se skutečně zpracoval" jsou dvě různá tvrzení a kód je nesmí zaměňovat. Dnešní vyšetřování jednoho hlášeného incidentu (2 produkty bez ceny) postupně odkrylo čtyři samostatné, na sobě nezávislé silent-failure díry v téže pipeline: fabrikace ceny 0, polykání chyb v pricing-bridge, early-return přeskakující force-sync, a `json.data.product`/`variants[]` chyby v samotném API klientovi. Žádná z nich nezpůsobila crash — všechny se tvářily jako úspěch.
 
 **Verze:**
 main (2026-08-13)

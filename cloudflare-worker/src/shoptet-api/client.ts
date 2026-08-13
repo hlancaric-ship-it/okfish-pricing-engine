@@ -212,7 +212,14 @@ export class ShoptetApiClient {
                     if (res.status === 404) return null; // Může být smazaný
                     throw new Error(`API chyba: ${JSON.stringify(json.errors)}`);
                 }
-                return json.data.product;
+                // BUG (opraveno 2026-08-13): `json.data.product` NEEXISTUJE -- Shoptet
+                // vrací produkt PŘÍMO jako `json.data` (guid, type, variants[], ...).
+                // Ověřeno živě 2 skutečnými GUIDy (99459, 103525): tahle funkce vracela
+                // `undefined` naprosto vždycky, pro každý produkt, od chvíle, co existuje.
+                // Volající kód (`if (!detail) continue`) to tiše přeskočil bez logu, bez
+                // warningu -- celý incremental sync price pipeline přes /products/changes
+                // tak byl fakticky mrtvý, aniž by to kdy něco nahlásilo. Součást INC-010.
+                return json.data;
             }
         );
     }

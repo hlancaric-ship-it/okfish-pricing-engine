@@ -85,20 +85,31 @@ export class ProductsReader {
                 if (change.changeType === 'delete') continue;
 
                 const detail = await this.apiClient.getProductDetail(change.guid);
-                if (!detail) continue;
+                if (!detail) {
+                    // Produkt nenalezen (smazaný, nebo API selhalo bez chyby) -- dřív se
+                    // tohle tiše přeskočilo bez záznamu. Teď se počítá jako incomplete,
+                    // aby to bylo vidět a produkt se zkusil znovu příští synchronizací.
+                    const fallbackCode = change.code || change.guid;
+                    console.warn(`ProductsReader: Produkt ${fallbackCode} (${change.guid}) -- getProductDetail() nevrátil data -- VYNECHÁVÁM, zkusí se znovu příští synchronizací.`);
+                    incompleteCodes.push(fallbackCode);
+                    continue;
+                }
 
-                // BUG (opraveno): GET /api/products/{guid} nemá žádná cenová pole na
-                // top-level `detail.price` / `detail.sales` — podle Shoptet OpenAPI
-                // schématu (`product`) tahle pole na produktu vůbec neexistují. Cenová
-                // data (cena i sales.minPriceRatio — strop max. slevy) jsou dostupná
-                // JEN přes `?include=perPricelistPrices` (viz getProductDetail), a to
-                // jako POLE `perPricelistPrices[]`, jeden záznam na ceník, s vlastním
-                // `pricelistId`.
-                const pricelistEntry = Array.isArray(detail.perPricelistPrices)
-                    ? detail.perPricelistPrices.find((p: any) => p.pricelistId === pricelistId)
+                // BUG (opraveno 2026-08-13): GET /api/products/{guid}?include=perPricelistPrices
+                // nemá `perPricelistPrices` na top-level produktu -- je to pole UVNITŘ
+                // KAŽDÉ VARIANTY (`detail.variants[].perPricelistPrices`), podle Shoptet
+                // OpenAPI schématu potvrzeného živě na 99459/103525 (top-level `detail` má
+                // ani `code`, jen `guid`/`variants[]`/popisná pole). Stejná chyba jako
+                // `client.ts`'s `json.data.product` -- obě objeveny při vyšetřování INC-010.
+                const variant = Array.isArray(detail.variants)
+                    ? (detail.variants.find((v: any) => v.code === change.code) || detail.variants[0])
                     : undefined;
 
-                const code = detail.code || change.code || change.guid;
+                const pricelistEntry = Array.isArray(variant?.perPricelistPrices)
+                    ? variant.perPricelistPrices.find((p: any) => p.pricelistId === pricelistId)
+                    : undefined;
+
+                const code = variant?.code || detail.code || change.code || change.guid;
 
                 if (!pricelistEntry) {
                     // Nefabrikujeme basePrice=0 -- to by se dřív dopočítalo a ZAPSALO
@@ -153,8 +164,11 @@ export class ProductsReader {
                     incompleteCodes.push(entry.code);
                     continue;
                 }
-                const pricelistEntry = Array.isArray(detail.perPricelistPrices)
-                    ? detail.perPricelistPrices.find((p: any) => p.pricelistId === pricelistId)
+                const variant = Array.isArray(detail.variants)
+                    ? (detail.variants.find((v: any) => v.code === entry.code) || detail.variants[0])
+                    : undefined;
+                const pricelistEntry = Array.isArray(variant?.perPricelistPrices)
+                    ? variant.perPricelistPrices.find((p: any) => p.pricelistId === pricelistId)
                     : undefined;
                 if (!pricelistEntry) {
                     console.warn(`ProductsReader: [ForceSync] Produkt ${entry.code} nemá záznam perPricelistPrices pro ceník ${pricelistId} -- VYNECHÁVÁM, zkusí se znovu příští synchronizací.`);
@@ -172,7 +186,7 @@ export class ProductsReader {
                     if (!isNaN(ratioNum) && ratioNum <= 1) productMaxDiscount = new Decimal(1).minus(new Decimal(ratioNum));
                 }
                 products.push({
-                    code: detail.code || entry.code,
+                    code: variant?.code || detail.code || entry.code,
                     price: new Decimal(basePrice),
                     actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
                     productMaxDiscount

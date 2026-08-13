@@ -14,18 +14,29 @@ const BASE_PRICELIST_ID = 1;
  * `detail.price` / `detail.sales.minPriceRatio` directly on the product-detail
  * response — fields that don't exist there per the Shoptet OpenAPI schema. Real
  * price data (including `sales.minPriceRatio`, the product's own max-discount
- * cap) only exists inside `detail.perPricelistPrices[]`, one entry per pricelist,
- * requested via `?include=perPricelistPrices`. Because the old code silently read
- * `undefined`, ANY product touched after the last full sync lost its max-discount
- * cap — loyalty tiers (e.g. ZR25 = 25%) then applied uncapped instead of being
+ * cap) only exists inside `detail.variants[].perPricelistPrices[]` -- one entry
+ * per pricelist, one variants[] entry per product variant, requested via
+ * `?include=perPricelistPrices`. Because the old code silently read `undefined`,
+ * ANY product touched after the last full sync lost its max-discount cap --
+ * loyalty tiers (e.g. ZR25 = 25%) then applied uncapped instead of being
  * clamped to the product's real limit (e.g. 5%).
+ *
+ * `perPricelistPrices` lives inside `variants[]`, not on the product directly --
+ * confirmed live 2026-08-13 against real GUIDs (99459, 103525) while
+ * investigating why force-synced products still weren't getting priced even
+ * after the products-reader.ts early-return fix: the real API response has no
+ * top-level `code` or `perPricelistPrices` at all, only `variants[].code` /
+ * `variants[].perPricelistPrices`. Same root cause class as `client.ts`'s
+ * `json.data.product` bug (also fixed same day) -- both caused
+ * `getProductDetail()` callers to silently treat every real product as
+ * "missing data".
  */
-function fakeClient(perPricelistPrices: any[]) {
+function fakeClient(perPricelistPrices: any[], variantCode = 'SKU-1') {
     return {
         getProductChanges: async () => [{ guid: 'guid-1', code: 'SKU-1', changeType: 'update' }],
         getProductDetail: async () => ({
-            code: 'SKU-1',
-            perPricelistPrices,
+            guid: 'guid-1',
+            variants: [{ code: variantCode, perPricelistPrices }],
         }),
     } as any;
 }
@@ -74,7 +85,7 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
         expect(incompleteCodes).toEqual(['SKU-1']);
     });
 
-    // Regression test for INC-010 follow-up (2026-08-13): fetchProducts() used to
+    // Regression test for INC-010 follow-up #1 (2026-08-13): fetchProducts() used to
     // `return` immediately when getProductChanges() reported zero changes, BEFORE
     // ever reaching the force-sync-products.json escape-hatch loop below it. Since
     // 99459/103525 never appear in /products/changes at all, every incremental run
@@ -95,10 +106,13 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
         const client = {
             getProductChanges: async () => [],
             getProductDetail: async () => ({
-                code: 'FORCE-1',
-                perPricelistPrices: [
-                    { pricelistId: BASE_PRICELIST_ID, price: { price: '199.00' }, sales: { minPriceRatio: 0.9 } },
-                ],
+                guid: 'force-guid-1',
+                variants: [{
+                    code: 'FORCE-1',
+                    perPricelistPrices: [
+                        { pricelistId: BASE_PRICELIST_ID, price: { price: '199.00' }, sales: { minPriceRatio: 0.9 } },
+                    ],
+                }],
             }),
         } as any;
 
@@ -112,5 +126,48 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
 
         vi.doUnmock('fs');
         vi.resetModules();
+    });
+
+    // Regression test for INC-010 follow-up #2 (2026-08-13): confirmed live against
+    // real Shoptet product detail responses (GUIDs for 99459/103525) that
+    // `perPricelistPrices` lives inside `variants[]`, never on the product's
+    // top level. Before this fix, `detail.perPricelistPrices` was always
+    // `undefined` for every real product, so every incrementally-changed product
+    // silently got marked incomplete forever, regardless of whether Shoptet
+    // actually had real price data for it.
+    it('finds perPricelistPrices nested inside variants[], matching the variant by code', async () => {
+        const reader = new ProductsReader({
+            getProductChanges: async () => [{ guid: 'guid-multi', code: 'VARIANT-B', changeType: 'update' }],
+            getProductDetail: async () => ({
+                guid: 'guid-multi',
+                variants: [
+                    { code: 'VARIANT-A', perPricelistPrices: [{ pricelistId: BASE_PRICELIST_ID, price: { price: '111.00' }, sales: { minPriceRatio: 1 } }] },
+                    { code: 'VARIANT-B', perPricelistPrices: [{ pricelistId: BASE_PRICELIST_ID, price: { price: '222.00' }, sales: { minPriceRatio: 0.9 } }] },
+                ],
+            }),
+        } as any);
+
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
+
+        expect(incompleteCodes).toHaveLength(0);
+        expect(products).toHaveLength(1);
+        expect(products[0].code).toBe('VARIANT-B');
+        expect(products[0].price.toNumber()).toBe(222);
+    });
+
+    // Regression test for INC-010 follow-up #2: getProductDetail() itself returning
+    // `undefined` (e.g. the now-fixed client.ts `json.data.product` bug, or a
+    // genuinely deleted product) must be tracked as incomplete, not silently
+    // skipped with no record at all.
+    it('reports the product as incomplete (not silently skipped) when getProductDetail() returns null/undefined', async () => {
+        const reader = new ProductsReader({
+            getProductChanges: async () => [{ guid: 'guid-gone', code: 'GONE-1', changeType: 'update' }],
+            getProductDetail: async () => null,
+        } as any);
+
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID, undefined, '2026-08-01T00:00:00+0000');
+
+        expect(products).toHaveLength(0);
+        expect(incompleteCodes).toEqual(['GONE-1']);
     });
 });

@@ -100,7 +100,7 @@
             <span style="font-size:20px;line-height:1;">👮</span>
             <span style="display:flex;flex-direction:column;line-height:1.15;text-transform:none;">
                 <span style="font-weight:700;color:#333;font-size:12px;">Rybárska stráž</span>
-                <span style="color:#888;font-size:10px;">Stráži dostupnosť produktu</span>
+                <span style="color:#888;font-size:8px;white-space:nowrap;">Stráži dostupnosť produktu</span>
             </span>
         `;
 

@@ -7,6 +7,83 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (uzavření dne) — Živý full sync DOKONČEN + frontend úpravy nasazeny
+
+**Živý full sync (náprava 812 postižených produktů, INC-010) — VÝSLEDEK:**
+Spuštěn ručně Janem (dočasné schování `.sync_state.json`, viz předchozí zápis
+o dry-run pro postup). Doběhl za 3038,9s (~51 min):
+- Products processed/updated: **166 836**, failed: **0**
+- 1670 dávkových požadavků, jen HTTP 200, 0 retry, 0 chyb jakéhokoli druhu
+- `FINAL RESULT: SUCCESS`, `READY FOR PRODUCTION: YES`
+- `lastSync` uložen (`2026-08-13T11:41:16+0000`) -- `sync.yml` je od teď zpátky
+  v normálním 15minutovém INKREMENTÁLNÍM režimu, žádná trvalá změna na
+  "přepisuj vždy všechno" se nestala
+- `force-sync-products.json` se vyčistil doopravdy zaslouženě (99459/103525
+  i zbytek z 812 kódů prošly tímhle plošným zápisem)
+
+**INC-010 je tímto uzavřený end-to-end:** root cause (5 vrstev tichých
+selhání) opravena a otestována, Stage 4 (fail-closed) a Stage 5
+(Reconciliation / Price Integrity Layer + self-check) postaveny a
+commitnuty, katalogový audit kvantifikoval dopad (812/16705 produktů),
+živý full sync dopad napravil se 100% úspěšností.
+
+**Zbývá (přeneseno z dřívějších zápisů, stále neuzavřeno):**
+- `FLACARP` do `brandLimits` -- platit má až od 2026-08-14, zatím vědomě
+  nepřidáno.
+- Kupónová politika (INC-010, pátý nález) nemá plošný fallback po
+  archivaci `coupon-fields.yml` -- 99459 kupónová pole nebyla ověřena/
+  doplněna.
+- Audit rozsahu chyby 5 (`getProductDetail()`) mimo samotné wholesale
+  ceny -- např. `sync-coupon-fields-single-product.ts` měl stejnou chybu,
+  opravenu, ale nekontrolováno šířeji.
+- Stage 5 (`reconcile-pricelist-drift.ts`) zatím neproběhla ani jednou
+  naživo přes `workflow_dispatch` -- doporučeno ověřit před spolehnutím
+  na první scheduled běh (03:00 UTC).
+
+### Frontend úpravy mimo scope INC-010 (stejná session, Janovy požadavky)
+
+**`vip_detail.js` (produkt detail, FTP `upload/CSSJS/`):**
+- Ikonka "Strážiť" (nativní Shoptet watchdog/hlídací pes) přesunuta z
+  pozice pod "Do košíka" přímo vedle finální ceny (`strong.price-final`,
+  `display:flex`), nezávisle na VIP slevovém badge.
+- Přestylizována na "Rybárska stráž" / "Stráži dostupnosť produktu" +
+  ikonka 👮 (native dog-icon background-image skryta přes
+  `classList.remove('watchdog')` + `background:none!important`).
+- Responzivní: na `max-width:600px` se zmenší (menší font/mezery), NE
+  zalomí na nový řádek -- zůstává vždy na stejném řádku jako cena.
+- Cestou opraven i drift: živá FTP verze měla jiný styl slevového badge
+  (zelené "Ušetríte X%") než git (červené "-X%") -- nikdy předtím
+  necommitnuto. Repo teď sedí s živým stavem přesně.
+- Nasazeno přes přímý SFTP přístup (`ftp.myshoptet.com`, uživatel
+  `LCode_767740`) -- před KAŽDÝM uploadem staženo + `diff`nuto proti
+  aktuální živé verzi (drift-check), aby se nepřepsalo nic, co není v gitu.
+
+**`header-line.js` + `okfish-header-extra.css` (nově přidány do repa,
+dřív žily jen na FTP, nikdy netrackované):**
+- Mobilní vyhledávání (klik na lupu) dřív expandovalo `.search-form`
+  INLINE v řádku ikonek, čímž zakrývalo login/wishlist/cart ikonky
+  (potvrzeno screenshoty). Requested fix: nový plnošířkový řádek POD
+  hlavičkou, ikonky nedotčené, řádek fyzicky neexistuje (ne jen skrytý),
+  když není aktivní.
+- `setupMobileSearchRow()`: capture-phase click listener na
+  `a[data-target="search"]` + `stopImmediatePropagation()` -- plně
+  přebírá kontrolu místo spoléhání na neznámou nativní Shoptet toggle
+  logiku. Přesune `.search` formulář do nového `#vip-mobile-search-row`
+  elementu vloženého za `.header-top-wrapper`, toggluje `.vip-active`.
+- CSS: `#vip-mobile-search-row` `display:none` defaultně, `display:block`
+  jen s `.vip-active`, jen na `max-width:767px` (stejný breakpoint jako
+  zbytek mobilních hlavičkových pravidel v souboru).
+- **Neověřeno naživo Playwrightem** (macOS na tomhle stroji je pro
+  aktuální Playwright/Chromium moc starý, `ERROR: Playwright does not
+  support chromium on mac12") -- implementace vychází z rozboru staženého
+  CSS/HTML (`.search-focused` třída, struktura `.search-form.compact-form`),
+  ne z živého pozorování kliku. Čeká na Janovo vizuální potvrzení na
+  mobilu.
+
+**Verze:** main, commity `ea2f273`…`9cbb04b` (celý dnešní den).
+
+---
+
 ## 2026-08-13 (pokračování) — Dry-run full sync DOKONČEN + vize "Price Truth Engine"
 
 ### Dry-run full sync — výsledek (náprava 812 produktů)

@@ -7,6 +7,35 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Náprava 812 postižených produktů: dry-run full sync, PRÁVĚ BĚŽÍ
+
+**Rozhodnutí (Jan):** z navržených dvou variant nápravy (vynucený full sync
+vs. cílený bulk skript pro 812 kódů) zvolen **vynucený full sync** — jde
+přes `getPricelistProducts()`, stejnou cestu jako produkce, žádný nový
+netestovaný kód. Postup dle Dry-Run First: nejdřív `scripts/run-dry-sync.ts`
+(dryRun: true, nic nezapisuje) přes CELÝ katalog, výsledek se ukáže Janovi,
+teprve po jeho schválení ostrý běh.
+
+**Jak byl vynucen full sync mód:** `FileStateProvider` čte `.sync_state.json`
+z `process.cwd()`, žádná jiná cesta injectovatelná zvenku. Soubor byl
+DOČASNĚ přesunut do `/tmp` (zálohován, `getLastSync()` vrátil `null` →
+`[FULL SYNC MÓD]` potvrzeno v logu), a IHNED vrácen zpět (ověřeno `diff`
+identický obsah, `git status` čistý) -- `FileStateProvider.getLastSync()`
+se čte jen jednou na začátku běhu, takže vrácení souboru neovlivnilo
+běžící proces. `dryRun: true` navíc zaručuje, že `setLastSync()` se
+nezavolá vůbec, i kdyby něco selhalo.
+
+**Průběh (zatím):** základní ceník staženo (16 711 položek, sedí s číslem
+z auditu), manufacturer mapa načtena (16 644 kódů), teď běží FULL SYNC
+zákazníků/objednávek (`/orders`, 3838 stránek stránkování -- tohle bude
+nejdelší část, výrazně víc než produktová část). Odhad dokončení
+neznámý, může to trvat desítky minut. Monitor nastaven, výsledek bude
+doplněn do tohohle zápisu.
+
+**Zatím se NIC nezapsalo ani nezměnilo** -- čistě diagnostický dry-run.
+
+---
+
 ## 2026-08-13 (pokračování) — Katalogový audit dopadu chyby 5 (INC-010), DOKONČENO
 
 **Kontext:** Po vyřešení INC-010 (99459/103525) vyšlo najevo, že `getProductDetail()`

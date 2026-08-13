@@ -7,6 +7,68 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pozdní večer) — FLACARP přidán do brandLimits (10% strop) + dotčené produkty přepočítány
+
+Janovo zadání ("přidej FLACARP značku do seznamu značek kde je 10% max
+povolená sleva na značce ... a podle toho ať přepočítá ty produkty kterých
+se to týká"). Poznámka z INC-010 (viz zápis 2026-08-13 "uzavření dne") měla
+FLACARP zavést "od 2026-08-14" -- provedeno ještě dnes večer na přímé
+Janovo zadání, ne odloženo.
+
+**1. `src/config/policies/policy-v1.json` -- `brandLimits`:** přidán řádek
+`"FLACARP": 0.10` (stejná hodnota jako většina ostatních běžných značek).
+Před přidáním ověřen přesný string v poli `manufacturer` živě z master
+feedu (case-sensitive match v `DiscountLimitPolicy`/`resolveActiveLimit`,
+viz `CORE_LOGIC_AND_VALIDATION.md` §1.1) -- potvrzeno `"FLACARP"`
+(velkými písmeny přesně), žádná nejasnost, na rozdíl od otevřené otázky v
+INC-010 zápisu.
+
+**2. Dohledání dotčených produktů:** z master feedu (přes projektový
+`CsvParserStream`, ne ručním parsováním -- řádky obsahují HTML popisy s
+`;`, takže jen skutečný parser dá spolehlivý výsledek) nalezeno **18
+produktových kódů** s `manufacturer === "FLACARP"` přesně:
+`103519, 103503, 103504, 103520, 103521, 103513, 103505, 103522, 103515,
+103506, 103523, 103518, 103502, 103508, 103510, 103511, 103524, 103525`
+(kód+guid pár pro každý). Všimnuto: **103525 je mezi nimi** -- stejný
+produkt jako z INC-010 (99459/103525), čistá shoda kódového rozsahu, ne
+souvislost s incidentem.
+
+**3. Přepočet cen (10 ZR ceníků):** kódy+guidy zapsány do
+`force-sync-products.json` (stejný mechanismus vynuceného doplnění jako
+při INC-010 pro 99459/103525) a spuštěn **stejný produkční příkaz jako
+`sync.yml`** (`npx tsx scripts/run-real-sync.ts`) -- tím se produkty
+protáhly přes normální incremental sync pipeline, `calculateAllTierPrices()`
+teď honoruje nový brand cap. Výsledek: 18 produktů načteno, **111
+cenníkových položek aktualizováno, 0 selhání**, `FINAL RESULT: SUCCESS`,
+`READY FOR PRODUCTION: YES`, `force-sync-products.json` se po úspěchu sám
+vyprázdnil. Příklad efektu (audit log): produkt 103525, ZR25: 273,75 €
+→ 328,50 € (cena šla NAHORU -- předtím produkt nerespektoval žádný brand
+strop a dostával plnou tierovou slevu, teď je correctly osekaný na max
+10 % od základní ceny).
+
+**4. Přepočet kupónů (11 ceníků včetně GUEST):** `resolveEffectiveLimit()`
+v `compute-coupon-writes.ts` teď taky vidí nový FLACARP strop (mirror
+cenové hierarchie Produkt→Brand→Kategorie, viz §1.2) -- bez přepočtu by
+kupónová vrstva zůstala nekonzistentní s cenovou (mohla by povolit víc
+prostoru, než cenový engine reálně dovolí). Spuštěno
+`sync-coupon-fields-single-product.ts` pro všech 18 kódů (smyčka, každý
+samostatně). **Všech 18 skončilo `=== HOTOVO ===`, žádný `throw`, žádná
+chyba v logu.**
+
+**Ověření:** živý čtecí audit (analogie reconciliace) na těchhle 18
+kódech dnes večer neproveden (Jan usnul, agent nemá povolení spustit
+další write bez dozoru) -- doporučeno jako první krok, až Jan bude zpátky
+u počítače: buď spustit `reconcile-coupon-drift.ts`/
+`reconcile-pricelist-drift.ts` (celý katalog, zachytí to mimochodem), nebo
+cíleně zkontrolovat těch 18 kódů ručně.
+
+**Commity:** zatím NEcommitnuto (viz níže) -- `policy-v1.json` je jediná
+věcná změna v gitu, živé zápisy (ceny + kupóny) proběhly přímo na Shoptet
+API, ne přes soubory v repu. `.sync_state.json` se taky změnil (automaticky
+aktualizovaný `lastSync` po běhu syncu).
+
+---
+
 ## 2026-08-13 (uzávěrka) — INC-011 souhrn celého zásahu, konec dne
 
 Konsolidovaný záznam celého dnešního kupónového zásahu na jednom místě

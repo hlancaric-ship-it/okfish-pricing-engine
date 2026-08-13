@@ -9,6 +9,8 @@ import { ICustomerCache } from './customer-cache';
 import { FileStateProvider, ISyncStateProvider } from './state-provider';
 import { CsvParserStream } from '../csv/csv-parser';
 import Decimal from 'decimal.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // The Shoptet Private API's pricelist-items endpoint (used by ProductsReader)
 // never returns `manufacturer` -- it's a product-catalog attribute, not a
@@ -118,7 +120,7 @@ export class SyncOrchestrator {
             }
         } catch (error) {
             console.error('\n[FATAL ERROR] Nepodařilo se načíst seznam ceníků z API. Zápisová vrstva se okamžitě ukončuje.');
-            return;
+            throw error;
         }
 
         // 2. Vytvoření mapy ceníků (name -> id)
@@ -299,9 +301,12 @@ export class SyncOrchestrator {
             const pStats = await pricelistWriter.processDiff(plId, plData.name, plData.diffs);
             pricelistStatsList.push(pStats);
 
-            // Po úspěšném zápisu zaktualizujeme Cache!
-            if (!this.options.dryRun && pStats.processed > 0) {
-                for (const d of plData.diffs) {
+            // Po úspěšném zápisu zaktualizujeme Cache! Jen za produkty z DÁVEK, které
+            // opravdu prošly (pStats.successfulDiffs) -- ne za celý plData.diffs, viz
+            // komentář v pricelist-writer.ts. Produkt z neúspěšné dávky se tak příští
+            // běh znovu pokusí zapsat, místo aby ho cache tiše "schovala" jako hotový.
+            if (!this.options.dryRun && pStats.successfulDiffs.length > 0) {
+                for (const d of pStats.successfulDiffs) {
                     await this.options.priceCache.setPrice(plId, d.code, d.newPrice.toFixed(2));
                 }
             }
@@ -398,6 +403,19 @@ export class SyncOrchestrator {
             // nikdy nedostal do dalšího inkrementálního okna.
             await stateProvider.setLastSync(syncStartedAt);
             console.log(`[State] Uložen nový lastSync: ${syncStartedAt}`);
+
+            // Force-synced codes have now gone through the normal diff/write
+            // path like any other product — clear the escape hatch so they
+            // don't get force-refetched on every future run.
+            try {
+                const forceSyncFile = path.join(process.cwd(), 'force-sync-products.json');
+                if (fs.existsSync(forceSyncFile)) {
+                    fs.writeFileSync(forceSyncFile, '[]\n', 'utf-8');
+                    console.log('[ForceSync] force-sync-products.json vyčištěn po úspěšném běhu.');
+                }
+            } catch (e) {
+                console.warn('[ForceSync] Nepodařilo se vyčistit force-sync-products.json:', e);
+            }
         } else {
             console.log(`NO`);
             if (this.options.dryRun) console.log(`- Zrušte dryRun flag pro ostrý běh (lastSync nebyl zapsán)`);

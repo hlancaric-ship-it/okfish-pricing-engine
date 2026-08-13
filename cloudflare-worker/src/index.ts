@@ -396,10 +396,24 @@ export default {
             if (!body?.version || !Array.isArray(body.products)) {
                 return jsonResponse({ error: 'Invalid payload' }, 400);
             }
-            await Promise.all(body.products.map(p =>
-                env.VIP_KV.put(`product:${body.version}:${p.code}`, JSON.stringify(p.row))
-            ));
-            return jsonResponse({ ok: true, count: body.products.length });
+            // Diff-aware zápis (2026-08-12): dřív se sem posílal KOMPLETNÍ katalog při
+            // KAŽDÉM běhu (cron 15min i webhook) a každý produkt se zapsal pod novým
+            // verzovaným klíčem product:${version}:${code} bez ohledu na to, jestli se
+            // cokoliv změnilo -- potvrzeno živě: 16 708 KV zápisů za jeden běh, ~1.6M/den,
+            // a staré verze se navíc nikdy nemazaly (neomezeně rostoucí KV storage).
+            // Teď se zapisuje pod STABILNÍM klíčem (bez verze) a jen když se obsah
+            // opravdu liší od toho, co už v KV je -- žádné nové osiřelé klíče, žádné
+            // zbytečné zápisy za nezměněná data.
+            let written = 0, skipped = 0;
+            await Promise.all(body.products.map(async (p) => {
+                const key = `product:${p.code}`;
+                const newValue = JSON.stringify(p.row);
+                const existing = await env.VIP_KV.get(key);
+                if (existing === newValue) { skipped++; return; }
+                await env.VIP_KV.put(key, newValue);
+                written++;
+            }));
+            return jsonResponse({ ok: true, count: body.products.length, written, skipped });
         }
 
         // === POST /v1/products/import/finish ===
@@ -410,6 +424,47 @@ export default {
             const oldVersion = await env.VIP_KV.get('active_product_version');
             await env.VIP_KV.put('active_product_version', body.version);
             return jsonResponse({ ok: true, version: body.version, oldVersion });
+        }
+
+        // === GET /v1/price-cache/:pricelistId ===
+        // Perzistentní náhrada za `.price_cache.json` (viz sync-orchestrator.ts) --
+        // ten soubor žil jen na disku GitHub Actions runneru a mezi jednotlivými
+        // běhy se NIKDY nezachoval (žádný actions/cache krok, žádný commit do
+        // repa), takže diff logika v orchestrátoru byla naživo neúčinná -- oldPrice
+        // byla vždy null, takže se do Shoptet ceníku posílal PATCH pro úplně
+        // všechny produkty při každém běhu, bez ohledu na to, jestli se cena
+        // reálně změnila. Jeden KV klíč na ceník (ne na produkt jako u
+        // product-discount cache) -- ceníky mají přirozeně malý, stabilní počet
+        // (řádově desítky), takže čtení/zápis celé mapy najednou je levnější než
+        // řešit diff po jednotlivých produktech přes GET-před-PUT jako u KV
+        // produktové cache.
+        if (path.startsWith('/v1/price-cache/') && request.method === 'GET') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const pricelistId = path.substring('/v1/price-cache/'.length);
+            if (!pricelistId) return jsonResponse({ error: 'Chybí pricelistId' }, 400);
+            const raw = await env.VIP_KV.get(`pricecache:${pricelistId}`);
+            const prices = raw ? JSON.parse(raw) : {};
+            return jsonResponse({ pricelistId, prices });
+        }
+
+        // === POST /v1/price-cache/:pricelistId ===
+        // Body: { updates: { [productCode]: price } } -- read-modify-write jednoho
+        // KV klíče. Volající (RemotePriceCache) sem posílá jen produkty, u kterých
+        // se cena reálně změnila oproti tomu, co GET výše vrátil.
+        if (path.startsWith('/v1/price-cache/') && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const pricelistId = path.substring('/v1/price-cache/'.length);
+            if (!pricelistId) return jsonResponse({ error: 'Chybí pricelistId' }, 400);
+            const body = await request.json() as { updates: Record<string, string> };
+            if (!body?.updates || typeof body.updates !== 'object') {
+                return jsonResponse({ error: 'Invalid payload' }, 400);
+            }
+            const key = `pricecache:${pricelistId}`;
+            const raw = await env.VIP_KV.get(key);
+            const prices = raw ? JSON.parse(raw) : {};
+            Object.assign(prices, body.updates);
+            await env.VIP_KV.put(key, JSON.stringify(prices));
+            return jsonResponse({ ok: true, pricelistId, updated: Object.keys(body.updates).length, total: Object.keys(prices).length });
         }
 
         // === GET /v1/product-discount/:code/:tier ===
@@ -423,9 +478,16 @@ export default {
             const tier = parts[1];
             if (!code || !tier) return jsonResponse({ error: 'Usage: /v1/product-discount/:code/:tier' }, 400);
 
-            const activeVersion = await env.VIP_KV.get('active_product_version');
-            if (!activeVersion) return jsonResponse({ error: 'No active product data' }, 404);
-            const rowJson = await env.VIP_KV.get(`product:${activeVersion}:${code}`);
+            // Zkusí nejdřív stabilní klíč (bez verze) -- od 2026-08-12 zapisovaný jen
+            // při reálné změně dat, viz import/chunk níže. Padá zpátky na starý
+            // verzovaný klíč, dokud stabilní klíč pro daný kód ještě neexistuje
+            // (např. těsně po deployi, než proběhne první sync-products běh) --
+            // nedojde tak k žádnému výpadku dat během přechodu na nové schéma.
+            let rowJson = await env.VIP_KV.get(`product:${code}`);
+            if (rowJson === null) {
+                const activeVersion = await env.VIP_KV.get('active_product_version');
+                if (activeVersion) rowJson = await env.VIP_KV.get(`product:${activeVersion}:${code}`);
+            }
             if (rowJson === null) return jsonResponse({ error: 'Product not found' }, 404);
 
             const row = JSON.parse(rowJson) as CsvRow;

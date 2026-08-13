@@ -75,6 +75,131 @@ main (2026-08-04)
 
 ---
 
+## 2026-08-12
+
+### INC-005
+**Popis:**
+`sync.yml` selhal opakovaně (11× za předchozích 7 dní) ve kroku "Synchronizace produktových dat pro frontend badge" — `sync-products.ts`.
+
+**Příčina:**
+Přechodné síťové chyby (`HeadersTimeoutError`, `SocketError: other side closed`, `HTTP 502` z master feedu) shazovaly celý krok na první chybu. Cron (15 min) fungoval jako záložní síť, takže dopad byl jen krátké zpoždění badge dat, ale selhání bylo hlučné (issue #3 dostával komentář skoro denně).
+
+**Oprava:**
+Zaveden `fetchWithRetry()` (3 pokusy, exponenciální backoff 1s/3s/9s) na všech 4 síťových voláních v `sync-products.ts` (feed fetch, import/begin, import/chunk, import/finish). Retry jen na 5xx/429/síťové chyby, ne na 4xx (skutečné chyby se dál hlásí okamžitě).
+
+**Verze:**
+main (2026-08-12, commit `c71ca20`)
+
+---
+
+### INC-006
+**Popis:**
+Pokud selhalo načtení seznamu ceníků ze Shoptet API (`getPricelists()`), `sync-orchestrator.ts` to tiše "prohltl" — zalogoval chybu a normálně se vrátil, místo aby ji propagoval. GitHub Actions krok tak mohl doběhnout jako zelený checkmark i při úplném selhání synchronizace (0 zpracovaných produktů), bez error logu a bez notifikace.
+
+**Příčina:**
+`catch (error) { console.error(...); return; }` — `return` místo `throw`, takže `run-real-sync.ts`, které nastavuje `exitCode = 1` jen při vyhozené výjimce, žádnou chybu nezaznamenalo.
+
+**Oprava:**
+`return` nahrazeno `throw error;`. Stejná třída chyby, jakou tým už jednou řešil obecně (viz komentář v `run-real-sync.ts`), ale tahle konkrétní větev tehdy opravena nebyla.
+
+**Verze:**
+main (2026-08-12, commit `7f70f27`)
+
+---
+
+### INC-007 (největší dopad na náklady)
+**Popis:**
+Frontend product-discount cache (KV, `/v1/product-discount/:code/:tier`) se přepisovala **kompletně celá** při každém běhu (cron 15 min + každý webhook) — potvrzeno živě: 16 708 zápisů za jeden běh, ~1,6M KV zápisů/den, bez ohledu na to, jestli se cokoliv reálně změnilo. Staré verzované klíče (`product:${version}:${code}`) se navíc nikdy nemazaly — neomezeně rostoucí KV storage, na rozdíl od zákaznické cache, která cleanup má.
+
+**Příčina:**
+`/v1/products/import/chunk` dělal nepodmíněný `KV.put()` pro každý produkt v dávce, bez porovnání s tím, co už v KV je.
+
+**Oprava:**
+Přechod na stabilní klíč (`product:${code}`, bez verze), zápis jen když se obsah reálně liší od uloženého (`KV.get()` → porovnání → případný `KV.put()`). Čtecí endpoint zkouší nejdřív stabilní klíč, padá zpátky na starý verzovaný klíč, dokud není stabilní klíč naplněný — bez výpadku dat během přechodu. Ověřeno na stagingu i naostro na reálných 16 708 produktech: 2. běh po nasazení zapsal jen ty skutečně změněné (1, resp. 0 při dalším běhu), zbytek přeskočen. `sync-products.ts` teď v souhrnném logu hlásí `written`/`skipped`.
+
+**Poznámka:** Appka pro Pavola (desktop, v1.1.0) volá stejný `/v1/products/import/chunk` endpoint, takže z opravy těží automaticky, bez jakékoli úpravy appky.
+
+**Zbývá (nedokončeno, vědomě odloženo):** Stejný vzorec (posílání kompletních dat bez diffu) platí i pro zápis cen přímo do Shoptet ceníků (PATCH) — `.price_cache.json`, který má sloužit k diffu, se nikdy nezachová mezi GitHub Actions běhy (efemérní runner, žádný `actions/cache` krok), takže se i tam posílá plný ceník pokaždé. Vyžaduje stejně opatrný postup (staging test, before/after porovnání) jako u KV — zatím neřešeno.
+
+**Verze:**
+main (2026-08-12, commit `ee37a3f` + `93084a1`... viz `index.ts`/`sync-products.ts`)
+
+---
+
+### INC-008
+**Popis:**
+`force-customer-discount.yml` (ruční zápis natvrdo nastavené slevy jednomu zákazníkovi) neměl na rozdíl od sourozeneckých one-off skriptů žádnou dry-run pojistku — překlep v e-mailu nebo v % slevy šel rovnou do produkce.
+
+**Oprava:**
+`force-customer-discount-live.ts` teď defaultně jen vypíše, co by se zapsalo; ostrý zápis vyžaduje `LIVE=true`. Workflow dostal stejný `live` boolean přepínač jako `reset-cap-outside-brandlist.yml` a další.
+
+**Verze:**
+main (2026-08-12, commit `122ff37`)
+
+---
+
+### INC-009
+**Popis:**
+`disable-negative-stock.ts` sám o sobě dry-run podporuje (výchozí chování bez `--live`), ale `disable-negative-stock.yml` volal skript vždy s natvrdo zapsaným `--live` — pojistka existovala v kódu, ale workflow ji obcházel.
+
+**Oprava:**
+Workflow dostal `live` boolean vstup (default `false`), skript se podle něj spouští s/bez `--live`.
+
+**Verze:**
+main (2026-08-12, commit `122ff37`)
+
+---
+
+### Ověření stability (2026-08-13) — issue #3 zavřen
+Po opravách z 12.8. (retry logika, propagace chyby, diff-aware KV) proběhlo 15+ po sobě jdoucích úspěšných běhů `sync.yml`, žádné selhání. Zachycen i první reálný test po opravě: běh 12.8. 20:09 správně zpracoval a zapsal 1 zákazníka se změněným věrnostním tierem (`CustomerWriter: Nalezeno 1 zákazníků`, `Customers processed: 1`). Issue #3 zavřen s odkazem na tuhle stabilitu.
+
+**Zjištění k zákaznické cache (ne bug, jen upřesnění rozsahu):** ověřeno v `customer-adapter.ts` — `processCustomers()` v inkrementálním režimu volá `getCustomerChanges(lastSync)`, tedy filtruje už na úrovni Shoptet API, ne až lokálně. Zákaznická cache sice (na rozdíl od produktové) nemá diff-aware zápis do KV — co se načte, to se zapíše bez porovnání se starou hodnotou — ale protože se běžně načítá jen hrstka změněných zákazníků za běh (potvrzeno v logu: `Customers loaded` 0–4, nikdy 47 800), reálný dopad plýtvání je malý. Všech ~47 800 zákazníků se zapíše najednou jen při **full syncu** (`isFullSync=true`, tj. když `.sync_state.json` nemá `lastSync` — první běh nebo ruční reset stavu).
+
+**Zbývá (odloženo, ne urgentní):** stejná diff-aware oprava jako u produktů (INC-007) by šla udělat i pro zákaznickou KV cache — nízká priorita vzhledem k výše uvedenému zjištění, plánováno jako samostatný budoucí úkol.
+
+---
+
+### Provozní úklid (ne incident, ale součást stejného zásahu)
+Bezpečnostní/architektonický audit (2026-08-12) odhalil ~30 jednorázových debug/export/find/fix/verify workflow souborů z incident-response práce (3.–6. 8. 2026), které už splnily účel a jen zbytečně zahlcovaly seznam GitHub Actions tlačítek. Přesunuty do `.github/workflows-archive/` (git historie zachována, GitHub Actions je už nevidí/nenabízí ke spuštění). `sync-guest-coupon-cap.yml` mezi nimi — jeho rozbitá logika už jednou způsobila reálný incident (přepis stropů slev na 14 606 produktech, 5.8.2026), cron byl vypnutý, ale skript samotný nikdy opraven — archivace ho znepřístupnila i pro manuální spuštění.
+
+Audit dále odhalil (zatím neřešeno, čeká na rozhodnutí):
+- Sdílený hardcoded token (`SECRET_TOKEN`) v `index.ts` i v appce pro Pavola — vědomě ponechán beze změny (appku používá jen Pavol, riziko akceptováno).
+- CORS `*` i na chráněných endpointech, autentizace přes `?token=` v URL u pár endpointů.
+- `R2` feed bucket bez cleanupu (stejný vzorec jako u KV, ještě neopravený).
+- `DiscountLimitPolicy`/`HighestDiscountPolicy`: chybějící validace vstupů (neznámý tier, nevalidovaný `productMaxDiscount`).
+- Nulové testy pro `rate-limiter.ts`, `client.ts`, `customer-writer.ts`, `pricelist-writer.ts`, `DiscountLimitPolicy.ts`.
+- `npm audit` v `cloudflare-worker/`: 14 zranitelností (5 moderate, 7 high, 2 critical), nezkoumáno do hloubky.
+
+---
+
+## 2026-08-13
+
+### INC-010
+**Popis:**
+Produkty 99459 a 103525 (přidané Yopni 12.8.) neměly vůbec dopočítané tier-ceny na wholesale ceníku — Jan je musel dopisovat ručně. Na frontendu se přihlášenému ZR25 zákazníkovi zobrazovalo jen -10 % místo -25 %. `sync.yml` doběhl přesto zeleně.
+
+**Příčina (dvě nezávislé díry, obě přispěly):**
+1. `products-reader.ts` (inkrementální větev): když Shoptet ještě nepropsal `perPricelistPrices` pro čerstvě založený produkt na základní ceník, kód fabrikoval `basePrice=0` a poslal produkt dál do enginu jako platný.
+2. `pricing-bridge.ts`: `validateInput`/`validateResult`/`res.rejected`/vyhozená výjimka se pro konkrétní SKU+tier tiše zahodily (`catch (e) { /* Ignore */ }`) bez logu a bez počítání jako failure; `sync-orchestrator.ts` tak nikdy neviděl, že něco chybí, a `isSuccess` se sice vytiskl jako `FAILED` do konzole, ale nikdy se nepropagoval jako `throw` — `run-real-sync.ts` viděl exit 0, GitHub Actions job zůstal zelený.
+
+Souběžně (nezávisle zjištěno ve stejný den, viz commit `85de937`): Shoptet `/products/changes` endpoint tyhle dva produkty vůbec nikdy nenahlásil jako změněné, takže inkrementální sync by je nenašel ani po opravě výše.
+
+**Oprava:**
+- `products-reader.ts`: chybějící `perPricelistPrices` entry produkt vynechá z běhu (`incompleteCodes`) místo fabrikace ceny 0; stejná ochrana teď platí i pro `force-sync-products.json` escape hatch (commit `85de937`) — obě cesty používají shodnou pricelistEntry logiku.
+- `pricing-bridge.ts`: každé selhání validace/výpočtu/zamítnutí se loguje (`console.warn` s SKU+tier+reason) a vrací se v poli `failures`.
+- `sync-orchestrator.ts`: `isSuccess` zohledňuje `incompleteCodes` i `pricingFailures`; při neúspěchu se `lastSync` neposune (produkt se zkusí znovu za 15 min) a na konci se hodí `throw` — GitHub Actions job zčervená a spustí se issue-notifikace (mechanismus v `sync.yml` existoval už z INC-006, jen se tady nikdy nespustil).
+- `FLACARP` zvažován pro `brandLimits` (10% strop) — vědomě NEpřidán teď, platit má až od 2026-08-14 na Janovo přání.
+
+**Zbývá:**
+- Po nasazení počkat na první incrementální běh — 99459/103525 by se měly dopočítat samy (Janův ruční zápis ceny je "změnil", takže spadnou do inkrementálního okna, navíc jsou i ve `force-sync-products.json`).
+- Neověřeno na živém feedu, jestli `FLACARP` je přesný string v poli `manufacturer` (case-sensitive match v `DiscountLimitPolicy`) — ověřit před přidáním zítra.
+- Stejná třída tichého polykání chyb může existovat i jinde v pipeline (`customerWriter`/`pricelistWriter` interní retry logika) — nekontrolováno v rámci tohoto zásahu.
+
+**Verze:**
+main (2026-08-13)
+
+---
+
 *(Řádky výše jsou první reálné produkční incidenty. Formát pro další záznamy viz vzor níže.)*
 
 <!-- Vzor záznamu:

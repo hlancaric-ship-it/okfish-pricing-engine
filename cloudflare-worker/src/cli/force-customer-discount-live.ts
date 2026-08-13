@@ -36,6 +36,12 @@ async function main() {
     const discountStr = process.env.DISCOUNT_PCT;
     const baseUrl = process.env.CF_WORKER_URL;
     const token = process.env.CF_WORKER_TOKEN;
+    // Bezpečnostní pojistka (2026-08-12): tenhle skript zapisuje natvrdo bez
+    // náhledu -- na rozdíl od sourozeneckých one-off skriptů (reset-cap-*,
+    // revert-brand-caps-*, set-brand-cap-live) neměl žádný dry-run default,
+    // takže překlep v e-mailu nebo % slevy šel rovnou do produkce. Defaultně
+    // teď jen ukáže, co by se zapsalo; ostrý zápis vyžaduje explicitní LIVE=true.
+    const live = process.env.LIVE === 'true';
 
     if (!email) throw new Error('EMAIL not set');
     if (!discountStr) throw new Error('DISCOUNT_PCT not set');
@@ -46,6 +52,7 @@ async function main() {
     console.log(`E-mail: ${email}`);
     console.log(`Hash: ${hash}`);
     console.log(`Nová sleva (natvrdo): ${discount}%`);
+    console.log(live ? '!!! OSTRÝ ZÁPIS (LIVE=true) !!!' : '--- DRY RUN (nic se nezapíše, spusť s LIVE=true pro ostrý zápis) ---');
 
     const activeRes = await fetch(`${baseUrl}/v1/import/active`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -55,6 +62,11 @@ async function main() {
     const version = activeData.version;
     if (!version) throw new Error('Worker nevrátil žádnou aktivní verzi.');
     console.log(`Aktivní verze KV: ${version}`);
+
+    if (!live) {
+        console.log(`[DRY RUN] Zapsal by se hash=${hash} discount=${discount} do verze ${version}. Nic nezapsáno.`);
+        return;
+    }
 
     const chunkRes = await fetch(`${baseUrl}/v1/import/chunk`, {
         method: 'POST',

@@ -9,6 +9,10 @@ on:
       discount_pct:
         description: 'Sleva v % natvrdo (např. 16)'
         required: true
+      live:
+        description: 'Ostrý zápis? (jinak dry-run — jen ukáže, co by se zapsalo)'
+        type: boolean
+        default: false
 
 jobs:
   run:
@@ -29,4 +33,5 @@ jobs:
           CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
           EMAIL: ${{ github.event.inputs.email }}
           DISCOUNT_PCT: ${{ github.event.inputs.discount_pct }}
+          LIVE: ${{ github.event.inputs.live }}
         run: npx tsx src/cli/force-customer-discount-live.ts

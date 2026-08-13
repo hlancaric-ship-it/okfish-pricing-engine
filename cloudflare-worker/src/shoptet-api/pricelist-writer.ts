@@ -33,7 +33,16 @@ export class PricelistWriter {
             failed: 0,
             skipped: 0,
             dryRun: this.options.dryRun === true,
-            errors: [] as string[]
+            errors: [] as string[],
+            // Jen diffy z DÁVEK, které opravdu úspěšně prošly do Shoptetu -- volající
+            // (sync-orchestrator.ts) tohle používá k zápisu do cache. Předtím se
+            // cachovaly VŠECHNY diffy, jakmile uspěla aspoň jedna dávka v rámci
+            // ceníku (`processed > 0`), i ty z DÁVKY, která selhala -- neškodilo to,
+            // dokud cache nikdy nepřežila mezi běhy (FileCacheProvider), ale s
+            // perzistentní cache (RemotePriceCache, 2026-08-12) by to znamenalo, že
+            // produkt s neúspěšným zápisem do Shoptetu by se příště tiše přeskočil,
+            // protože cache by nesprávně tvrdila, že už má novou cenu.
+            successfulDiffs: [] as PricelistDiff[]
         };
 
         if (diffs.length === 0) {
@@ -102,7 +111,8 @@ export class PricelistWriter {
                 const apiResult = await this.apiClient.updatePricelistBatch(pricelistId, batchPayload);
                 const duration = Date.now() - reqStart;
                 stats.processed += chunk.length;
-                
+                stats.successfulDiffs.push(...chunk);
+
                 // Přidání požadovaného Audit Logu
                 for (const item of chunk) {
                     const oldP = item.oldPrice ? item.oldPrice.toFixed(2) : 'N/A (Cold Cache)';

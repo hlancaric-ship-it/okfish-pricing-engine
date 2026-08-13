@@ -58,7 +58,7 @@
         box.className = "vip-detail-price-box";
         box.innerHTML = `
             <div style="font-size:0.9em;color:#888;text-decoration:line-through;">${formatPrice(data.standardPrice)}</div>
-            <span style="display:inline-block;margin-top:4px;padding:2px 8px;background:#e4002b;color:white;font-size:0.85em;font-weight:700;border-radius:4px;">-${data.discountPct}%</span>
+            <span style="display:inline-block;margin-top:4px;padding:2px 8px;background:#e8f5e9;color:#28a745;border:1px solid #28a745;font-size:0.85em;font-weight:700;border-radius:4px;">Ušetríte ${data.discountPct}%</span>
         `;
         wrapper.prepend(box);
     }

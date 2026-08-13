@@ -89,10 +89,10 @@
             .vip-watchdog-title { font-weight: 700; color: #333; font-size: 12px; white-space: nowrap; }
             .vip-watchdog-sub { color: #888; font-size: 8px; white-space: nowrap; }
             @media (max-width: 600px) {
-                .vip-watchdog-block { margin-left: 10px; gap: 4px; }
-                .vip-watchdog-icon { font-size: 14px; }
-                .vip-watchdog-title { font-size: 9px; }
-                .vip-watchdog-sub { font-size: 6px; }
+                .vip-watchdog-block { margin-left: 14px; gap: 5px; }
+                .vip-watchdog-icon { font-size: 20px; }
+                .vip-watchdog-title { font-size: 13px; }
+                .vip-watchdog-sub { font-size: 10px; }
             }
         `;
         document.head.appendChild(style);

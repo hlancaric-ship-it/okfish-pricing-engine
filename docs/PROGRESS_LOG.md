@@ -7,6 +7,51 @@ why, and what's still open.
 
 ---
 
+## 2026-08-13 (pokračování) — Katalogový audit dopadu chyby 5 (INC-010), PRŮBĚŽNÝ ZÁPIS
+
+**Kontext:** Po vyřešení INC-010 (99459/103525) vyšlo najevo, že `getProductDetail()`
+bug (`json.data.product`) existoval v repu minimálně od **2026-08-01** (12 dní,
+ověřeno `git log -S`). `.sync_state.json` existuje nepřetržitě od stejného data —
+tedy po prvním full syncu běžel 12 dní JEN rozbitý inkrementální sync. Jan se
+zeptal, jestli to nezasáhlo i jiné produkty. Spuštěn READ-ONLY audit (žádný
+zápis): pro každý tier se porovnává cena spočítaná stejnou produkční funkcí
+(`calculateProductsPricing`) ze ŽIVÉ základní ceny (`Hlavný cenník`, id 1 —
+`Maloobchodný` pod tímhle jménem v Shoptetu vůbec neexistuje, produkce na něj
+stejně fallbackuje na `pricelists[0]`) proti tomu, co je SKUTEČNĚ zapsané na
+tierovém ceníku.
+
+**Dílčí výsledek (ZR25 samotný, dokončeno):** z 16 705 produktů se základní
+cenou:
+- 15 895 sedí (v toleranci 0,02 €)
+- **755 má špatnou/zastaralou cenu**
+- **55 v ZR25 ceníku úplně chybí**
+- 0 výpočetních selhání (engine cenu spočítat umí, jen se nikdy nezapsala)
+
+To je ~4,8 % katalogu jen na jednom tieru. Příklady nesedících (očekáváno vs.
+skutečně zapsáno): `01011` 44,91 vs 49,90 | `101800` 577,46 vs 692,96 |
+`101821` 371,21 vs 445,46 | `103524` 408,00 vs 516,80. Vzorek zahrnuje i
+`103518`/`103519`/`103524` — sourozenecké kódy stejné dávky produktů jako
+99459/103525, potvrzuje že to byl širší problém s nedávno přidanými/měněnými
+produkty, ne jen ty dva nahlášené.
+
+**Právě běží:** stejný audit napříč VŠEMI 10 tiery (ZR4–ZR25) na pozadí, jen
+čtení, nic nezapisuje. Skript: `audit-catalog-drift-all.ts` ve scratchpadu.
+Výstup: `/tmp/audit-summary.json` (souhrn), `/tmp/audit-<TIER>-mismatches.json`
+a `/tmp/audit-<TIER>-missing.json` (detail po kódech) pro každý tier. Odhad
+doby běhu 15–20 min (11× stažení ~16-17k položek + manufacturer feed).
+**Tenhle zápis bude doplněn celkovým souhrnem, jakmile audit doběhne — zatím
+neuzavírat jako hotovo.**
+
+**Co z toho vyplývá už teď (i bez plného souhrnu):** rozsah dopadu chyby 5
+je řádově stovky produktů, ne jen 2. Až doběhne plný audit, bude potřeba
+navrhnout hromadnou opravu (pravděpodobně jednorázový "catch-up" běh, který
+force-synce/přepočítá VŠECHNY produkty s nesedící cenou napříč všemi tiery —
+ne force-sync-products.json po jednom kódu, to by bylo pro stovky kódů
+nepraktické). Zatím se nic hromadně nezapisovalo, čeká se na kompletní
+obrázek a schválení postupu.
+
+---
+
 ## 2026-08-13 — INC-010: kompletní report (VYŘEŠENO, ověřeno živě)
 
 **Původní hlášení (Jan):** 99459 a 103525 (nové produkty přidané Yopni

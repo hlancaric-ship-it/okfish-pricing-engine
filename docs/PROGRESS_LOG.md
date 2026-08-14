@@ -91,11 +91,25 @@ aktualizovaných položek) -- bug se týkal výhradně základního/GUEST ceník
 `.sync_state.json` housekeeping commity (merge konflikty s automatickým
 cronem řešeny braním `--theirs`, stejný vzorec jako v předchozích zápisech).
 
+**DOPLNĚNO TÝŽ DEN -- nezávislá kontrola (`reconcile-pricelist-drift.ts`)
+odhalila NOVÝ, dřív neznámý bug:** Shoptet umí na PATCH pro kód bez
+existujícího záznamu na daném ceníku vrátit HTTP 200 (bez chyby) a přesto
+nic nezapsat -- odpověď to nijak nerozlišuje od skutečného úspěchu. Zasáhlo
+to 3 DELPHIN kódy (93280-93282) ze zdejšího rolloutu + 4 nesouvisející
+(101040, 6958, 76688, 77764, pravděpodobně starší nález stejné třídy jako
+INC-010). Oprava: `pricelist-writer.ts` teď automaticky posílá potvrzující
+re-zápis (2s odstup) pro každou položku, co na daném ceníku ještě nikdy
+neměla záznam -- ověřeno živě, že slepý retry problém spolehlivě řeší.
+Všech 7 nalezených mezer opraveno a ověřeno naživo. Commit `pending`
+(client.ts fix `5e8693f`, pricelist-writer.ts fix -- viz git log).
+
 **Zbývá:**
 - Potvrdit/zamítnout smazání `setBrandRules.js` a vlastního jednorázového
   `cloudflare-worker/src/cli/set-brand-action-price-live.ts` (nadbytečný,
   nahrazen touhle konfigurační vrstvou).
 - Kód 23996 (chybí v master feedu) -- dořešit samostatně.
+- Zvážit, jestli retry-mechanismus z `pricelist-writer.ts` nemá smysl
+  zobecnit i pro `coupon-sales-writer.ts` (stejná třída rizika, neověřeno).
 
 ---
 

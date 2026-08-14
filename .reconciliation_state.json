@@ -1,1 +1,127 @@
-{}
+{
+  "103511::ZR6": {
+    "firstSeen": "2026-08-14",
+    "expected": "13.1600",
+    "actual": "13.30"
+  },
+  "103511::ZR8": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.8800",
+    "actual": "13.30"
+  },
+  "103511::ZR10": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.6000",
+    "actual": "13.30"
+  },
+  "103504::ZR12": {
+    "firstSeen": "2026-08-14",
+    "expected": "126.7200",
+    "actual": "129.60"
+  },
+  "103510::ZR12": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.3200",
+    "actual": "12.60"
+  },
+  "103511::ZR12": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.3200",
+    "actual": "13.30"
+  },
+  "103504::ZR14": {
+    "firstSeen": "2026-08-14",
+    "expected": "123.8400",
+    "actual": "129.60"
+  },
+  "103510::ZR14": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.0400",
+    "actual": "12.60"
+  },
+  "103511::ZR14": {
+    "firstSeen": "2026-08-14",
+    "expected": "12.0400",
+    "actual": "13.30"
+  },
+  "103504::ZR16": {
+    "firstSeen": "2026-08-14",
+    "expected": "120.9600",
+    "actual": "129.60"
+  },
+  "103510::ZR16": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.7600",
+    "actual": "12.60"
+  },
+  "103511::ZR16": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.7600",
+    "actual": "13.30"
+  },
+  "39769::ZR16": {
+    "firstSeen": "2026-08-14",
+    "expected": "24.3200",
+    "actual": "null (prázdné)"
+  },
+  "103504::ZR18": {
+    "firstSeen": "2026-08-14",
+    "expected": "118.0800",
+    "actual": "129.60"
+  },
+  "103510::ZR18": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.4800",
+    "actual": "12.60"
+  },
+  "103511::ZR18": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.4800",
+    "actual": "13.30"
+  },
+  "39769::ZR18": {
+    "firstSeen": "2026-08-14",
+    "expected": "23.7400",
+    "actual": "null (prázdné)"
+  },
+  "103504::ZR20": {
+    "firstSeen": "2026-08-14",
+    "expected": "115.2000",
+    "actual": "129.60"
+  },
+  "103510::ZR20": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.2000",
+    "actual": "12.60"
+  },
+  "103511::ZR20": {
+    "firstSeen": "2026-08-14",
+    "expected": "11.2000",
+    "actual": "13.30"
+  },
+  "39769::ZR20": {
+    "firstSeen": "2026-08-14",
+    "expected": "23.1600",
+    "actual": "null (prázdné)"
+  },
+  "103504::ZR25": {
+    "firstSeen": "2026-08-14",
+    "expected": "108.0000",
+    "actual": "129.60"
+  },
+  "103510::ZR25": {
+    "firstSeen": "2026-08-14",
+    "expected": "10.5000",
+    "actual": "12.60"
+  },
+  "103511::ZR25": {
+    "firstSeen": "2026-08-14",
+    "expected": "10.5000",
+    "actual": "13.30"
+  },
+  "39769::ZR25": {
+    "firstSeen": "2026-08-14",
+    "expected": "21.7100",
+    "actual": "null (prázdné)"
+  }
+}

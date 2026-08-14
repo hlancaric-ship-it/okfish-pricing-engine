@@ -7,6 +7,72 @@ why, and what's still open.
 
 ---
 
+## 2026-08-14 (uzávěrka) — Souhrn celého dne: brandSaleDiscounts + 2 nalezené produkční bugy
+
+Konsolidovaný záznam celého dnešního dne na jednom místě (detail rozeslán ve
+třech zápisech níže) -- pro rychlou orientaci bez nutnosti procházet celý den.
+
+**Vstupní stav:** Jan chtěl celoroční akční cenu pro 4 značky (DELPHIN 15 %,
+DELPHIN BOMB 15 %, MIVARDI 10 %, MIKADO 9 %) -- ne jako ruční jednorázový
+zápis, ale jako trvalé pravidlo v Pricing Engine, co funguje automaticky i
+pro nově přidané produkty.
+
+**1. Implementace `brandSaleDiscounts` (config vrstva):**
+- `policy-v1.json` -- nový klíč `brandSaleDiscounts`, zcela oddělený od
+  `brandLimits` (MIVARDI má úmyslně obě, se stejnou hodnotou, ale jsou to
+  dvě nezávislá pravidla).
+- Worker engine (`engine/config.ts` + `engine/pricing.ts`), produkční
+  zápisová cesta (`pricing-bridge.ts` + `sync-orchestrator.ts`), desktop app
+  (`pricingEngine.js` 1:1 port + nová UI sekce) -- syntéza `actionPrice`
+  jen když produkt ještě žádnou vlastní nemá. `PricingInput`, `PricingResult`,
+  `determineTier()`, `DiscountLimitPolicy`, `HighestDiscountPolicy` beze
+  změny (input-assembly vrstva, ne core).
+- `sync-orchestrator.ts` nově nepřeskakuje základní/GUEST ceník -- zapisuje
+  tam reálné `actionPrice` přes existující `PricelistWriter`.
+- 23 nových testů (`tests/brand-sale-discounts.test.ts`), cross-engine
+  parity Worker/pricing-bridge/desktop. Celá sada (262 testů) zelená.
+
+**2. Nasazení (cíleně, NE celý katalog):** force-sync přes
+`force-sync-products.json`, přesně 5718 kódů 4 dotčených značek (ne 16706).
+
+**3. Bug č. 1 (nalezen a opraven):** `client.ts`'s `updatePricelistBatch()`
+nikdy neposílal `actionPrice` v PATCH payloadu -- posílal jen `{code, price}`,
+cokoli jiného na položce se tiše zahodilo. Log hlásil úspěch, živá kontrola
+ukázala `actionPrice: null`. Opraveno, ověřeno živě.
+
+**4. Bug č. 2 (nalezen a opraven), objeven nezávislou kontrolou
+(`reconcile-pricelist-drift.ts`), kterou si Jan vyžádal místo slepé důvěry
+logu:** Shoptet umí na PATCH pro kód bez existujícího záznamu na daném
+ceníku vrátit HTTP 200 (žádné `errors`) a přesto nic nezapsat -- odpověď to
+od skutečného úspěchu vůbec nerozlišuje. Postihlo 7 produktů (3 DELPHIN ze
+zdejšího rolloutu + 4 nesouvisející, pravděpodobně stejná třída jako
+INC-010). Oprava: `pricelist-writer.ts` teď automaticky posílá potvrzující
+re-zápis (2s odstup) pro každou položku, co na daném ceníku ještě nikdy
+neměla záznam -- ověřeno živě, že to řeší. Všech 7 nalezených mezer opraveno
+a ověřeno naživo (ne jen podle logu).
+
+**Commity (main):** `09110d7` (brandSaleDiscounts feature), `5e8693f`
+(fix client.ts actionPrice), pricelist-writer.ts retry fix + docs (viz
+`git log --oneline` pro přesné hashe), plus průběžné `.sync_state.json`
+housekeeping (merge konflikty s automatickým cronem řešeny `--theirs`).
+
+**Poučení dne (stojí za zapamatování):** dvakrát se dnes stalo, že Shoptet
+API vrátilo HTTP 200 bez jakékoli chyby, a přesto nic reálně nezapsalo
+(jednou u `actionPrice` pole, podruhé u úplně nového záznamu na ceníku).
+Ani jedno by se nenašlo bez živé kontroly nad rámec toho, co hlásí log --
+přesně důvod, proč Stage 5 reconciliace (postavená včera) existuje, a proč
+"run doběhl bez chyby" v tomhle repu nikdy neznamená totéž co "produkt se
+skutečně zpracoval".
+
+**Zbývá (nic urgentního):**
+- Potvrdit/zamítnout smazání `setBrandRules.js` (mrtvý kód) a
+  `set-brand-action-price-live.ts` (nadbytečný, nahrazen dnešní prací).
+- Kód 23996 -- chybí v master feedu vůbec, dořešit samostatně.
+- Zvážit, jestli stejný retry-na-první-zápis vzorec nemá smysl i pro
+  `coupon-sales-writer.ts` (stejná třída rizika, dnes neprověřeno).
+
+---
+
 ## 2026-08-14 — `brandSaleDiscounts`: celoroční brandová akční cena jako config, ne jednorázový zápis
 
 Navazuje na včerejší Delphin -15% zjištění (Rule Drift diagnostika, viz včerejší

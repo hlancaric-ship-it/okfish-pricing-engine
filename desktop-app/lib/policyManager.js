@@ -29,6 +29,7 @@ const FILES = {
 // see commitAndPush's own comment for why that matters.
 const SECTION_TO_FILE_KEY = {
     brandLimits: 'policy',
+    brandSaleDiscounts: 'policy',
     categoryLimits: 'policy',
     productOverrides: 'productOverrides',
     zeroDiscount: 'zeroDiscount',
@@ -50,6 +51,12 @@ function loadAll() {
     const policy = readJson(FILES.policy);
     return {
         brandLimits: policy.brandLimits || {},
+        // Celoroční brandová akční cena -- zcela oddělené pravidlo od brandLimits
+        // výše (maxDiscount strop). MIVARDI má typicky obě hodnoty vyplněné
+        // stejným číslem, ale jsou to dvě samostatná pole v policy-v1.json, ne
+        // jedno odvozené od druhého. Viz cloudflare-worker/src/engine/config.ts
+        // (BRAND_SALE_DISCOUNTS) a docs/CORE_LOGIC_AND_VALIDATION.md.
+        brandSaleDiscounts: policy.brandSaleDiscounts || {},
         categoryLimits: policy.categoryLimits || {},
         loyaltyTiers: policy.loyaltyTiers || {},
         productOverrides: readJson(FILES.productOverrides),
@@ -63,6 +70,12 @@ function loadAll() {
 function saveBrandLimits(brandLimits) {
     const policy = readJson(FILES.policy);
     policy.brandLimits = brandLimits;
+    writeJson(FILES.policy, policy);
+}
+
+function saveBrandSaleDiscounts(brandSaleDiscounts) {
+    const policy = readJson(FILES.policy);
+    policy.brandSaleDiscounts = brandSaleDiscounts;
     writeJson(FILES.policy, policy);
 }
 
@@ -202,6 +215,7 @@ function exportRuleCsv(section, data) {
 module.exports = {
     loadAll,
     saveBrandLimits,
+    saveBrandSaleDiscounts,
     saveCategoryLimits,
     saveProductOverrides,
     saveZeroDiscount,

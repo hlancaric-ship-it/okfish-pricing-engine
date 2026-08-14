@@ -158,6 +158,28 @@ function renderBrandLimitsTable() {
     });
 }
 
+function renderBrandSaleDiscountsTable() {
+    const tbody = document.querySelector('#table-brandSaleDiscounts tbody');
+    tbody.innerHTML = '';
+    Object.entries(policies.brandSaleDiscounts).sort(([a], [b]) => a.localeCompare(b, 'sk')).forEach(([brand, ratio]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${brand}</td>
+            <td><input type="text" data-key="${brand}" class="edit-brandSaleDiscounts pct-input" value="${Math.round(ratio * 100)}"></td>
+            <td class="col-remove"><button data-key="${brand}" class="remove-brandSaleDiscounts">✕</button></td>`;
+        tbody.appendChild(tr);
+    });
+
+    const select = document.getElementById('new-brandSaleDiscounts-key');
+    select.innerHTML = '<option value="">Vyber značku…</option>';
+    catalog.brands.filter((b) => !(b in policies.brandSaleDiscounts)).forEach((b) => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        select.appendChild(opt);
+    });
+}
+
 function renderCategoryLimitsTable() {
     const tbody = document.querySelector('#table-categoryLimits tbody');
     tbody.innerHTML = '';
@@ -308,6 +330,7 @@ function renderCouponPolicy() {
 
 function renderAllRuleTables() {
     renderBrandLimitsTable();
+    renderBrandSaleDiscountsTable();
     renderCategoryLimitsTable();
     renderProductOverridesTable();
     renderZeroDiscountTable();
@@ -506,6 +529,30 @@ document.querySelector('#table-brandLimits tbody').addEventListener('change', (e
     }
 });
 document.getElementById('save-brandLimits').addEventListener('click', () => saveSection('brandLimits', policies.brandLimits, 'Aktualizace max. slevy podle značky'));
+
+// --- Brand sale discounts (celoroční akční cena podle značky) ---
+document.getElementById('add-brandSaleDiscounts').addEventListener('click', () => {
+    const brand = document.getElementById('new-brandSaleDiscounts-key').value;
+    const pct = validPercent(document.getElementById('new-brandSaleDiscounts-value').value);
+    if (!brand || pct === null) return alert('Vyber značku a zadej platné procento (0–100).');
+    policies.brandSaleDiscounts[brand] = pct / 100;
+    document.getElementById('new-brandSaleDiscounts-value').value = '';
+    renderBrandSaleDiscountsTable();
+});
+document.querySelector('#table-brandSaleDiscounts tbody').addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-brandSaleDiscounts')) {
+        delete policies.brandSaleDiscounts[e.target.dataset.key];
+        renderBrandSaleDiscountsTable();
+    }
+});
+document.querySelector('#table-brandSaleDiscounts tbody').addEventListener('change', (e) => {
+    if (e.target.classList.contains('edit-brandSaleDiscounts')) {
+        const pct = validPercent(e.target.value);
+        if (pct === null) { alert('Neplatné procento (0–100).'); renderBrandSaleDiscountsTable(); return; }
+        policies.brandSaleDiscounts[e.target.dataset.key] = pct / 100;
+    }
+});
+document.getElementById('save-brandSaleDiscounts').addEventListener('click', () => saveSection('brandSaleDiscounts', policies.brandSaleDiscounts, 'Aktualizace celoroční akční ceny podle značky'));
 
 // --- Category limits ---
 document.getElementById('add-categoryLimits').addEventListener('click', () => {

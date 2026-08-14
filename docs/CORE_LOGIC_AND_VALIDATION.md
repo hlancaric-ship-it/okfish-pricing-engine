@@ -105,6 +105,64 @@ instead of importing a shared function (Worker/root deploy boundary, per
 `ENGINE_TECHNICAL_TEMPLATE.md` §1). The 3-stage model in §3 exists largely to
 keep these two independently-implemented lookups from silently drifting.
 
+### 1.3 Brand sale discounts (`brandSaleDiscounts`, added 2026-08-14)
+
+A **permanent, year-round brand-wide action price** — e.g. "DELPHIN is always
+-15% off standard price" — is a fundamentally different rule from `brandLimits`
+(§1.1's discount ceiling), even when the two happen to share a number (MIVARDI
+is -10% sale AND 10% cap). Confirmed business rules as of 2026-08-14:
+
+| Brand (exact `manufacturer` string) | `brandSaleDiscounts` | `brandLimits` |
+|---|---|---|
+| `DELPHIN` | 0.15 | *(none)* |
+| `DELPHIN BOMB` (singular, not "BOMBS") | 0.15 | *(none)* |
+| `MIVARDI` | 0.10 | 0.10 (pre-existing, independently declared) |
+| `MIKADO` | 0.09 | *(none)* |
+
+**Where it lives**: `src/config/policies/policy-v1.json`'s `brandSaleDiscounts`
+key, sibling of `brandLimits`, same file, same ratio convention (0.15 = 15%).
+**Never** derive one from the other — a brand having a sale is not evidence it
+should also have a cap, and vice versa (§5's worked-example principle applies
+here too: a new business rule gets its own key, not overloaded onto an
+existing one).
+
+**How it reaches the engine** (deliberately *not* inside `DiscountLimitPolicy`/
+`HighestDiscountPolicy`/`PricingInput`/`PricingResult` — this is an input-
+assembly concern, not core decision logic):
+
+- `cloudflare-worker/src/engine/config.ts` exports `BRAND_SALE_DISCOUNTS`
+  (mirrors `BRAND_LIMITS` exactly).
+- `cloudflare-worker/src/engine/pricing.ts`'s `calculateAllTierPrices()`:
+  right after the existing `actionPrice` no-op guard, if the row still has no
+  action price, one is synthesized from `BRAND_SALE_DISCOUNTS[manufacturer]`.
+  From that point on it's an ordinary action price — every downstream rule
+  (§1.1 steps 4-5, the clearance-vs-cap logic) applies unchanged.
+- `cloudflare-worker/src/shoptet-api/pricing-bridge.ts` (the actual production
+  write path `sync-orchestrator.ts` calls every 15 minutes): same synthesis,
+  right after the existing `salePriceNum` computation, feeding
+  `PricingInput.salePrice` — so the real wholesale tier writes (ZR4-ZR25) get
+  it automatically, including for a product added to the catalog tomorrow,
+  with zero manual step. The synthesized value is also recorded on the result
+  as `brandSaleActionPrice` *only* when synthesized (never when the product
+  already had its own action price) — `sync-orchestrator.ts` uses this to
+  also write/maintain the real "Akční cena" field on the base/GUEST pricelist
+  (id 1) via the *same* `PricelistWriter` every other pricelist write goes
+  through, never touching `price` itself, only `actionPrice`. An existing
+  per-product sale (its own `actionPrice` already present) is never touched
+  by any of this — same "výprodej-ochrana" precedent used elsewhere.
+- `desktop-app/lib/pricingEngine.js` (the 1:1-ported copy used for local
+  preview/export tooling) mirrors the identical synthesis, gated on a new
+  optional `limits.brandSaleDiscounts` param, so a caller that doesn't pass it
+  (existing call sites) is unaffected.
+
+**Why no cap unless one is explicitly declared**: without an active
+`brandLimits` cap, `calculateAllTierPrices()`'s existing step 5 (§1.1) picks
+whichever of {synthesized sale price, loyalty price} is *deeper* per tier —
+so DELPHIN's baseline -15% is what a guest/low-tier customer sees, while a
+ZR25 customer's real 25% loyalty discount still applies on top, never capped
+at 15%. Only when a brand *also* has a `brandLimits` entry (MIVARDI) does
+step 4's cap-authoritative branch make the sale price flat across every tier.
+
 ## 2. Building This Correctly for a New Client, From Scratch
 
 Order matters. Each step depends on artifacts the previous step produced.

@@ -213,9 +213,40 @@ export class SyncOrchestrator {
 
         // 6b. Diff ceníků pomocí Cache
         const pricelistDiffsByMap: Record<number, { name: string, diffs: PricelistDiff[] }> = {};
+        const engineProductsByCode = new Map(engineProducts.map(p => [p.code, p]));
         for (const pl of pricelists) {
-            if (pl.id === basePricelistId) continue;
-            
+            if (pl.id === basePricelistId) {
+                // brandSaleDiscounts write-back (policy-v1.json, viz pricing-bridge.ts) --
+                // jediné místo, kde se na základní/GUEST ceník vůbec zapisuje, a zapisuje
+                // se JEN actionPrice, nikdy price samotné (basePrice zůstává read-only
+                // zdroj pravdy, co calculateProductsPricing() výše už použil). Reálný
+                // zápis jde přes STEJNÝ PricelistWriter jako všechny ostatní ceníky níže
+                // -- žádný nový/paralelní zápisový mechanismus.
+                // `item.brandSaleActionPrice` je nastavené JEN pro produkty, co pricing-
+                // bridge.ts nedokázal spárovat s žádnou vlastní existující akční cenou --
+                // produkty s vlastním výprodejem se tímhle vůbec nedotknou (viz komentář
+                // tam). Nový produkt značky, co dnes v katalogu ještě není, projde touhle
+                // stejnou cestou při svém prvním syncu úplně automaticky.
+                const baseDiffs: PricelistDiff[] = [];
+                for (const item of calculated) {
+                    if (!item.brandSaleActionPrice) continue;
+                    const engineProduct = engineProductsByCode.get(item.code);
+                    if (!engineProduct) continue;
+                    const newActionPrice = new Decimal(item.brandSaleActionPrice);
+                    const oldActionPrice = engineProduct.actionPrice ?? null;
+                    if (oldActionPrice && oldActionPrice.equals(newActionPrice)) continue;
+                    baseDiffs.push({
+                        code: item.code,
+                        oldPrice: engineProduct.basePrice,
+                        newPrice: engineProduct.basePrice, // beze změny -- tenhle zápis se price nikdy nedotýká
+                        oldActionPrice,
+                        newActionPrice
+                    });
+                }
+                pricelistDiffsByMap[pl.id] = { name: pl.name, diffs: baseDiffs };
+                continue;
+            }
+
             const diffs: PricelistDiff[] = [];
 
             for (const item of calculated) {

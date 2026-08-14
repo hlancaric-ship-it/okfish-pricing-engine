@@ -13,6 +13,12 @@
         "ZR20": 0.20,
         "ZR25": 0.25
     },
+    "brandSaleDiscounts": {
+        "DELPHIN": 0.15,
+        "DELPHIN BOMB": 0.15,
+        "MIVARDI": 0.10,
+        "MIKADO": 0.09
+    },
     "brandLimits": {
         "Samsung": 0.10,
         "VAGNER": 0.10,

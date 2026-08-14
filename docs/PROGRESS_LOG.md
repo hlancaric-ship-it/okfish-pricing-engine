@@ -7,6 +7,64 @@ why, and what's still open.
 
 ---
 
+## 2026-08-14 — `brandSaleDiscounts`: celoroční brandová akční cena jako config, ne jednorázový zápis
+
+Navazuje na včerejší Delphin -15% zjištění (Rule Drift diagnostika, viz včerejší
+zápis a INCIDENTS.md) -- potvrzena čtyři business pravidla (DELPHIN 15 %,
+DELPHIN BOMB 15 %, MIVARDI 10 %, MIKADO 9 %), implementována jako nová
+konfigurační vrstva, ne jako další jednorázový zápis `actionPrice`.
+
+**1. `src/config/policies/policy-v1.json`:** nový top-level klíč
+`brandSaleDiscounts` (sibling `brandLimits`, stejná ratio konvence). MIVARDI má
+úmyslně obě pole vyplněná stejnou hodnotou -- dvě nezávislá pravidla, ne jedno
+odvozené z druhého.
+
+**2. Worker engine (`cloudflare-worker/src/engine/config.ts` +
+`engine/pricing.ts`):** nový export `BRAND_SALE_DISCOUNTS`, syntéza
+`actionPrice` JEN když produkt ještě žádnou vlastní nemá -- `resolveActiveLimit`,
+cyklus přes tiery a zbytek `calculateAllTierPrices()` beze změny.
+
+**3. Produkční zápisová cesta (`cloudflare-worker/src/shoptet-api/pricing-bridge.ts`
++ `sync-orchestrator.ts`):** stejná syntéza pro `PricingInput.salePrice`
+(root engine, skutečné ZR4-ZR25 zápisy). Navíc: `sync-orchestrator.ts` už
+NEPŘESKAKUJE základní/GUEST ceník (`if (pl.id === basePricelistId) continue`
+zrušeno pro tenhle jeden účel) -- nový diff blok zapisuje/udržuje reálné
+`actionPrice` pole přes STEJNÝ `PricelistWriter`, jaký používají všechny
+ostatní ceníky, nikdy se nedotýká `price` samotné. Zapisuje se jen pro kódy,
+co nemají vlastní existující akční cenu (`item.brandSaleActionPrice`
+nastaveno jen v tom případě) -- existující individuální výprodeje se
+nepřepisují. Nový produkt značky projde touhle cestou automaticky při svém
+prvním syncu.
+
+**4. Desktop app:** `lib/pricingEngine.js` (1:1 port) dostal stejnou syntézu
+přes nový volitelný `limits.brandSaleDiscounts` parametr (staré volání bez
+něj beze změny chování). `policyManager.js`/`main.js`/`renderer.js`/
+`index.html` -- nová sekce "Celoroční akce podle značky" v Pravidlech, stejný
+vzor jako "Maximální sleva podle značky", `saveBrandLimits`-style
+read-modify-write (nepřepisuje ostatní klíče v `policy-v1.json`). Appka
+nadál čte a zapisuje STEJNÝ `policy-v1.json`, žádná vlastní kopie.
+
+**Audit nález (viz předchozí zápis):** `desktop-app/lib/setBrandRules.js`
+(nepoužívaný, odpojený mechanismus co přímo upravoval XLSX exporty mimo
+Pricing Engine) -- OZNAČEN jako kandidát na smazání, NESMAZÁN bez potvrzení.
+Ověřeno: žádná reference v `main.js`/`renderer.js`/`preload.js`/testech/
+package.json.
+
+**Testy:** nový `tests/brand-sale-discounts.test.ts`, 23 testů -- config
+separace (brandSaleDiscounts vs. brandLimits), Worker engine pro všechny 4
+značky (včetně "baseline, ne strop" u DELPHIN/DELPHIN BOMB/MIKADO vs. "flat na
+každém tieru" u MIVARDI), produkční `pricing-bridge.ts` cesta, cross-engine
+parity (Worker vs. pricing-bridge.ts vs. desktop `pricingEngine.js`), existující
+produkt s vlastní akční cenou zůstává nedotčen, jiná značka beze změny. Celá
+sada (262 testů, `npx vitest run`) zelená, žádná regrese.
+
+**Zbývá:**
+- Potvrdit/zamítnout smazání `setBrandRules.js`.
+- Live spuštění syncu na nové 4 značky ještě neproběhlo -- čeká na Janovo
+  schválení commitu/pushe a spuštění.
+
+---
+
 ## 2026-08-13 (pozdní večer) — FLACARP přidán do brandLimits (10% strop) + dotčené produkty přepočítány
 
 Janovo zadání ("přidej FLACARP značku do seznamu značek kde je 10% max

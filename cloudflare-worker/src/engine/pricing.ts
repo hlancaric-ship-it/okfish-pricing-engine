@@ -20,7 +20,7 @@
  *  3. Rounding:        round to 2 decimal places
  */
 
-import { LOYALTY_TIERS, TIER_NAMES, BRAND_LIMITS, CATEGORY_LIMITS, PRODUCT_LIMITS } from './config';
+import { LOYALTY_TIERS, TIER_NAMES, BRAND_LIMITS, CATEGORY_LIMITS, PRODUCT_LIMITS, BRAND_SALE_DISCOUNTS } from './config';
 
 export interface CsvRow {
     [key: string]: string;
@@ -123,6 +123,21 @@ export function calculateAllTierPrices(row: CsvRow, productLimits: Record<string
     // (actionPrice == price == 1167.20, blocking all loyalty/cap pricing).
     // Treat it as "no action" so it can't override the cap-floor rule below.
     if (actionPrice !== undefined && actionPrice >= basePrice) actionPrice = undefined;
+
+    // Celoroční brandová akční cena (policy-v1.json's brandSaleDiscounts, viz
+    // config.ts) -- syntetizuje actionPrice JEN když produkt ještě žádnou
+    // vlastní (feed/Shoptet) akční cenu nemá. Existující individuální sale
+    // vždy vyhrává beze změny, stejná "výprodej-ochrana" konvence jako jinde
+    // v pipeline. Od tohoto bodu dál se actionPrice chová naprosto stejně
+    // jako jakákoli jiná -- žádná další logika níže se kvůli tomuto nemění.
+    if (actionPrice === undefined) {
+        const manufacturer = row['manufacturer'];
+        const saleDiscount = manufacturer ? BRAND_SALE_DISCOUNTS[manufacturer] : undefined;
+        if (saleDiscount !== undefined) {
+            actionPrice = applyPercent(basePrice, saleDiscount * 100);
+        }
+    }
+
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
     const activeLimit = resolveActiveLimit(row, productLimits);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;

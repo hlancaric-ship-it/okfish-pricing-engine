@@ -50,7 +50,7 @@ function resolveAllowLoyaltyDiscount(row) {
 
 /**
  * @param {Record<string,string>} row
- * @param {{brandLimits?: Record<string,number>, categoryLimits?: Record<string,number>}} [limits]
+ * @param {{brandLimits?: Record<string,number>, categoryLimits?: Record<string,number>, brandSaleDiscounts?: Record<string,number>}} [limits]
  * @returns {Record<string, {price: number, usedActionPrice: boolean}>}
  */
 function calculateAllTierPrices(row, limits) {
@@ -70,6 +70,19 @@ function calculateAllTierPrices(row, limits) {
     // as no action so it can't override the cap-floor rule below. Confirmed
     // live 2026-08-05 (LOWRANCE code 111139).
     if (actionPrice !== undefined && actionPrice >= basePrice) actionPrice = undefined;
+
+    // Celoroční brandová akční cena (policy-v1.json's brandSaleDiscounts) --
+    // 1:1 zrcadlo stejné logiky v cloudflare-worker/src/engine/pricing.ts.
+    // Syntetizuje actionPrice JEN když produkt ještě žádnou vlastní nemá --
+    // existující sale price se nikdy nepřepisuje.
+    if (actionPrice === undefined) {
+        const manufacturer = row.manufacturer;
+        const saleDiscount = manufacturer && limits.brandSaleDiscounts ? limits.brandSaleDiscounts[manufacturer] : undefined;
+        if (saleDiscount !== undefined) {
+            actionPrice = applyPercent(basePrice, saleDiscount * 100);
+        }
+    }
+
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
     const activeLimit = resolveActiveLimit(row, limits.brandLimits, limits.categoryLimits);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;

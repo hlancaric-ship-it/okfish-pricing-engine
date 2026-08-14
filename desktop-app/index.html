@@ -289,6 +289,7 @@
     <div class="tab" data-tab="rules">Pravidla</div>
     <div class="subtabs open" id="subtabs-rules">
         <div class="subtab" data-scroll-to="section-brandLimits">Podle značky</div>
+        <div class="subtab" data-scroll-to="section-brandSaleDiscounts">Celoroční akce podle značky</div>
         <div class="subtab" data-scroll-to="section-categoryLimits">Podle kategorie</div>
         <div class="subtab" data-scroll-to="section-productOverrides">Podle produktu</div>
         <div class="subtab" data-scroll-to="section-zeroDiscount">Bez slevy</div>
@@ -389,6 +390,25 @@
             <button id="save-brandLimits">Uložit a nahrát na produkci</button>
         </div>
         <div class="result" id="result-brandLimits"></div>
+    </div>
+
+    <div class="rules-section" id="section-brandSaleDiscounts">
+        <h3>Celoroční akční cena podle značky</h3>
+        <p class="hint"><strong>Co to dělá:</strong> nastaví trvalou akční cenu (skutečné "Akční cena" pole v Shoptetu) pro VŠECHNY produkty dané značky — u zákazníka bez vyššího věrnostního tieru platí přesně tahle sleva, vyšší tier ji může přebít hlouběji. Toto je JINÉ pravidlo než "Maximální sleva podle značky" výše — jedno nastavuje trvalou akční cenu, druhé strop, který nikdy nejde překročit. Klidně nastav obě pro stejnou značku (typicky stejným číslem), ale dělej to vědomě — nejde o jedno pravidlo odvozené z druhého. Platí automaticky i pro nově přidané produkty téhle značky, bez ručního zásahu.<br>
+        <strong>Co zadat:</strong> vyber značku z nabídky a napiš číslo bez znaku % (např. <code>15</code> pro trvalou akci -15 %).</p>
+        <table class="rules-table" id="table-brandSaleDiscounts">
+            <thead><tr><th>Značka</th><th style="width:130px;">Akční cena %</th><th class="col-remove"></th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <div class="add-form">
+            <div class="field grow"><label>Značka</label><select id="new-brandSaleDiscounts-key"><option value="">Vyber značku…</option></select></div>
+            <div class="field" style="width:100px;"><label>Akční cena %</label><input type="text" class="pct-input" id="new-brandSaleDiscounts-value" placeholder="%"></div>
+            <button id="add-brandSaleDiscounts">Přidat</button>
+        </div>
+        <div class="row" style="margin-top:16px;">
+            <button id="save-brandSaleDiscounts">Uložit a nahrát na produkci</button>
+        </div>
+        <div class="result" id="result-brandSaleDiscounts"></div>
     </div>
 
     <div class="rules-section" id="section-categoryLimits">

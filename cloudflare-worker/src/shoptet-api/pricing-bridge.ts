@@ -1,6 +1,7 @@
 import { EngineBuilder } from '../../../src/core/EngineBuilder.js';
 import { ValidationEngine } from '../../../src/core/ValidationEngine.js';
 import { CustomerTier, PricingInput } from '../../../src/core/interfaces.js';
+import { BRAND_SALE_DISCOUNTS } from '../engine/config.js';
 import Decimal from 'decimal.js';
 import * as path from 'path';
 
@@ -10,13 +11,28 @@ export interface PricingFailure {
     reason: string;
 }
 
-export function calculateProductsPricing(products: Array<any>, pricelists: Array<{name: string, id: number}>): { results: Array<{code: string, prices: Record<string, string>}>; failures: PricingFailure[] } {
+export interface ProductPricingResult {
+    code: string;
+    prices: Record<string, string>;
+    /**
+     * Set ONLY when this product's action price was synthesized from
+     * policy-v1.json's brandSaleDiscounts (BRAND_SALE_DISCOUNTS) because the
+     * product had no genuine action price of its own -- i.e. exactly the
+     * cases sync-orchestrator.ts needs to write/maintain a real actionPrice
+     * on the base/GUEST pricelist for. A product with its own existing sale
+     * price never gets this set, so existing per-product sales are never
+     * touched by this mechanism.
+     */
+    brandSaleActionPrice?: string;
+}
+
+export function calculateProductsPricing(products: Array<any>, pricelists: Array<{name: string, id: number}>): { results: Array<ProductPricingResult>; failures: PricingFailure[] } {
     // Používáme stávající v1.json konfiguraci
     const configPath = path.join(process.cwd(), 'src/config/policies/policy-v1.json');
     const engine = EngineBuilder.fromConfig(configPath).build();
     const validationEngine = new ValidationEngine();
 
-    const results: Array<{code: string, prices: Record<string, string>}> = [];
+    const results: Array<ProductPricingResult> = [];
     // Dřív se sem sbíralo NIC -- selhání validace/výpočtu se prostě zahodilo (viz
     // INCIDENT 2026-08-12: 99459 a 103525 skončily bez ceny na několika tierech a
     // run přesto doběhl jako "SUCCESS", protože žádný chybějící tier se nikde
@@ -25,7 +41,7 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
     const failures: PricingFailure[] = [];
 
     for (const p of products) {
-        const itemResult: {code: string, prices: Record<string, string>} = {
+        const itemResult: ProductPricingResult = {
             code: p.code,
             prices: {}
         };
@@ -39,6 +55,22 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
         // ~7247 catalog products, e.g. LOWRANCE code 111139).
         const salePriceNum = p.actionPrice && Number(p.actionPrice) < basePriceNum ? p.actionPrice : undefined;
 
+        // Celoroční brandová akční cena (policy-v1.json's brandSaleDiscounts) --
+        // syntetizuje se JEN když produkt ještě nemá žádnou vlastní akční cenu
+        // (salePriceNum === undefined). Existující individuální sale (výprodej,
+        // ruční zásah) se nikdy nepřepisuje. `effectiveSalePriceNum` je jediná
+        // hodnota, co jde dál do PricingInput.salePrice pro všechny ZR tiery --
+        // `brandSaleActionPrice` se navíc nastaví JEN v syntetizovaném případě,
+        // aby sync-orchestrator.ts věděl, které kódy potřebují (poprvé/znovu)
+        // reálný zápis actionPrice na základní/GUEST ceník -- produkty, co už
+        // svou vlastní akční cenu mají, se tímhle mechanismem vůbec nedotknou.
+        let effectiveSalePriceNum = salePriceNum;
+        if (effectiveSalePriceNum === undefined && p.manufacturer && BRAND_SALE_DISCOUNTS[p.manufacturer] !== undefined && basePriceNum > 0) {
+            const synthesized = Math.round(basePriceNum * (1 - BRAND_SALE_DISCOUNTS[p.manufacturer]) * 100) / 100;
+            effectiveSalePriceNum = synthesized;
+            itemResult.brandSaleActionPrice = synthesized.toFixed(2);
+        }
+
         for (const pl of pricelists) {
             // "Hlavný cenník" a "Maloobchodný" přeskočíme, tam nemají být slevy
             // Ceníky se ve starém systému jmenovaly ZR4, ZR6...
@@ -46,7 +78,7 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
             const input: PricingInput = {
                 sku: p.code,
                 basePrice: new Decimal(basePriceNum),
-                salePrice: salePriceNum !== undefined ? new Decimal(salePriceNum) : undefined,
+                salePrice: effectiveSalePriceNum !== undefined ? new Decimal(effectiveSalePriceNum) : undefined,
                 // Deliberately NOT passing p.productMaxDiscount here anymore. It comes
                 // straight from Shoptet's live sales.minPriceRatio on the base
                 // pricelist -- the SAME field the coupon-fields export writes GUEST's

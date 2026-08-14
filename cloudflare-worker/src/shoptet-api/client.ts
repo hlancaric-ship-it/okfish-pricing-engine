@@ -338,14 +338,28 @@ export class ShoptetApiClient {
     /**
      * Uloží dávku cen do ceníku (WRITE)
      */
-    public async updatePricelistBatch(pricelistId: number, items: Array<{ code: string, price: string }>): Promise<{ requestId: string, response: string, timestamp: string, status: number, endpoint: string }> {
+    public async updatePricelistBatch(pricelistId: number, items: Array<{ code: string, price: string, actionPrice?: string | null }>): Promise<{ requestId: string, response: string, timestamp: string, status: number, endpoint: string }> {
         const endpointPath = `/pricelists/${pricelistId}`;
         const url = `${this.baseUrl}${endpointPath}`;
         const body = {
-            data: items.map(item => ({
-                code: item.code,
-                price: { price: item.price }
-            }))
+            // BUG opraveno 2026-08-14: tahle metoda dřív stavěla `price: { price }` a
+            // JAKÉKOLI jiné pole na `item` (včetně `actionPrice`, co pricelist-writer.ts
+            // do batch payloadu vkládá) se tiše zahodilo -- PATCH request na Shoptet
+            // proto nikdy neobsahoval akční cenu, přestože kód volajícího (PricelistWriter,
+            // brandSaleDiscounts write-back v sync-orchestrator.ts) se tvářil, že ji
+            // zapisuje. Nikdy předtím se nechytilo, protože žádný dřívější zápis
+            // (FLACARP, produktové ceny obecně) `actionPrice` nikdy neposílal -- první
+            // reálné použití byl až tenhle base/GUEST ceník zápis. `actionPrice` se
+            // vnořuje pod `price` stejně jako ve čtecím tvaru (`price.actionPrice.price`,
+            // viz ShoptetPricelistItem); bez `fromDate`/`toDate` zůstává neomezené
+            // (celoroční), přesně jak brandSaleDiscounts vyžaduje.
+            data: items.map(item => {
+                const priceObj: Record<string, any> = { price: item.price };
+                if (item.actionPrice !== undefined) {
+                    priceObj.actionPrice = item.actionPrice === null ? null : { price: item.actionPrice };
+                }
+                return { code: item.code, price: priceObj };
+            })
         };
 
         return await this.rateLimiter.execute(

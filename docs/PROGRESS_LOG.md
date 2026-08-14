@@ -58,10 +58,44 @@ parity (Worker vs. pricing-bridge.ts vs. desktop `pricingEngine.js`), existujíc
 produkt s vlastní akční cenou zůstává nedotčen, jiná značka beze změny. Celá
 sada (262 testů, `npx vitest run`) zelená, žádná regrese.
 
+**DOPLNĚNO TÝŽ DEN -- live nasazení + kritický bug nalezen a opraven:**
+
+Po schválení commitnuto (`09110d7`) a pushnuto. Cílený force-sync (NE celý
+16706 katalog, jen 5718 kódů 4 dotčených značek přes `force-sync-products.json`,
+stejný mechanismus jako FLACARP) spuštěn přes `npx tsx scripts/run-real-sync.ts`.
+
+**Bug č. 1 (moje vlastní chyba):** první pokus zapsal seznam kódů do špatné
+cesty (`cloudflare-worker/force-sync-products.json` místo kořene repa) --
+force-sync smyčka tak nenašla nic k doplnění. Opraveno, ověřeno přímým
+voláním `loadForceSyncEntries()` před druhým pokusem.
+
+**Bug č. 2 (skutečný, produkční, dřív neodhalený):** `client.ts`'s
+`updatePricelistBatch()` stavěl PATCH payload jen z `{code, price}` --
+jakékoli jiné pole na položce (`actionPrice`, co `pricelist-writer.ts` do
+payloadu vkládá) se TICHO ZAHODILO. Log hlásil "Zpracováno: 51, Selhalo: 0"
+(HTTP 200), ale živá kontrola ukázala `actionPrice: null` -- API zavolání
+uspělo, ale nikdy neobsahovalo to hlavní pole. Nikdy se to nechytilo, protože
+žádný dřívější zápis (FLACARP, běžné tier ceny) `actionPrice` neposílal --
+dnešní GUEST/základní ceník write-back byl první reálné použití. Opraveno
+(`5e8693f`) -- `actionPrice` se teď správně vnořuje pod `price` stejně jako
+ve čtecím tvaru, bez `fromDate`/`toDate` (= trvalé/celoroční). Ověřeno živě
+na produktu 39390 před plošnou opravou zbytku.
+
+**Výsledek po opravě a dvou dobíhacích bězích:** 50/51 dotčených GUEST-ceník
+zápisů potvrzeno živě (`actionPrice` skutečně nastaveno, ne null). Jeden kód
+(23996) chybí v master feedu -- dobehne samostatně později, mimo scope
+dnešního zásahu. Tier ceníky (ZR4-ZR25) byly v pořádku od prvního běhu (234
+aktualizovaných položek) -- bug se týkal výhradně základního/GUEST ceníku.
+
+**Commity:** `09110d7` (feature), `5e8693f` (fix client.ts), plus průběžné
+`.sync_state.json` housekeeping commity (merge konflikty s automatickým
+cronem řešeny braním `--theirs`, stejný vzorec jako v předchozích zápisech).
+
 **Zbývá:**
-- Potvrdit/zamítnout smazání `setBrandRules.js`.
-- Live spuštění syncu na nové 4 značky ještě neproběhlo -- čeká na Janovo
-  schválení commitu/pushe a spuštění.
+- Potvrdit/zamítnout smazání `setBrandRules.js` a vlastního jednorázového
+  `cloudflare-worker/src/cli/set-brand-action-price-live.ts` (nadbytečný,
+  nahrazen touhle konfigurační vrstvou).
+- Kód 23996 (chybí v master feedu) -- dořešit samostatně.
 
 ---
 

@@ -64,9 +64,15 @@ přesně důvod, proč Stage 5 reconciliace (postavená včera) existuje, a pro�
 "run doběhl bez chyby" v tomhle repu nikdy neznamená totéž co "produkt se
 skutečně zpracoval".
 
+**DOPLNĚNO 2026-08-14/15 -- úklid potvrzen a proveden:** Jan potvrdil smazání
+obou kandidátů. `desktop-app/lib/setBrandRules.js` (mrtvý, odpojený XLSX
+mechanismus) a `cloudflare-worker/src/cli/set-brand-action-price-live.ts`
+(vlastní nadbytečný jednorázový skript, nahrazený `brandSaleDiscounts`)
+smazány. Znovu ověřeno před smazáním: žádná reference nikde jinde v repu.
+Celá test sada (262 testů) zelená i po smazání -- žádný dopad na
+funkčnost.
+
 **Zbývá (nic urgentního):**
-- Potvrdit/zamítnout smazání `setBrandRules.js` (mrtvý kód) a
-  `set-brand-action-price-live.ts` (nadbytečný, nahrazen dnešní prací).
 - Kód 23996 -- chybí v master feedu vůbec, dořešit samostatně.
 - Zvážit, jestli stejný retry-na-první-zápis vzorec nemá smysl i pro
   `coupon-sales-writer.ts` (stejná třída rizika, dnes neprověřeno).

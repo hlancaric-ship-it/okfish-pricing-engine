@@ -121,6 +121,38 @@ export class PricelistWriter {
                 }
 
                 console.log(`[WRITE] Dávka ${Math.floor(i / chunkSize) + 1} úspěšně zapsána pro ceník ${pricelistName}.`);
+
+                // Zjištěno 2026-08-14 (reconcile-pricelist-drift.ts po brandSaleDiscounts
+                // rolloutu): Shoptet umí na PATCH pro kód, co na tomhle ceníku ještě NIKDY
+                // neměl žádný záznam, vrátit HTTP 200 (žádné `errors`, prázdné `data`) a
+                // přesto nic reálně nezapsat -- ověřeno živě (93280/93281/93282, DELPHIN),
+                // druhý pokus o STEJNÝ zápis o pár vteřin později už uspěl. Shoptetova
+                // odpověď mezi "opravdu zapsáno" a "tiše no-op" vůbec nerozlišuje (`data`
+                // je `{}` v obou případech), takže se to nedá poznat z první odpovědi --
+                // jediná dosud pozorovaná záchrana je slepý retry. Tohle NENÍ obecný retry
+                // na chyby (na to slouží rateLimiter.execute) -- je to cílené jen na
+                // položky, které na tomhle konkrétním ceníku ještě nikdy neměly cenu
+                // (`oldPrice === null`, tzn. cache o nich dosud nic neví), protože právě
+                // tahle situace -- první zápis na ceník, ne aktualizace existujícího
+                // záznamu -- je to, co se pozorovalo jako rizikové. Běžná aktualizace už
+                // existující položky tímhle rizikem netrpí.
+                const firstTimeItems = chunk.filter(d => d.oldPrice === null);
+                if (firstTimeItems.length > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    const retryPayload = firstTimeItems.map(d => {
+                        const item: Record<string, any> = { code: d.code, price: d.newPrice.toFixed(2) };
+                        if (d.newActionPrice !== undefined) {
+                            item.actionPrice = d.newActionPrice !== null ? d.newActionPrice.toFixed(2) : null;
+                        }
+                        return item;
+                    });
+                    try {
+                        await this.apiClient.updatePricelistBatch(pricelistId, retryPayload);
+                        console.log(`[WRITE] Potvrzující re-zápis pro ${firstTimeItems.length} nových položek (poprvé na ceníku ${pricelistName}) proveden.`);
+                    } catch (retryErr: any) {
+                        console.warn(`[WARNING] Potvrzující re-zápis pro ${firstTimeItems.length} nových položek selhal: ${retryErr.message} -- Stage 5 reconciliace by tohle měla stejně odchytit.`);
+                    }
+                }
             } catch (err: any) {
                 console.error(`[ERROR] Chyba při zápisu dávky pro ceník ${pricelistName}:`, err.message);
                 stats.errors.push(err.message);

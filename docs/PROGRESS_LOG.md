@@ -1145,3 +1145,24 @@ vlastní pole, engine ho záměrně nečte (viz `pricing-bridge.ts` komentář).
 Vysvětluje to, proč ZR4-18 správně drží 98,77 (sale > jejich tier %), ALE
 nevysvětluje, proč ZR20/25 jdou hlouběji než 10% brand cap -- tohle zůstává
 nerozřešeno.
+
+## 2026-08-15 (uzávěrka) — Den dokončen: FLACARP + coupon-lock 9/9 kódů, Worker push
+
+- FLACARP force-sync (18 kódů, včetně nově nalezeného 103503) spuštěn a
+  dokončen (`sync.yml` run 31874937995).
+- Zbylé 4 coupon-lock kódy (91646, 93280, 93281, 93282) dopsány přes
+  `sync-coupon-fields-single-product.ts` -- 4/4 WRITE úspěšné, verify bug
+  (viz výše) hlásí falešné ALERTy, živě potvrzeno Janem v adminu jako OK.
+  Všech 9/9 coupon-lock kódů z dnešní ranní reconciliace je tak hotovo.
+- Worker KV znovu pushnut pro FLACARP (`targeted-worker-sync.ts`,
+  written=1/skipped=27 -- 103503 nová akční cena se propsala).
+
+**Zbývá pro příště:**
+1. Opravit `getPricelistItemByCode` verify bug v `coupon-sales-writer.ts`
+   (100% false-positive na "CHYBÍ ZÁZNAM" napříč všemi testovanými kódy/tiery).
+2. 103503: proč ZR20/ZR25 šly hlouběji než 10% FLACARP cap -- zjištěno, že
+   to je ruční trvalá akční cena (98,77 €), ale interakce se sale price +
+   brand cap na vyšších tierech není vysvětlená. Ověřit po dnešním force-syncu,
+   jestli force-sync problém sám vyřešil (přepočítal správně), nebo přetrvává.
+3. Zvážit CI krok, co po merge změny v `policy-v1.json` automaticky
+   redeployuje Worker (dnešní FLACARP bug byl jen stale deploy od 12.8.).

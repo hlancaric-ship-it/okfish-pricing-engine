@@ -1129,3 +1129,10 @@ co byl dnes opraven u ostatních kódů (redeploy Workeru, viz výše).
 vs. `DiscountLimitPolicy`/`HighestDiscountPolicy` interakci pro produkty
 s existující sale cenou + brand cap, konkrétně na 103503 jako testovacím
 případu.
+
+**Doplněno:** ověřen i `clearance-sale-products.json` (obsahuje per-produkt %
+override list, např. 22 %, 30 % -- Janův tip). 103503 v něm ALE není (soubor má
+38 řádků/kódů, žádný z nich není 103503). Nevysvětluje to tedy tenhle konkrétní
+případ, ale je to důležitý mechanismus k prostudování příště -- jak
+clearance-sale % interaguje s brandLimits v `DiscountLimitPolicy` hierarchii
+pro produkty, které NA seznamu jsou.

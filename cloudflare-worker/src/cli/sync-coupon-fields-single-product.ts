@@ -155,6 +155,11 @@ async function main() {
     // INC-011, a nikdo se to nedozví.
     let anyTierFailed = false;
     const failedTiers: string[] = [];
+    // 2026-08-15: verificationFailures (viz coupon-sales-writer.ts) -- Shoptet
+    // vrátil HTTP 200 na PATCH, ale i po opravném zápisu má jinou hodnotu, než
+    // jsme chtěli. Stejná fail-closed třída jako stats.failed, jen zjištěná až
+    // read-back verifikací, ne HTTP chybou.
+    const allVerificationFailures: Array<{ tier: string; code: string }> = [];
     for (const [tier, pricelistId] of Object.entries(ALL_PRICELISTS_MAP)) {
         const tierItems = byTier[tier] || [];
         if (tierItems.length === 0) continue;
@@ -164,11 +169,19 @@ async function main() {
             anyTierFailed = true;
             failedTiers.push(tier);
         }
+        for (const vf of stats.verificationFailures) {
+            allVerificationFailures.push({ tier, code: vf.code });
+        }
     }
 
-    if (anyTierFailed) {
+    if (anyTierFailed || allVerificationFailures.length > 0) {
+        const parts: string[] = [];
+        if (anyTierFailed) parts.push(`selhal zápis na tierech: ${failedTiers.join(', ')}`);
+        if (allVerificationFailures.length > 0) {
+            parts.push(`neověřen zápis i po opravě: ${allVerificationFailures.map(v => `${v.code}/${v.tier}`).join(', ')}`);
+        }
         throw new Error(
-            `Zápis kupónových polí pro produkt ${PRODUCT_CODE} selhal na tierech: ${failedTiers.join(', ')}. ` +
+            `Zápis kupónových polí pro produkt ${PRODUCT_CODE} selhal (${parts.join('; ')}). ` +
             `Produkt zůstává s neúplnými/starými kupónovými poli -- fail-closed, exit code musí zčervenat, ` +
             `aby to webhook step v sync.yml nahlásil.`
         );

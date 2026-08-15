@@ -1,4 +1,4 @@
-import { ShoptetApiClient, GlobalStats } from './client';
+import { ShoptetApiClient, GlobalStats, ShoptetPricelistItem } from './client';
 import Decimal from 'decimal.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,7 +42,14 @@ export class PricelistWriter {
             // perzistentní cache (RemotePriceCache, 2026-08-12) by to znamenalo, že
             // produkt s neúspěšným zápisem do Shoptetu by se příště tiše přeskočil,
             // protože cache by nesprávně tvrdila, že už má novou cenu.
-            successfulDiffs: [] as PricelistDiff[]
+            successfulDiffs: [] as PricelistDiff[],
+            // Položky, co i po opravném zápisu NEODPOVÍDAJÍ tomu, co jsme zapsat chtěli
+            // -- na rozdíl od stats.errors (HTTP/network chyba) je tohle Shoptet, co
+            // tiše přijal zápis (HTTP 200) a přesto nemá správnou hodnotu. Zavedeno
+            // 2026-08-15 po INC-010/reconciliaci nálezu (produkt 77764 a další
+            // chybějící ZR20/ZR25 zápisy) -- volající (sync-orchestrator.ts) na tohle
+            // musí fail-closed reagovat, ne to jen zalogovat a jet dál.
+            verificationFailures: [] as Array<{ code: string; expected: string; actual: string | null }>
         };
 
         if (diffs.length === 0) {
@@ -125,32 +132,56 @@ export class PricelistWriter {
                 // Zjištěno 2026-08-14 (reconcile-pricelist-drift.ts po brandSaleDiscounts
                 // rolloutu): Shoptet umí na PATCH pro kód, co na tomhle ceníku ještě NIKDY
                 // neměl žádný záznam, vrátit HTTP 200 (žádné `errors`, prázdné `data`) a
-                // přesto nic reálně nezapsat -- ověřeno živě (93280/93281/93282, DELPHIN),
-                // druhý pokus o STEJNÝ zápis o pár vteřin později už uspěl. Shoptetova
-                // odpověď mezi "opravdu zapsáno" a "tiše no-op" vůbec nerozlišuje (`data`
-                // je `{}` v obou případech), takže se to nedá poznat z první odpovědi --
-                // jediná dosud pozorovaná záchrana je slepý retry. Tohle NENÍ obecný retry
-                // na chyby (na to slouží rateLimiter.execute) -- je to cílené jen na
-                // položky, které na tomhle konkrétním ceníku ještě nikdy neměly cenu
-                // (`oldPrice === null`, tzn. cache o nich dosud nic neví), protože právě
-                // tahle situace -- první zápis na ceník, ne aktualizace existujícího
-                // záznamu -- je to, co se pozorovalo jako rizikové. Běžná aktualizace už
-                // existující položky tímhle rizikem netrpí.
+                // přesto nic reálně nezapsat -- ověřeno živě (93280/93281/93282, DELPHIN).
+                // Shoptetova odpověď mezi "opravdu zapsáno" a "tiše no-op" vůbec
+                // nerozlišuje (`data` je `{}` v obou případech), takže se to nedá poznat
+                // z první odpovědi. PŮVODNĚ (do 2026-08-14) se tohle řešilo slepým
+                // retry -- zkusit zápis znovu, bez ověření, jestli to bylo vůbec potřeba.
+                // ZMĚNĚNO 2026-08-15 (na Janovo přímé zadání, po reconciliaci nálezu
+                // produktu 77764 -- chybějící ZR20/ZR25 zápis, co si dřív nikdo
+                // nevšiml až do druhého dne) na SKUTEČNOU verifikaci: přečíst zpátky
+                // přesně to, co se právě zapisovalo, a porovnat. Jen jeden lehký GET
+                // navíc na kód v běžném (fungujícím) případě -- teprve při neshodě se
+                // provede opravný zápis + druhé ověření. Cíleno jen na položky, které
+                // na tomhle konkrétním ceníku ještě nikdy neměly cenu
+                // (`oldPrice === null`) -- stejné zúžení rizika jako předtím, běžná
+                // aktualizace existující položky tímhle rizikem netrpí.
                 const firstTimeItems = chunk.filter(d => d.oldPrice === null);
                 if (firstTimeItems.length > 0) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
-                    const retryPayload = firstTimeItems.map(d => {
-                        const item: Record<string, any> = { code: d.code, price: d.newPrice.toFixed(2) };
-                        if (d.newActionPrice !== undefined) {
-                            item.actionPrice = d.newActionPrice !== null ? d.newActionPrice.toFixed(2) : null;
+                    for (const d of firstTimeItems) {
+                        const expected = d.newPrice.toFixed(2);
+                        let verified: ShoptetPricelistItem | null = null;
+                        try {
+                            verified = await this.apiClient.getPricelistItemByCode(pricelistId, d.code);
+                        } catch (verifyErr: any) {
+                            console.warn(`[WARNING] Verifikace zápisu pro ${d.code} (poprvé na ceníku ${pricelistName}) selhala na GET: ${verifyErr.message}.`);
                         }
-                        return item;
-                    });
-                    try {
-                        await this.apiClient.updatePricelistBatch(pricelistId, retryPayload);
-                        console.log(`[WRITE] Potvrzující re-zápis pro ${firstTimeItems.length} nových položek (poprvé na ceníku ${pricelistName}) proveden.`);
-                    } catch (retryErr: any) {
-                        console.warn(`[WARNING] Potvrzující re-zápis pro ${firstTimeItems.length} nových položek selhal: ${retryErr.message} -- Stage 5 reconciliace by tohle měla stejně odchytit.`);
+                        const actual = verified?.price?.price ? new Decimal(verified.price.price).toFixed(2) : null;
+                        if (actual === expected) {
+                            console.log(`[VERIFY] ${d.code} na ceníku ${pricelistName}: potvrzeno ${actual}.`);
+                            continue;
+                        }
+                        console.warn(`[WARNING] ${d.code} na ceníku ${pricelistName}: čekáno ${expected}, Shoptet má ${actual ?? 'CHYBÍ ZÁZNAM'}. Zkouším opravný zápis.`);
+                        try {
+                            const retryItem: Record<string, any> = { code: d.code, price: expected };
+                            if (d.newActionPrice !== undefined) {
+                                retryItem.actionPrice = d.newActionPrice !== null ? d.newActionPrice.toFixed(2) : null;
+                            }
+                            await this.apiClient.updatePricelistBatch(pricelistId, [retryItem]);
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                            const reverified = await this.apiClient.getPricelistItemByCode(pricelistId, d.code);
+                            const reactual = reverified?.price?.price ? new Decimal(reverified.price.price).toFixed(2) : null;
+                            if (reactual === expected) {
+                                console.log(`[VERIFY] ${d.code} na ceníku ${pricelistName}: opravný zápis potvrzen, ${reactual}.`);
+                            } else {
+                                console.error(`[ALERT] ${d.code} na ceníku ${pricelistName}: i po opravném zápisu neshoda -- čekáno ${expected}, Shoptet má ${reactual ?? 'CHYBÍ ZÁZNAM'}.`);
+                                stats.verificationFailures.push({ code: d.code, expected, actual: reactual });
+                            }
+                        } catch (retryErr: any) {
+                            console.error(`[ALERT] ${d.code} na ceníku ${pricelistName}: opravný zápis selhal: ${retryErr.message}.`);
+                            stats.verificationFailures.push({ code: d.code, expected, actual: null });
+                        }
                     }
                 }
             } catch (err: any) {

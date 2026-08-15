@@ -51,7 +51,14 @@ export class CouponSalesWriter {
             processed: 0,
             failed: 0,
             dryRun,
-            errors: [] as string[]
+            errors: [] as string[],
+            // Zavedeno 2026-08-15 stejně jako u PricelistWriter (viz jeho komentář) --
+            // Shoptet umí PATCH tiše ignorovat i tady, ne jen u cen. Na rozdíl od
+            // PricelistWriter tady nemáme `oldValue`, abychom poznali "první zápis"
+            // levněji, takže se ověřuje každá zapsaná položka -- v běžném
+            // inkrementálním syncu je diffů jen pár, u plošného re-syncu je to dražší,
+            // ale ten je řídká výjimka, ne běžný provoz.
+            verificationFailures: [] as Array<{ code: string; expected: { discountCoupon: boolean; minPriceRatio: string }; actual: { discountCoupon: boolean; minPriceRatio: string } | null }>
         };
 
         if (items.length === 0) {
@@ -98,6 +105,49 @@ export class CouponSalesWriter {
                 await this.apiClient.updatePricelistSalesBatch(pricelistId, batchPayload);
                 stats.processed += chunk.length;
                 console.log(`[WRITE] Dávka ${Math.floor(i / chunkSize) + 1} úspěšně zapsána pro tier ${tier}.`);
+
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                for (const item of chunk) {
+                    const expected = { discountCoupon: item.applyDiscountCoupon, minPriceRatio: item.minPriceRatio.toFixed(4) };
+                    let verified;
+                    try {
+                        verified = await this.apiClient.getPricelistItemByCode(pricelistId, item.code);
+                    } catch (verifyErr: any) {
+                        console.warn(`[WARNING] Verifikace coupon zápisu pro ${item.code} (tier ${tier}) selhala na GET: ${verifyErr.message}.`);
+                    }
+                    const actual = verified?.sales
+                        ? { discountCoupon: verified.sales.discountCoupon, minPriceRatio: verified.sales.minPriceRatio }
+                        : null;
+                    const matches = actual !== null
+                        && actual.discountCoupon === expected.discountCoupon
+                        && Number(actual.minPriceRatio).toFixed(4) === expected.minPriceRatio;
+                    if (matches) continue;
+                    console.warn(`[WARNING] ${item.code} na tieru ${tier}: čekáno discountCoupon=${expected.discountCoupon}/minPriceRatio=${expected.minPriceRatio}, Shoptet má ${actual ? `discountCoupon=${actual.discountCoupon}/minPriceRatio=${actual.minPriceRatio}` : 'CHYBÍ ZÁZNAM'}. Zkouším opravný zápis.`);
+                    try {
+                        await this.apiClient.updatePricelistSalesBatch(pricelistId, [{
+                            code: item.code,
+                            discountCoupon: item.applyDiscountCoupon,
+                            minPriceRatio: item.minPriceRatio.toFixed(4)
+                        }]);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        const reverified = await this.apiClient.getPricelistItemByCode(pricelistId, item.code);
+                        const reactual = reverified?.sales
+                            ? { discountCoupon: reverified.sales.discountCoupon, minPriceRatio: reverified.sales.minPriceRatio }
+                            : null;
+                        const rematches = reactual !== null
+                            && reactual.discountCoupon === expected.discountCoupon
+                            && Number(reactual.minPriceRatio).toFixed(4) === expected.minPriceRatio;
+                        if (rematches) {
+                            console.log(`[VERIFY] ${item.code} na tieru ${tier}: opravný zápis potvrzen.`);
+                        } else {
+                            console.error(`[ALERT] ${item.code} na tieru ${tier}: i po opravném zápisu neshoda -- čekáno discountCoupon=${expected.discountCoupon}/minPriceRatio=${expected.minPriceRatio}, Shoptet má ${reactual ? `discountCoupon=${reactual.discountCoupon}/minPriceRatio=${reactual.minPriceRatio}` : 'CHYBÍ ZÁZNAM'}.`);
+                            stats.verificationFailures.push({ code: item.code, expected, actual: reactual });
+                        }
+                    } catch (retryErr: any) {
+                        console.error(`[ALERT] ${item.code} na tieru ${tier}: opravný zápis selhal: ${retryErr.message}.`);
+                        stats.verificationFailures.push({ code: item.code, expected, actual: null });
+                    }
+                }
             } catch (err: any) {
                 console.error(`[ERROR] Chyba při zápisu coupon sales dávky pro tier ${tier}:`, err.message);
                 stats.errors.push(err.message);

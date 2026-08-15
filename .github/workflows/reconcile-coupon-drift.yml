@@ -13,9 +13,15 @@ name: Coupon Integrity Reconciliation (Stage 5)
 on:
   schedule:
     # Mimo špičku, staggered vůči price reconciliation (03:00) a hlavnímu
-    # syncu (každých 15 min) -- hodnota mismatche potřebuje přetrvat 2 po
-    # sobě jdoucí běhy, než zaalertuje (viz reconcile-coupon-drift.ts), takže
-    # denní frekvence stačí.
+    # syncu (každých 15 min). ZVÁŽENO 2026-08-15 zrychlit po nálezu ZR20/
+    # ZR25 lock-porušení, ale Jan se rozhodl NECHAT denní frekvenci --
+    # rychlá detekce nových/změněných produktů teď řeší samostatná
+    # okamžitá verifikace přímo v zápisové cestě (coupon-sales-writer.ts),
+    # ne tohle plošné kolo. Tenhle plný katalogový sken zůstává jako
+    # pomalejší, širší pojistka proti tiché logické chybě, co postihne
+    # i produkty, které se vůbec nezměnily. Hodnota mismatche potřebuje
+    # přetrvat 2 po sobě jdoucí běhy, než zaalertuje (viz
+    # reconcile-coupon-drift.ts), takže denní frekvence stačí.
     - cron: '30 3 * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
 

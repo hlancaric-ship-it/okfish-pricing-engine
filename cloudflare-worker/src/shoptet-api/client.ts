@@ -143,6 +143,37 @@ export class ShoptetApiClient {
     }
 
     /**
+     * Ověří JEDEN konkrétní kód na JEDNOM konkrétním ceníku -- jeden lehký GET
+     * s `?code=` filtrem (potvrzeno v shoptet_openapi.json, GET /pricelists/{id}
+     * podporuje `code` query param), žádná paginace. Zavedeno 2026-08-15 jako
+     * okamžitá post-write verifikace (viz pricelist-writer.ts/coupon-sales-writer.ts)
+     * pro produkty, co na daném ceníku ještě nikdy neměly záznam -- přesně ta
+     * situace, kde se 2026-08-14 zjistilo, že Shoptet umí vrátit HTTP 200 a
+     * přesto nic reálně nezapsat (a blind retry to jen zkusí znovu, ne ověří).
+     * Vrací `null`, pokud kód na ceníku vůbec žádný záznam nemá.
+     */
+    public async getPricelistItemByCode(pricelistId: number, code: string): Promise<ShoptetPricelistItem | null> {
+        const url = `${this.baseUrl}/pricelists/${pricelistId}?code=${encodeURIComponent(code)}`;
+        const result = await this.rateLimiter.execute(
+            async () => {
+                GlobalStats.apiRequests.GET++;
+                const res = await fetch(url, { headers: this.getHeaders() });
+                GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
+                return res;
+            },
+            async (res) => {
+                const json = await res.json() as any;
+                if (json.errors && json.errors.length > 0) {
+                    throw new Error(`API chyba: ${JSON.stringify(json.errors)}`);
+                }
+                return json;
+            }
+        );
+        const items = result.data?.pricelist?.items as ShoptetPricelistItem[] | undefined;
+        return (items && items.length > 0) ? items[0] : null;
+    }
+
+    /**
      * Stáhne všechny zákazníky se stránkováním.
      * Upozornění: Vrací pouze základní GUID, pro detail (CustomerGroup) je často nutné stáhnout detail, 
      * avšak Shoptet dokumentace uvádí, že detailní filtry mohou vrátit skupiny, takže to budeme brát 

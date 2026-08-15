@@ -8,7 +8,16 @@ name: Price Integrity Reconciliation (Stage 5)
 
 on:
   schedule:
-    # Jednou denně, mimo špičku syncu (ten běží každých 15 min). Hodnota
+    # Jednou denně, mimo špičku syncu (ten běží každých 15 min). ZVÁŽENO
+    # 2026-08-15 zrychlit na hodinovou frekvenci po nálezu chybějících
+    # ZR20/ZR25 zápisů (produkt 77764), ale Jan se rozhodl NECHAT denní
+    # frekvenci -- rychlá detekce nových/změněných produktů teď řeší
+    # samostatná okamžitá verifikace přímo v zápisové cestě
+    # (pricelist-writer.ts/coupon-sales-writer.ts, viz jejich komentáře),
+    # ne tohle plošné kolo. Tenhle plný katalogový sken zůstává jako
+    # pomalejší, širší pojistka proti jinému typu chyby (INC-010 -- tichá
+    # logická chyba, co postihne i produkty, které se vůbec nezměnily,
+    # a proto ji žádná "kontrola jen nových věcí" nikdy nechytí). Hodnota
     # mismatche potřebuje přetrvat 2 po sobě jdoucí běhy, než zaalertuje
     # (viz reconcile-pricelist-drift.ts), takže denní frekvence -- ne 15min.
     - cron: '0 3 * * *'

@@ -24,6 +24,13 @@ describe('CouponSalesWriter — GUEST pricelist writes', () => {
     it('writes normally to GUEST_PRICELIST_ID (pricelist 1) — the circular-dependency root cause is fixed upstream, not by blocking this write', async () => {
         const fakeClient = {
             updatePricelistSalesBatch: vi.fn().mockResolvedValue({}),
+            // 2026-08-15: post-write verification (see coupon-sales-writer.ts) reads
+            // the item back — mock it as matching, so the test isn't asserting the
+            // retry path it isn't exercising.
+            getPricelistItemByCode: vi.fn().mockResolvedValue({
+                code: 'X1',
+                sales: { discountCoupon: true, minPriceRatio: '0.9800', loyaltyDiscount: true, volumeDiscount: true, quantityDiscount: true }
+            }),
         } as any;
 
         const writer = new CouponSalesWriter(fakeClient, { dryRun: false });
@@ -33,11 +40,16 @@ describe('CouponSalesWriter — GUEST pricelist writes', () => {
 
         expect(fakeClient.updatePricelistSalesBatch).toHaveBeenCalledTimes(1);
         expect(stats.processed).toBe(1);
+        expect(stats.verificationFailures).toHaveLength(0);
     });
 
     it('still writes normally for a real loyalty-tier pricelist (not GUEST)', async () => {
         const fakeClient = {
             updatePricelistSalesBatch: vi.fn().mockResolvedValue({}),
+            getPricelistItemByCode: vi.fn().mockResolvedValue({
+                code: 'X1',
+                sales: { discountCoupon: true, minPriceRatio: '0.9500', loyaltyDiscount: true, volumeDiscount: true, quantityDiscount: true }
+            }),
         } as any;
 
         const writer = new CouponSalesWriter(fakeClient, { dryRun: false });
@@ -47,5 +59,6 @@ describe('CouponSalesWriter — GUEST pricelist writes', () => {
 
         expect(fakeClient.updatePricelistSalesBatch).toHaveBeenCalledTimes(1);
         expect(stats.processed).toBe(1);
+        expect(stats.verificationFailures).toHaveLength(0);
     });
 });

@@ -355,11 +355,15 @@ export class SyncOrchestrator {
         let totalPricelistFails = 0;
         let totalPricelistSkipped = 0;
         let totalBatches = 0;
+        const verificationFailures: Array<{ code: string; pricelistName: string; expected: string; actual: string | null }> = [];
         for (const p of pricelistStatsList) {
             totalPricelistUpdates += p.processed;
             totalPricelistFails += p.failed;
             totalPricelistSkipped += p.skipped;
             totalBatches += Math.ceil(p.processed / 100);
+            for (const vf of (p.verificationFailures ?? [])) {
+                verificationFailures.push({ ...vf, pricelistName: p.pricelistName });
+            }
         }
 
         const avgBatchSize = totalBatches > 0 ? (totalPricelistUpdates / totalBatches).toFixed(1) : "0";
@@ -421,8 +425,15 @@ export class SyncOrchestrator {
         // prostě zmizel z výstupu, nikdy se nepočítal jako "failed", run doběhl
         // jako SUCCESS a lastSync se posunul dál, takže se produkt už nikdy znovu
         // nezkusil, dokud ho někdo ručně neopravil.
+        // verificationFailures (2026-08-15, viz pricelist-writer.ts): první-zápis
+        // položky, co i po opravném zápisu neodpovídají tomu, co jsme zapsat chtěli
+        // -- Shoptet vrátil HTTP 200, ale reálně nezapsal, a ani opravný pokus to
+        // nespravil. Musí run stejně shodit jako ostatní tři třídy selhání níže --
+        // přesně tohle byl INC-010/reconciliace nález (produkt 77764), co si dřív
+        // nikdo nevšiml až do druhého dne.
         const isSuccess = (totalPricelistFails === 0 && customerStats.failed === 0
-            && incompleteCodes.length === 0 && pricingFailures.length === 0);
+            && incompleteCodes.length === 0 && pricingFailures.length === 0
+            && verificationFailures.length === 0);
         console.log(`FINAL RESULT:`);
         console.log(`${isSuccess ? 'SUCCESS' : 'FAILED'}\n`);
 
@@ -454,6 +465,7 @@ export class SyncOrchestrator {
             if (customerStats.failed > 0) console.log(`- Selhal zápis zákazníků (${customerStats.failed})`);
             if (incompleteCodes.length > 0) console.log(`- Vynecháno pro chybějící ceníková data (${incompleteCodes.length}): ${incompleteCodes.join(', ')}`);
             if (pricingFailures.length > 0) console.log(`- Selhal výpočet tieru (${pricingFailures.length}) -- viz WARNING výše`);
+            if (verificationFailures.length > 0) console.log(`- Zápis neověřen i po opravném pokusu (${verificationFailures.length}): ${verificationFailures.map(v => `${v.code}/${v.pricelistName}`).join(', ')}`);
             if (!this.options.dryRun) {
                 console.log(`[State] lastSync NEPOSUNUT -- příští běh (cron za 15 min) tyto produkty zkusí znovu.`);
             }
@@ -469,6 +481,7 @@ export class SyncOrchestrator {
             if (customerStats.failed > 0) parts.push(`${customerStats.failed}x selhal zápis zákazníka`);
             if (incompleteCodes.length > 0) parts.push(`${incompleteCodes.length}x chybí ceníková data (${incompleteCodes.join(', ')})`);
             if (pricingFailures.length > 0) parts.push(`${pricingFailures.length}x selhal výpočet tieru`);
+            if (verificationFailures.length > 0) parts.push(`${verificationFailures.length}x neověřen zápis i po opravě`);
             throw new Error(`Synchronizace neúspěšná: ${parts.join('; ')}`);
         }
     }

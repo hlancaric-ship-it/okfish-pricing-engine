@@ -1104,3 +1104,28 @@ poplach, skutečný zápis je v pořádku.
 4. Zvážit dočasné vypnutí/uvolnění coupon verify (jen throw na skutečné HTTP
    chyby, ne na tenhle nový check), dokud nebude opravený, aby se dala
    kupónová oprava dokončit bez blokování falešnými poplachy.
+
+## 2026-08-15 (pokračování) — OTEVŘENO, NEPROZKOUMÁNO: 103503 (FLACARP) ZR20/ZR25 pod 10% cap
+
+**Nález (Jan, živě v adminu):** produkt 103503 ("Pohybové čidlo FLACARP AL"),
+base cena 123 €, existující akční cena 98,77 € (~19,7 %, nepřepisuje se).
+ZR4-ZR18 správně drží 98,77 € (sale > tier discount, OK). ALE **ZR20 = 98,40 €,
+ZR25 = 92,25 € (přesně 25 % z 123)** -- to porušuje stejný FLACARP 10% brand cap,
+co byl dnes opraven u ostatních kódů (redeploy Workeru, viz výše).
+
+**Nerozlišeno/neověřeno (kontext došel, nedokončeno poctivě):**
+- Je tohle stejná třída chyby jako FLACARP Worker deploy problém (tj. Shoptet
+  pricelist samotný má špatnou hodnotu, ne jen Worker badge)? Screenshot je
+  přímo z admin Shoptet UI (Jiné ceníky tabulka), takže pokud je to co Shoptet
+  skutečně účtuje, je to jinačí/vážnější třída chyby než dnešní Worker-only
+  problém.
+- Je tohle produkt, který dnešní force-sync/redeploy vůbec nezasáhl (103503
+  nebyl v seznamu 24 force-synced kódů)?
+- Vztahuje se sem HighestDiscountPolicy/sale-price interakce jinak, když je
+  loajalita tier vyšší než existující sale, a brand cap se aplikuje špatně
+  na "highest discount" větev, ne na loyalty-only větev?
+
+**Příští session: začít tady, ne hádat.** Ověřit `policy-v1.json` brandLimits
+vs. `DiscountLimitPolicy`/`HighestDiscountPolicy` interakci pro produkty
+s existující sale cenou + brand cap, konkrétně na 103503 jako testovacím
+případu.

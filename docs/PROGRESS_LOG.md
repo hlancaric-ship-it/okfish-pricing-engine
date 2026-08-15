@@ -1073,3 +1073,34 @@ zabalené do Workeru) se propíše jen manuálním `wrangler deploy`. Žádný
 existující workflow dnes deploy worker kódu automaticky nespouští po
 změně `policy-v1.json` -- to je otevřená mezera k zvážení příště (CI krok,
 co by po merge změny v policy-v1.json automaticky redeployoval Worker).
+
+## 2026-08-15 (pokračování) — OTEVŘENO: coupon verify false-positive + zbývající 4 kódy
+
+**Zjištění:** force-sync 24 kódů (viz výše) řešil jen CENY (`PricelistWriter`),
+ne kupóny -- `sync-coupon-fields-single-product.ts` je samostatná cesta, kterou
+force-sync-products.json vůbec nespouští. Spuštěno ručně pro 9 coupon-lock kódů.
+
+**Bug ve verifikaci (dnešní `coupon-sales-writer.ts` přírůstek):** u všech
+spuštěných kódů (101040, 39390, 68037, 6958, 76688) hlásila verifikace
+"CHYBÍ ZÁZNAM" na VŠECH 11 tierech i po opravném zápisu -- 100% konzistentní
+vzorec napříč różnými kódy silně ukazuje na bug v `getPricelistItemByCode`
+čtení `sales` pole (ne na 55 nezávislých Shoptet selhání). Živě ověřeno v
+adminu na 68037: zápis PROBĚHL SPRÁVNĚ (ZR4-ZR18 kupón povolen, ZR20/ZR25
+odškrtnuto + Max. sleva 0% -- lock funguje). Verifikace tedy hlásí falešný
+poplach, skutečný zápis je v pořádku.
+
+**Zastaveno po 76688** (pkill), než se stejná chyba spustila i na
+91646/93280/93281/93282 -- ty ještě NEPROŠLY kupónovým zápisem vůbec.
+
+**Zbývá pro příští session:**
+1. Opravit `getPricelistItemByCode`/verify logiku v `coupon-sales-writer.ts`
+   -- pravděpodobně čte `sales` pole ze špatné cesty v odpovědi, nebo
+   Shoptet potřebuje delší než 2s na propagaci coupon/sales zápisu
+   (na rozdíl od price zápisu, který verifikoval správně).
+2. Ověřit živě v adminu, jestli 101040/39390/6958/76688 skutečně mají
+   zápis v pořádku (stejně jako 68037), navzdory chybovému hlášení skriptu.
+3. Dokončit kupónový zápis pro 91646, 93280, 93281, 93282 -- ty se vůbec
+   nespustily.
+4. Zvážit dočasné vypnutí/uvolnění coupon verify (jen throw na skutečné HTTP
+   chyby, ne na tenhle nový check), dokud nebude opravený, aby se dala
+   kupónová oprava dokončit bez blokování falešnými poplachy.

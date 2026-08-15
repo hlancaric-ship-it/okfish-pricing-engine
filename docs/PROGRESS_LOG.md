@@ -1050,3 +1050,26 @@ potřebuje redeploy.
 **Zdroj scratch skriptů použitých dnes (ne v repu):**
 `/private/tmp/claude-501/-Users-lucky/0c770844-d151-40d2-ac60-336bc4396d75/scratchpad/
 targeted-worker-sync.ts`, `flacarp-force-sync-gen.ts`, `check-flacarp-discounts.ts`.
+
+## 2026-08-15 (pokračování) — VYŘEŠENO: FLACARP Worker discountPct byl jen stale deploy
+
+Skutečná příčina předchozího zápisu: **Worker nebyl redeployovaný od 2026-08-12**,
+tedy před přidáním FLACARP do `brandLimits` (14.8.). `BRAND_LIMITS` v
+`cloudflare-worker/src/engine/config.ts` čte ze stejného `policy-v1.json` jako
+hlavní engine -- kód i KV data byly v pořádku celou dobu, chyběl jen
+`wrangler deploy`.
+
+**Fix:** `npx wrangler deploy` z `cloudflare-worker/` (Version ID
+`5ce4f42c-a53b-4d34-9bec-7ee0eb5caabd`). Živě ověřeno po deployi: všech 18
+FLACARP kódů teď `GET /v1/product-discount/:code/ZR25` vrací `discountPct: 10`
+(nebo nižší, pokud existuje přísnější product/category limit -- 103515: 0%,
+103511: 5%, 103503: 20%, ostatní 10%). 103524 potvrzen 489.60 (přesně 10%
+z 544.00).
+
+**Poučení:** Worker deploy a KV data sync jsou dvě NEZÁVISLÉ věci -- KV se
+aktualizuje samo (`sync-products-worker-cache.yml`, cron), ale kód enginu
+(`BRAND_LIMITS`/`CATEGORY_LIMITS`/`PRODUCT_LIMITS` z `policy-v1.json`
+zabalené do Workeru) se propíše jen manuálním `wrangler deploy`. Žádný
+existující workflow dnes deploy worker kódu automaticky nespouští po
+změně `policy-v1.json` -- to je otevřená mezera k zvážení příště (CI krok,
+co by po merge změny v policy-v1.json automaticky redeployoval Worker).

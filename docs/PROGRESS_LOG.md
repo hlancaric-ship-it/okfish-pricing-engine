@@ -1020,3 +1020,33 @@ loyalty-discount add-on, sidestepping Shoptet's naive additive discount
 stacking — that architectural choice is the reason precise coupon/tier/sale
 interaction logic is even possible here. Keep protecting that boundary in any
 future change.
+
+## 2026-08-15 — OTEVŘENO, NEDOŘEŠENO: Worker discountPct pro FLACARP vrací 25 %, ne 10 % cap
+
+**Kontext:** Po force-syncu 24 kódů (viz INC-011 pokračování výše) a targeted Worker KV
+push pro celou značku FLACARP (18 kódů, `manufacturer=FLACARP`), živá kontrola
+`GET /v1/product-discount/:code/ZR25` vrací `discountPct: 25` pro VŠECH 18 FLACARP
+kódů včetně 103524 — přestože skutečný Shoptet pricelist a nákupní košík chvíli
+předtím ukazovaly správně -10 % (489,60 € pro 103524, ověřeno živě screenshotem).
+
+**Podezření (NEOVĚŘENO):** `cloudflare-worker/src/engine/pricing.ts` je samostatná
+"mini engine" kopie, oddělená od `src/core`/`src/policies`, co skutečně píše do
+Shoptet pricelistu. Je možné, že brandLimits (FLACARP 10 %, přidáno 14.8. do
+`policy-v1.json`) se do mini-enginu vůbec nepropisuje, nebo Worker běží na starém
+deploy bez týhle změny.
+
+**Co NENÍ ověřeno:**
+- Jestli je to regrese z posledního KV zápisu (targeted-worker-sync.ts, scratchpad,
+  necommitnuto do repa), nebo to takhle bylo už dřív.
+- Jestli mini engine vůbec čte brandLimits, nebo jen productMaxDiscount z feedu.
+- Jestli je nutný redeploy Worker kódu (ne jen KV data).
+
+**Nedělat narychlo:** cena v Shoptet pricelistu/checkoutu je momentálně SPRÁVNÁ
+(potvrzeno živě). Riziko je jen v tom, co ukazuje frontend badge (`discountPct`),
+ne v tom, co se reálně účtuje. Než se cokoliv dál mění, ověřit `cloudflare-worker/
+src/engine/pricing.ts` a `PRODUCT_LIMITS`/brandLimits zdroj dat a jestli Worker
+potřebuje redeploy.
+
+**Zdroj scratch skriptů použitých dnes (ne v repu):**
+`/private/tmp/claude-501/-Users-lucky/0c770844-d151-40d2-ac60-336bc4396d75/scratchpad/
+targeted-worker-sync.ts`, `flacarp-force-sync-gen.ts`, `check-flacarp-discounts.ts`.

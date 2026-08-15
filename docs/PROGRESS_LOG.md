@@ -1136,3 +1136,12 @@ override list, např. 22 %, 30 % -- Janův tip). 103503 v něm ALE není (soubor
 případ, ale je to důležitý mechanismus k prostudování příště -- jak
 clearance-sale % interaguje s brandLimits v `DiscountLimitPolicy` hierarchii
 pro produkty, které NA seznamu jsou.
+
+**Doplněno (proč má akční cenu):** feed potvrzuje 103503 má ruční, trvalou
+(`actionFrom`/`actionUntil` prázdné) akční cenu 98,77 € nastavenou přímo v
+Shoptet adminu -- nesouvisí s `brandSaleDiscounts` (FLACARP tam není, jen
+DELPHIN/DELPHIN BOMB/MIVARDI/MIKADO). `maxDiscount=0` ve feedu je Shoptetovo
+vlastní pole, engine ho záměrně nečte (viz `pricing-bridge.ts` komentář).
+Vysvětluje to, proč ZR4-18 správně drží 98,77 (sale > jejich tier %), ALE
+nevysvětluje, proč ZR20/25 jdou hlouběji než 10% brand cap -- tohle zůstává
+nerozřešeno.

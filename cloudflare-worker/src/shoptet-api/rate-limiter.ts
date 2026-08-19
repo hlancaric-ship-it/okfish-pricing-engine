@@ -7,6 +7,14 @@ export interface RateLimiterOptions {
     maxBackoffMs?: number;
 }
 
+export interface ExecuteOptions {
+    // Statusy, které se i mimo 2xx mají předat parseFn (např. 404 = "smazáno",
+    // volající to sám rozhodne), místo automatického throw. Bez tohoto volitelného
+    // parametru se chování nemění -- výchozí je throw na cokoli mimo 2xx a mimo
+    // retryableStatuses, přesně jako dřív.
+    passThroughStatuses?: number[];
+}
+
 export class ShoptetRateLimiter {
     private activeRequests = 0;
     private readonly maxConcurrency: number;
@@ -53,7 +61,8 @@ export class ShoptetRateLimiter {
 
     public async execute<T>(
         requestFn: () => Promise<Response>,
-        parseFn: (res: Response) => Promise<T>
+        parseFn: (res: Response) => Promise<T>,
+        options: ExecuteOptions = {}
     ): Promise<T> {
         let attempt = 0;
         let lastError: Error | null = null;
@@ -75,8 +84,9 @@ export class ShoptetRateLimiter {
                 continue;
             }
 
-            // Pokud prošlo v pořádku (2xx)
-            if (response.ok) {
+            // Pokud prošlo v pořádku (2xx), nebo je status explicitně vyžádán
+            // volajícím jako "předej mi to i tak, rozhodnu si sám" (passThroughStatuses)
+            if (response.ok || options.passThroughStatuses?.includes(response.status)) {
                 try {
                     const result = await parseFn(response);
                     this.release();

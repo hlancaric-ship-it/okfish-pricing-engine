@@ -1,9 +1,4 @@
 {
-  "101040::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
   "23996-4::ZR4": {
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
@@ -23,31 +18,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.940"
-  },
-  "39390::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.840"
-  },
-  "39768::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.840"
-  },
-  "39769::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.840"
-  },
-  "39770::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.840"
   },
   "55116::ZR4": {
     "firstSeen": "2026-08-15",
@@ -224,24 +194,9 @@
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.940"
   },
-  "68037::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8877",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8400",
+  "59779::ZR4": {
+    "firstSeen": "2026-08-16",
+    "expected": "discountCoupon=true/minPriceRatio=0.8882",
     "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "89504::ZR4": {
@@ -253,31 +208,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.840"
-  },
-  "91646::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR4": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "23996-4::ZR6": {
     "firstSeen": "2026-08-15",
@@ -298,31 +228,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.960"
-  },
-  "39390::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.860"
-  },
-  "39768::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.860"
-  },
-  "39769::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.860"
-  },
-  "39770::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.860"
   },
   "55116::ZR6": {
     "firstSeen": "2026-08-15",
@@ -499,24 +404,9 @@
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.960"
   },
-  "68037::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8877",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8600",
+  "59779::ZR6": {
+    "firstSeen": "2026-08-16",
+    "expected": "discountCoupon=true/minPriceRatio=0.8882",
     "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "89504::ZR6": {
@@ -528,31 +418,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.860"
-  },
-  "91646::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR6": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "23996-4::ZR8": {
     "firstSeen": "2026-08-15",
@@ -573,31 +438,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.980"
-  },
-  "39390::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.880"
-  },
-  "39768::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.880"
-  },
-  "39769::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.880"
-  },
-  "39770::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.880"
   },
   "55116::ZR8": {
     "firstSeen": "2026-08-15",
@@ -774,24 +614,9 @@
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.980"
   },
-  "68037::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8877",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8800",
+  "59779::ZR8": {
+    "firstSeen": "2026-08-16",
+    "expected": "discountCoupon=true/minPriceRatio=0.8882",
     "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "89504::ZR8": {
@@ -804,76 +629,6 @@
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.880"
   },
-  "91646::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR8": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39390::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "39768::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "39769::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "39770::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "68037::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
   "89504::ZR10": {
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9500",
@@ -883,76 +638,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "91646::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR10": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9200",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39390::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.920"
-  },
-  "39768::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.920"
-  },
-  "39769::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.920"
-  },
-  "39770::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.920"
-  },
-  "68037::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9200",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9200",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9200",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9200",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "89504::ZR12": {
     "firstSeen": "2026-08-15",
@@ -964,76 +649,6 @@
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.920"
   },
-  "91646::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR12": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39390::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.940"
-  },
-  "39768::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.940"
-  },
-  "39769::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.940"
-  },
-  "39770::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.940"
-  },
-  "68037::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9400",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
   "89504::ZR14": {
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9500",
@@ -1044,130 +659,10 @@
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.940"
   },
-  "91646::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR14": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR16": {
-    "firstSeen": "2026-08-15",
+  "39767::ZR16": {
+    "firstSeen": "2026-08-16",
     "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39390::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "68037::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "91646::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR16": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9600",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39390::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "68037::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "91646::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::ZR18": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9800",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "101040::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
+    "actual": "discountCoupon=true/minPriceRatio=0.950"
   },
   "23996-4::GUEST": {
     "firstSeen": "2026-08-15",
@@ -1188,31 +683,6 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.900"
-  },
-  "39390::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9500",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "39767::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.800"
-  },
-  "39768::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.800"
-  },
-  "39769::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.800"
-  },
-  "39770::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9499",
-    "actual": "discountCoupon=true/minPriceRatio=0.800"
   },
   "55116::GUEST": {
     "firstSeen": "2026-08-15",
@@ -1389,25 +859,10 @@
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
     "actual": "discountCoupon=true/minPriceRatio=0.900"
   },
-  "68037::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8877",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "6958::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "76688::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "77764::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.8000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  "59779::GUEST": {
+    "firstSeen": "2026-08-16",
+    "expected": "discountCoupon=true/minPriceRatio=0.8882",
+    "actual": "discountCoupon=true/minPriceRatio=0.890"
   },
   "89504::GUEST": {
     "firstSeen": "2026-08-15",
@@ -1418,25 +873,5 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.800"
-  },
-  "91646::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9498",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93280::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93281::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "93282::GUEST": {
-    "firstSeen": "2026-08-15",
-    "expected": "discountCoupon=true/minPriceRatio=0.9496",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
   }
 }

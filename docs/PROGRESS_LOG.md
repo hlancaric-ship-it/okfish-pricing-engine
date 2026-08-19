@@ -7,7 +7,95 @@ why, and what's still open.
 
 ---
 
-## 2026-08-14 (uzávěrka) — Souhrn celého dne: brandSaleDiscounts + 2 nalezené produkční bugy
+## 2026-08-19 — Cron sync failing, 3 otevřené nálezy (nedořešeno, kontext session vyčerpán)
+
+**TO-DO (příští session, v tomhle pořadí):**
+- [ ] **Bod 1 (blokuje produkci):** Zjistit, proč verifikační GET
+      (`getPricelistItemByCode`) hlásí neshodu/CHYBÍ ZÁZNAM u skrytých
+      produktů (39373, 68172), i když admin ukazuje ceny jako správně
+      zapsané. Opravit -- buď jiný verifikační endpoint pro skryté produkty,
+      nebo je z verifikace úplně vynechat.
+- [ ] **Bod 4 (nový požadavek od Jana):** Webhook (`repository_dispatch`)
+      run nesmí spouštět plný incremental sync -- má zpracovat VÝHRADNĚ ten
+      1 produkt z `client_payload`, ceníky i kupóny zároveň. Zásah do
+      `sync-orchestrator.ts` + `products-reader.ts`. Promyslet dopad na
+      `lastSync` state před implementací.
+- [ ] **Bod 3 (návaznost na INC-011):** Dohledat celý seznam 61 kódů
+      (ne jen vzorek 15) a porovnat 1:1 se seznamem 55 chybějících z
+      INC-010 -- potvrdit/vyvrátit "stejná příčina" hypotézu.
+- [x] Bod 2 (tier = akční cena) -- uzavřeno, potvrzeno jako správné chování
+      (15% celoroční akce u téhle značky), nepotřebuje zásah.
+
+
+**Kontext:** GitHub Actions sync (`sync.yml`) padal celý den na "recent account
+payments have failed" (billing na GitHub účtu) — Jan billing opravil, sync se
+pak skutečně spustil (potvrzeno `gh run view`), ale skončil `FAILED` s jinou,
+reálnou chybou. Tři samostatné nálezy, žádný ještě neopraven:
+
+**1) Verifikace zápisu selhává u skrytých produktů (kód 39373, 68172)**
+- `pricelist-writer.ts` (~řádek 145-180): u položek, které na daném tier-ceníku
+  ještě nikdy neměly cenu (`oldPrice === null`), se po zápisu čte zpět
+  `getPricelistItemByCode` a porovnává s očekávanou cenou. U 39373/68172 to
+  selhalo na VŠECH 10 tier-ceníkách (ZR4-ZR25) najednou -- `[ALERT]
+  verificationFailures`, sync skončil `FAILED`, `lastSync` se neposunul.
+- Jan potvrdil (screenshot admin) že produkt 39373 (Prút DELPHIN Hypno) je
+  "Skrytý produkt" (není viditelný zákazníkům) -- A ŽE hodnoty na tier
+  ceníkách (ZR4-ZR14 = 40,76 EUR atd.) v adminu VIDITELNĚ JSOU nastavené.
+  Takže zápis pravděpodobně proběhl v pořádku -- podezření je, že
+  `getPricelistItemByCode` (verifikační GET) skryté produkty nevrací/vrací
+  jinak, takže se to jeví jako neověřeno, i když je to ve skutečnosti OK.
+- **Neověřeno, jen hypotéza.** Další krok: ověřit chování
+  `getPricelistItemByCode` konkrétně pro skryté produkty (možná potřeba jiný
+  API endpoint nebo parametr pro skryté položky), a/nebo skrytí produkty
+  z verifikace úplně vynechat (věřit prvnímu zápisu bez re-GET).
+
+**2) Tier ceny ZR4-ZR14 = akční cena -- NENÍ BUG, potvrzeno Janem**
+- Na produktu 39373: ZR4-ZR14 = 40,76 EUR = stejná hodnota jako akční cena.
+  Vypadalo to jako by akční cena přebíjela tier výpočet, ALE Jan potvrdil:
+  tahle značka má **15% akci nastavenou celoročně** -- tier ceny pro nižší
+  stupně (kde by tier sleva sama o sobě vyšla výš než 15% akce) se správně
+  ořežou na akční cenu jako podlahu/strop. To je zamýšlené chování cenové
+  logiky, ne chyba. Uzavřeno, nepotřebuje další vyšetřování.
+
+**3) Kupónová pole nevyplněná -- toto je JIŽ ZDOKUMENTOVANÝ incident, viz
+`INCIDENTS.md` INC-011 (2026-08-13, OTEVŘENO/NEDOŘEŠENO)**
+- Přesný rozsah už zjištěný dřív: 61 produktů z 16 712 na ZR20/ZR25 (~0,4 %
+  katalogu) má `discountCoupon: true` navzdory `lockedTiers` zámku --
+  překrývá se s "55 chybějících produktů" z INC-010, stejná rodina příčiny
+  (nedokončeně synchronizované produkty), ne celoplošný bug. Hodnoty
+  (`minPriceRatio`) na plně synchronizovaných produktech sedí správně.
+  Otevřené zbytky: přesný seznam všech 61 kódů 1:1 porovnat s INC-010
+  seznamem; ověřit hodnoty i na jiných tierech než ZR4. **Nezakládat nový
+  incident -- pokračovat v INC-011.**
+
+**4) NOVÝ POŽADAVEK (Jan, 2026-08-19): webhook run nesmí dělat plný
+inkrementální sync -- jen 1 produkt**
+- Aktuální stav: `sync.yml` spouští PRO KAŽDÝ trigger (cron i webhook) tu
+  samou hlavní "Spuštění Inkrementální Synchronizace" větev, která zpracuje
+  VŠECHNO změněné od `lastSync` (může být víc než jen produkt, co webhook
+  vyvolal). Vedle toho běží izolovaný krok jen pro webhook (řádek ~111),
+  co dělá živý zápis KUPÓNOVÝCH polí pro ten 1 produkt z webhook payloadu --
+  ale JEN kupóny, ne ceníky/tier ceny.
+- **Jan chce:** při `repository_dispatch` (webhook) se má zkontrolovat/zapsat
+  VÝHRADNĚ ten 1 produkt z webhook payloadu -- ceníky (tier ceny) I kupóny
+  zároveň -- ne spouštět celý inkrementální běh přes všechno od `lastSync`.
+- **Kde zasáhnout (needs investigation, not yet done):**
+  `sync-orchestrator.ts` (`runFullSync`), `products-reader.ts`
+  (`fetchProducts(pricelistId, maxPages, lastSync)`) -- potřeba přidat
+  webhook-specifický branch, co místo `lastSync`-based fetch vezme jen
+  `github.event.client_payload` kód produktu a spustí pro něj cenový
+  (`pricelist-writer.ts`) i kupónový (`coupon/`) zápis, obejde plný
+  incremental fetch. Netriviální zásah do jádra orchestrátoru -- nedělat
+  narychlo, promyslet dopad na `lastSync`/state (nesmí se posunout
+  `lastSync` špatně, kdyby webhook běh vynechal produkty co cron by jinak
+  zpracoval).
+- **STAV: NEZAČATO.** Priorita na příští session.
+
+**Proč jen bod 1 zůstává otevřený:** narazili jsme na to na konci dlouhé
+session (guaranaplus Chrome extension práce zabrala většinu kontextu).
+Body 2 a 3 vyjasněny/dohledány v rámci téhle session. Bod 1 (verifikace
+zápisu u skrytých produktů) čeká na vyšetření v nové session -- je to
+jediný, co přímo blokuje `lastSync`/produkci.
 
 Konsolidovaný záznam celého dnešního dne na jednom místě (detail rozeslán ve
 třech zápisech níže) -- pro rychlou orientaci bez nutnosti procházet celý den.

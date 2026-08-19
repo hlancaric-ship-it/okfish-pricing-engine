@@ -20,8 +20,9 @@ ovlivnit:
   existujícím feed-generation cronu (`crons` v `wrangler.toml`) — ten se tímhle vůbec
   nemění a dál běží jak předtím.
 
-**Frontend** (nahrává se přes FTP, vkládá se přes `<script src="...">` v HTML hlavičce
-Shoptetu):
+**Frontend** (od 2026-08-19 servírováno přímo z Workeru, `GET /static/<soubor>.js` —
+žádné FTP potřeba, viz sekce "Onboarding nového klienta" níže; vkládá se přes
+`<script src="...">` v HTML hlavičce Shoptetu):
 - `vip_prices.js` — loader. Zjišťuje e-mail přihlášeného zákazníka, ptá se
   `/v1/discount/:hash`, plní `window.vipDiscounts` a vysílá event `vipReady`. **Na tomhle
   závisí úplně všechno ostatní — nikdy ho nenahrazovat obsahem jiného skriptu.**
@@ -34,6 +35,37 @@ Shoptetu):
 - `vip_cart.js` navíc vypisuje "Spolu ušetríte: X €" pod celkovou cenou košíku —
   dopočítáno ze skutečného rozdílu cen jednotlivých položek, **nikdy nepřepisuje**
   samotnou celkovou cenu košíku (Shoptet ji už počítá správně sám z ceníku).
+
+## 🚀 Onboarding nového klienta (žádné FTP)
+
+Frontendové soubory (`vip_prices.js`, `vip_detail.js`, `vip_cart.js`, `vip_catalog.js`,
+`vip_cart_coupon_lock.js`, `vip_registration_hide_types.js`) se dřív musely ručně
+nahrát přes FTP na hosting klienta. Od 2026-08-19 to není potřeba — Worker je servíruje
+přímo přes `GET /static/<soubor>.js` (viz `cloudflare-worker/src/static-assets.ts`,
+generováno z kořenových `vip_*.js` souborů skriptem `scripts/generate-static-assets.ts`,
+`npm run build:static-assets`, zapojeno jako `predeploy` hook v `cloudflare-worker/`).
+
+**Postup pro nového klienta:**
+1. Klient (nebo vy jménem klienta) vloží do Shoptet adminu (Vzhled a obsah → Nastavení
+   šablony → Vlastní HTML kód hlavičky) jediný řádek na potřebné soubory, např.:
+   ```html
+   <script src="https://<worker-domena>/static/vip_prices.js"></script>
+   <script src="https://<worker-domena>/static/vip_detail.js"></script>
+   <script src="https://<worker-domena>/static/vip_cart.js"></script>
+   <script src="https://<worker-domena>/static/vip_catalog.js"></script>
+   ```
+   Žádný FTP účet, žádné ruční nahrávání souborů — jen vložení textu, co Shoptet
+   admin umí nativně.
+2. Skripty se cachují na klientovi 1 hodinu (`Cache-Control: max-age=3600,
+   stale-while-revalidate=86400`) — po opravě/update stačí počkat max. hodinu, ne
+   žádat klienta o nic dalšího.
+
+**Úprava obsahu skriptů (pro vás, ne pro klienta):**
+1. Upravte příslušný `vip_*.js` v kořeni repa.
+2. `npm run build:static-assets` (nebo automaticky přes `predeploy` při `npm run
+   deploy` v `cloudflare-worker/`) — přegeneruje `cloudflare-worker/src/static-assets.ts`.
+3. `npm run deploy` (v `cloudflare-worker/`) — nasadí novou verzi. Bez kroku 2 by se
+   nasadil starý (needit­ovaný) obsah — `predeploy` hook tohle hlídá automaticky.
 
 ## 🔄 Aktualizace produktových dat (Pravidelný proces)
 

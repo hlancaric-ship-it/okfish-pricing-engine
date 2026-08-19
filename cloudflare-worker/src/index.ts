@@ -2,6 +2,27 @@ import { Env, runFeedGeneration } from './feed-generator';
 import { calculateAllTierPrices, CsvRow } from './engine/pricing';
 import { DASHBOARD_HTML } from './dashboard-html';
 import { ORDERS_DASHBOARD_HTML } from './orders-dashboard-html';
+import {
+    VIP_PRICES_JS, VIP_DETAIL_JS, VIP_CART_JS, VIP_CATALOG_JS,
+    VIP_CART_COUPON_LOCK_JS, VIP_REGISTRATION_HIDE_TYPES_JS
+} from './static-assets';
+
+// Serves the frontend JS files directly from the Worker instead of requiring the
+// client to FTP them onto their own hosting -- onboarding a new client (or updating
+// an existing one) becomes "paste one <script src="https://<worker>/static/vip_prices.js">
+// tag into Shoptet's header snippet", no FTP account, no manual file upload, ever.
+// Content is baked in at deploy time (see scripts/generate-static-assets.ts,
+// npm run build:static-assets, wired as this package's `predeploy` hook) -- editing a
+// vip_*.js file and deploying without regenerating first would silently serve stale
+// content, so the predeploy hook is what actually keeps this safe, not this route.
+const STATIC_JS_FILES: Record<string, string> = {
+    'vip_prices.js': VIP_PRICES_JS,
+    'vip_detail.js': VIP_DETAIL_JS,
+    'vip_cart.js': VIP_CART_JS,
+    'vip_catalog.js': VIP_CATALOG_JS,
+    'vip_cart_coupon_lock.js': VIP_CART_COUPON_LOCK_JS,
+    'vip_registration_hide_types.js': VIP_REGISTRATION_HIDE_TYPES_JS,
+};
 
 const SECRET_TOKEN = 'shoptet-vip-secret-12345';
 
@@ -68,6 +89,30 @@ export default {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+                }
+            });
+        }
+
+        // === GET /static/:filename ===
+        // Serves vip_prices.js / vip_detail.js / vip_cart.js / vip_catalog.js /
+        // vip_cart_coupon_lock.js / vip_registration_hide_types.js -- see
+        // STATIC_JS_FILES above for why this exists (no-FTP onboarding).
+        if (path.startsWith('/static/') && request.method === 'GET') {
+            const filename = path.substring('/static/'.length);
+            const content = STATIC_JS_FILES[filename];
+            if (content === undefined) return new Response('Not found.', { status: 404 });
+            return new Response(content, {
+                headers: {
+                    'Content-Type': 'application/javascript; charset=utf-8',
+                    // 1h client cache + 24h stale-while-revalidate: this content only
+                    // changes on a deploy (baked in at build time, not per-request), so
+                    // aggressive caching is safe -- a deploy naturally busts CDN edge
+                    // caches too (new Worker version = new response for the same URL
+                    // isn't guaranteed instant globally, but 1h is a reasonable trade-off
+                    // for a script that isn't expected to change more than a few times a
+                    // year per client).
+                    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+                    'Access-Control-Allow-Origin': '*'
                 }
             });
         }

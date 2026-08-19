@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "predeploy": "cd .. && npm run build:static-assets",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "sync-products": "tsx src/cli/sync-products.ts",

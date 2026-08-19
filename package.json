@@ -13,6 +13,7 @@
     "lint": "eslint src tests",
     "format": "prettier --write .",
     "benchmark": "tsx src/cli/benchmark.ts",
+    "build:static-assets": "tsx scripts/generate-static-assets.ts",
     "generate:xlsx": "tsx src/cli/generate-xlsx.ts",
     "mock:data": "tsx src/cli/generate-mock-csv.ts"
   },

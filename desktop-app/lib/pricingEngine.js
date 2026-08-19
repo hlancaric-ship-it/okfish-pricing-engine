@@ -33,7 +33,17 @@ function applyPercent(basePrice, pct) {
 // this -- only the underlying tier PRICE must ignore that field and trust only
 // the curated brandLimits/categoryLimits (policy-v1.json), which are the one
 // source of truth for a genuine, intentional per-brand discount ceiling.
-function resolveActiveLimit(row, brandLimits, categoryLimits) {
+// BUG opraveno 2026-08-19: chyběla úroveň Produkt (nejvyšší priorita) --
+// appka počítala jen Brand -> Category, kdežto Worker/CLI engine (jediný
+// zdroj pravdy) má Produkt -> Brand -> Category (viz
+// cloudflare-worker/src/engine/pricing.ts's resolveActiveLimit a
+// src/policies/DiscountLimitPolicy.ts). V praxi appčina XLSX přepočítávací
+// funkce (xlsxProductProcessor.js) žádné limity vůbec nepředávala, takže
+// tahle díra byla zdvojená -- teď opraveno na obou místech najednou.
+function resolveActiveLimit(row, productLimits, brandLimits, categoryLimits) {
+    const code = row.code;
+    if (code && productLimits && productLimits[code] !== undefined) return productLimits[code];
+
     const manufacturer = row.manufacturer;
     if (manufacturer && brandLimits && brandLimits[manufacturer] !== undefined) return brandLimits[manufacturer];
 
@@ -50,7 +60,7 @@ function resolveAllowLoyaltyDiscount(row) {
 
 /**
  * @param {Record<string,string>} row
- * @param {{brandLimits?: Record<string,number>, categoryLimits?: Record<string,number>, brandSaleDiscounts?: Record<string,number>}} [limits]
+ * @param {{productLimits?: Record<string,number>, brandLimits?: Record<string,number>, categoryLimits?: Record<string,number>, brandSaleDiscounts?: Record<string,number>}} [limits]
  * @returns {Record<string, {price: number, usedActionPrice: boolean}>}
  */
 function calculateAllTierPrices(row, limits) {
@@ -84,7 +94,7 @@ function calculateAllTierPrices(row, limits) {
     }
 
     const allowLoyaltyDiscount = resolveAllowLoyaltyDiscount(row);
-    const activeLimit = resolveActiveLimit(row, limits.brandLimits, limits.categoryLimits);
+    const activeLimit = resolveActiveLimit(row, limits.productLimits, limits.brandLimits, limits.categoryLimits);
     const minAllowedPrice = activeLimit !== undefined ? applyPercent(basePrice, activeLimit * 100) : 0;
 
     const result = {};

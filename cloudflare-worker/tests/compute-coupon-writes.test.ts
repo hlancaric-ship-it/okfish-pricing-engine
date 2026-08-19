@@ -245,6 +245,14 @@ describe('computeCouponWrites', () => {
         });
 
         it('a shallow clearance sale still leaves coupon room on top of the deeper of {clearance, tier}', () => {
+            // Hypotetický edge case, ne reálný scénář: Jan potvrdil (2026-08-19), že
+            // výprodejové produkty mají v praxi VŽDY hlubší slevu než 20% strop (=
+            // COUPON_STANDARD_LIMIT), takže Rule 3 ("productDiscount >= standardLimit")
+            // vždy zafunguje dřív, než se tier vůbec zohlední -- viz test výše ("deeper
+            // than the 20% ceiling"), který je ten skutečný produkční případ. Tenhle test
+            // tu zůstává jen jako matematická pojistka pro kdyby se pravidlo v budoucnu
+            // změnilo, ne jako popis reálného chování dneška.
+            //
             // 10% clearance vs ZR16's 16% tier discount -> tier is the binding one (Rule 5
             // takes max(productDiscount, customerTierDiscount)) -> 20% - 16% = 4% left.
             const items = computeCouponWrites(

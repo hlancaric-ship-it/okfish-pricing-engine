@@ -16,6 +16,8 @@ const AdmZip = require('adm-zip');
 const { StringDecoder } = require('string_decoder');
 const { calculateAllTierPrices } = require('./pricingEngine');
 const { TIER_TO_PRICELIST_ID } = require('./policy');
+const { loadAll: loadPolicyRules } = require('./policyManager');
+const { resolveProductLimits } = require('./resolveProductLimits');
 
 const INPUT_FIELD_NAMES = [
     'code', 'price', 'actionPrice', 'standardPrice', 'priceRatio', 'purchasePrice',
@@ -74,6 +76,28 @@ function setInlineStrValue(rowXml, col, newValue) {
  * @param {(msg: string) => void} log
  */
 function processProductXlsx(inputPath, outputPath, log) {
+    // BUG opraveno 2026-08-19: dřív se sem vůbec nepředávaly brand/category/product
+    // limity ani celoroční brandová akční cena -- calculateAllTierPrices(row) se
+    // volalo bez druhého parametru, takže tahle funkce (na rozdíl od živého Worker
+    // syncu) počítala ceny BEZ ochrany stropem slevy. Appka tuhle konkrétní XLSX
+    // funkci aktuálně nepoužívá (Jan potvrdil 2026-08-19), ale oprava se dělá
+    // rovnou pro release, ať appka zůstane 1:1 se stejnými pravidly, co reálně běží.
+    let limits;
+    try {
+        const policyData = loadPolicyRules();
+        limits = {
+            productLimits: resolveProductLimits(policyData),
+            brandLimits: policyData.brandLimits,
+            categoryLimits: policyData.categoryLimits,
+            brandSaleDiscounts: policyData.brandSaleDiscounts,
+        };
+        log(`Pravidla načtena: ${Object.keys(limits.brandLimits).length} značkových stropů, ` +
+            `${Object.keys(limits.categoryLimits).length} kategoriových stropů, ` +
+            `${Object.keys(limits.productLimits).length} produktových stropů.`);
+    } catch (e) {
+        throw new Error(`Nepodařilo se načíst pravidla (policy-v1.json a související soubory): ${e.message}`);
+    }
+
     log(`Otevírám ${inputPath}...`);
     const zip = new AdmZip(inputPath);
 
@@ -151,7 +175,7 @@ function processProductXlsx(inputPath, outputPath, log) {
             for (const [name, col] of Object.entries(inputCols)) row[name] = s(extractCellValue(rowXml, col));
 
             if (row.code) {
-                const tierPrices = calculateAllTierPrices(row);
+                const tierPrices = calculateAllTierPrices(row, limits);
                 const { code, ...syncRow } = row;
                 productsForSync.push({ code, row: syncRow });
 

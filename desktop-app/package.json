@@ -1,6 +1,6 @@
 {
   "name": "l-code-pricing-engine",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "L-Code Pricing Engine — desktop nástroj pro přepočet ceníků a přiřazení věrnostních tierů zákazníků",
   "author": "L-Code Dynamics",

@@ -6,6 +6,59 @@ Každý záznam by měl obsahovat: datum, popis problému, příčinu, řešení
 
 ---
 
+## 2026-08-20 -- INC-012: Kupónová rekonciliace hlásí false-positive "chybí záznam" (OTEVŘENO, NEDOŘEŠENO)
+
+**Popis:** Denní běh `reconcile-coupon-drift.ts` (run #32330621142, 2026-08-20
+04:06 UTC) nahlásil 341 neshod (170× "zcela chybí", 171× "hodnota nesedí
+2+ běhy"). Alespoň jeden konkrétní případ je potvrzený false positive:
+produkt s kódem **56167** (MIVARDI Rapid Pellets Easy Catch Cesnak 5kg,
+4mm) má na značce MIVARDI aktivní strop max. 10% slevy. Na tiercích
+ZR10+ (včetně ZR20/ZR25) je proto `discountCoupon` záměrně vypnutý --
+Jan živě ověřil v adminu Shoptetu, že záznam **existuje** a je **správně
+nastavený** (kupón vypnutý, sedí s brand capem). Rekonciliace ho přesto
+klasifikuje jako `CHYBÍ CELÝ ZÁZNAM`.
+
+**Seznam 59 unikátních kódů z tohoto běhu (min. jeden potvrzený false
+positive, zbytek needit ověřen):**
+23996, 28001, 28421, 28928, 39374, 39375, 39376, 39767, 46438, 46439,
+46443, 46445, 46446, 46447, 46449, 46450, 46451, 46452, 46536, 46537,
+46541, 46543, 55163, 55320, 55328, 55464, 55574, 55597, 55729, 55761,
+55864, 55877, 55979, 56064, 56102, 56107, 56161, 56164, 56167, 56179,
+56339, 56384-56398 (blok 15 po sobě jdoucích kódů), 59779, 89504, 91645.
+
+**Pracovní hypotézy (žádná zatím live neověřená):**
+1. Mismatch v párovacím klíči: `actualByCode` v `reconcile-coupon-drift.ts`
+   (řádek ~229-235) se plní podle `item.code` z odpovědi
+   `client.getPricelistProducts(pricelistId)` pro daný tier, zatímco
+   `expectedByCode` se plní podle `product.code` z master feedu. Pokud
+   se formát/case/mezery kódu mezi těmito dvěma zdroji liší, existující
+   záznam se nespáruje a vypadá jako chybějící.
+2. Paginace: `fetchPaginated()` v `shoptet-api/client.ts` (řádek ~325)
+   stahuje po 1000 položkách/stránku, u ~16 700 produktů to je ~17
+   stránek -- `while` podmínka ukončení cyklu nebyla v rámci tohohle
+   vyšetřování ještě zkontrolovaná, možná off-by-one uřezává poslední
+   dávku. Blok 56384-56398 (15 po sobě jdoucích kódů) na to vzorem sedí.
+
+**Co NENÍ příčina (vyvráceno):**
+- Brand cap logika sama o sobě je v pořádku -- `expected.applyDiscountCoupon
+  = false` pro MIVARDI na ZR10+ je správný závěr, potvrzeno živě v adminu.
+- Skryté/neskladem produkty nejsou nikde v kódu (`compute-coupon-writes.ts`,
+  `sync-coupon-fields-live.ts`) filtrované ani zvýhodněné -- hypotéza
+  "skrytý produkt = záměrně přeskočen" nemá oporu v kódu.
+
+**Další kroky:**
+- Přímo porovnat `item.code` vs `product.code` pro kód 56167 (a pár dalších
+  z bloku 56384-56398) na živých datech.
+- Zkontrolovat `while` podmínku v `fetchPaginated()` na off-by-one.
+- Až se najde root cause: opravit `reconcile-coupon-drift.ts` (nebo
+  `client.ts`), znovu spustit rekonciliaci a ověřit, že se 341 neshod
+  smrsklo na skutečně reálné případy.
+
+**Verze:**
+main (2026-08-20)
+
+---
+
 ## 2026-08-13 -- INC-011: Kupónová pole napříč katalogem nespolehlivá (OTEVŘENO, NEDOŘEŠENO)
 
 **Popis (Jan, živě z adminu):** Kupónová pole (`Slevový kupón` checkbox + skutečná

@@ -114,9 +114,25 @@ export class ShoptetRateLimiter {
 
                 if (retryAfterHeader) {
                     receivedRetryAfter = true;
-                    const retryAfterSeconds = parseInt(retryAfterHeader, 10);
-                    if (!isNaN(retryAfterSeconds)) {
+                    // BUG opraveno 2026-08-20: Shoptet posílá Retry-After jako HTTP-date
+                    // (např. "Mon, 01 Jul 2024 12:01:11 GMT"), ne jako počet sekund --
+                    // potvrzeno v https://developers.shoptet.com/api/documentation/rate-limiter/.
+                    // parseInt() na datum vrátí NaN, takže se hlavička dřív potichu
+                    // ignorovala a čekalo se jen na exponenciální backoff, ne na skutečný
+                    // čas, kdy Shoptet znovu pustí požadavky. RFC 7231 povoluje Retry-After
+                    // v obou tvarech (delay-seconds i HTTP-date), takže zkoušíme nejdřív
+                    // čisté číslo (pro kompatibilitu, kdyby to Shoptet někdy změnil), pak
+                    // datum.
+                    const isPureDigits = /^\d+$/.test(retryAfterHeader.trim());
+                    if (isPureDigits) {
+                        const retryAfterSeconds = parseInt(retryAfterHeader, 10);
                         waitTime = Math.max(waitTime, retryAfterSeconds * 1000);
+                    } else {
+                        const retryAfterMs = Date.parse(retryAfterHeader);
+                        if (!isNaN(retryAfterMs)) {
+                            const delayMs = retryAfterMs - Date.now();
+                            if (delayMs > 0) waitTime = Math.max(waitTime, delayMs);
+                        }
                     }
                 }
 

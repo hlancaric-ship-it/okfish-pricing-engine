@@ -63,6 +63,31 @@ describe('ShoptetRateLimiter', () => {
         expect(result).toBe('ok');
     });
 
+    it(
+        'parses Retry-After as an HTTP-date, not just delay-seconds (regression: Shoptet sends a date, ' +
+        'e.g. "Mon, 01 Jul 2024 12:01:11 GMT" -- parseInt() on that silently returned NaN and the header was ignored)',
+        async () => {
+            const limiter = new ShoptetRateLimiter({ initialBackoffMs: 1, maxBackoffMs: 2000 });
+            const futureDate = new Date(Date.now() + 1500).toUTCString();
+            let call = 0;
+            const requestFn = vi.fn(async () => {
+                call++;
+                return call === 1 ? fakeResponse(429, { retryAfter: futureDate }) : fakeResponse(200);
+            });
+            const parseFn = vi.fn(async () => 'ok');
+
+            const start = Date.now();
+            const result = await limiter.execute(requestFn, parseFn);
+            const elapsed = Date.now() - start;
+
+            expect(result).toBe('ok');
+            // waitTime musí respektovat vzdálenost k datu v hlavičce (~50ms), ne jen
+            // minimální exponenciální backoff (initialBackoffMs: 1) -- kdyby se
+            // hlavička ignorovala jako dřív, test by proběhl skoro okamžitě.
+            expect(elapsed).toBeGreaterThanOrEqual(500);
+        }
+    );
+
     it('throws immediately on a non-retryable status (e.g. 404) without retrying', async () => {
         const limiter = new ShoptetRateLimiter({ initialBackoffMs: 1 });
         const requestFn = vi.fn(async () => fakeResponse(404, { body: 'not found' }));

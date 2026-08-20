@@ -141,6 +141,80 @@ describe('ShoptetApiClient', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
+    it(
+        'fetchPaginated matches item count against paginator.totalCount when present (regression: INC-012, ' +
+        'pagination-during-mutation silently dropped a whole page of items with no error)',
+        async () => {
+            fetchMock
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c1' }], paginator: { pageCount: 2, totalCount: 2 } },
+                }))
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c2' }], paginator: { pageCount: 2, totalCount: 2 } },
+                }));
+            const client = new ShoptetApiClient('fake-token');
+
+            const result = await client.getCustomers();
+
+            expect(result).toEqual([{ guid: 'c1' }, { guid: 'c2' }]);
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        }
+    );
+
+    it(
+        'fetchPaginated retries the whole pull when concatenated items fall short of paginator.totalCount, ' +
+        'and succeeds once a later attempt is consistent (INC-012 fix)',
+        async () => {
+            // Attempt 1: page 2 silently loses an item mid-pull (2 items, totalCount says 3).
+            fetchMock
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c1' }], paginator: { pageCount: 2, totalCount: 3 } },
+                }))
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c2' }], paginator: { pageCount: 2, totalCount: 3 } },
+                }))
+                // Attempt 2: consistent full pull.
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c1' }], paginator: { pageCount: 2, totalCount: 3 } },
+                }))
+                .mockResolvedValueOnce(jsonResponse(200, {
+                    data: { customers: [{ guid: 'c2' }, { guid: 'c3' }], paginator: { pageCount: 2, totalCount: 3 } },
+                }));
+            const client = new ShoptetApiClient('fake-token');
+
+            const result = await client.getCustomers();
+
+            expect(result).toEqual([{ guid: 'c1' }, { guid: 'c2' }, { guid: 'c3' }]);
+            expect(fetchMock).toHaveBeenCalledTimes(4);
+        }
+    );
+
+    it(
+        'fetchPaginated throws (instead of silently returning incomplete data) after exhausting integrity retries',
+        async () => {
+            // All 3 attempts stay short of totalCount.
+            fetchMock.mockResolvedValue(jsonResponse(200, {
+                data: { customers: [{ guid: 'c1' }], paginator: { pageCount: 1, totalCount: 5 } },
+            }));
+            const client = new ShoptetApiClient('fake-token');
+
+            await expect(client.getCustomers()).rejects.toThrow(/integrit/i);
+            expect(fetchMock).toHaveBeenCalledTimes(3);
+        }
+    );
+
+    it('fetchPaginated skips the integrity check for a maxPages-truncated (intentionally partial) pull', async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+            data: { customers: [{ guid: 'c1' }], paginator: { pageCount: 5, totalCount: 5000 } },
+        }));
+        const client = new ShoptetApiClient('fake-token');
+
+        const result = await client.getCustomers(1);
+
+        expect(result).toEqual([{ guid: 'c1' }]);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it('getPricelistItemByCode returns null when the pricelist has no entry for that code', async () => {
         fetchMock.mockResolvedValueOnce(jsonResponse(200, { data: { pricelist: { items: [] } } }));
         const client = new ShoptetApiClient('fake-token');

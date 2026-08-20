@@ -59,6 +59,85 @@ main (2026-08-20)
 
 ---
 
+## 2026-08-20 (pokračování) -- INC-012: obě hypotézy vyvráceny live testem, nová příčina + navržený fix
+
+**Live ověření (5 kódů: 56167, 46438 a celý blok 56384/56390/56398), přímo
+proti Shoptet API, `ShoptetApiClient` z `cloudflare-worker/src/shoptet-api/
+client.ts`:**
+
+1. **Hypotéza 1 (mismatch `item.code` vs `product.code` z feedu) --
+   VYVRÁCENA.** `expectedByCode` v `reconcile-coupon-drift.ts` se ve
+   skutečnosti vůbec neplní z master feedu -- plní se ze stejného API pullu
+   jako `actualByCode` (`baseItems` = `client.getPricelistProducts(GUEST)`,
+   řádek ~188). Feed (`loadFeedAttrsMap`) se používá výhradně na
+   manufacturer/category/allowLoyaltyDiscount atributy pro policy výpočet,
+   ne na klíč porovnání. Obě strany srovnání tedy čtou identický `item.code`
+   tvar ze stejného zdroje -- mismatch kódů mezi zdroji není možný.
+2. **Hypotéza 2 (off-by-one ve `fetchPaginated()`) -- nepotvrzena.** Všech
+   5 testovaných kódů, včetně celého bloku 56384-56398, je teď přítomných
+   a se **správně vyplněným `sales` polem** ve všech třech testovaných
+   ceníkách (ZR10/ZR20/ZR25) i v base/GUEST pullu. `do { ... } while (page
+   <= totalPages)` samo o sobě nevynechává poslední stránku.
+
+**Nová, live podložená hypotéza -- pagination-during-mutation:**
+`fetchPaginated()` prochází ~168 stránek sekvenčně za ceník (11 ceníků ×
+~168 stránek, přes rate limiter) -- celý běh `reconcile-coupon-drift.ts`
+musí podle toho trvat desítky minut. Pokud se BĚHEM tak dlouhého pullu
+změní řazení/počet položek v ceníku (souběžný `sync.yml` cron, webhook
+zápis kupónu/ceny, změna skladu), Shoptet stránkuje nad posunutou sadou dat
+-- stránka, co byla v čase `page=N` "položka 46001-47000", může být o pár
+minut později "položka 45950-46950", takže se položky mezi dvěma po sobě
+jdoucími fetchi buď vynechají, nebo zduplikují. **Blok 15 po sobě jdoucích
+kódů (56384-56398)** z původního běhu tomu odpovídá přesně jako obrys --
+to je typický tvar "celá stránka dat vypadla", ne náhodný rozptyl
+jednotlivých kódů, což by odpovídalo skutečnému mismatchi klíčů.
+
+**Vedlejší nález (souvisí s PROGRESS_LOG.md, bod 1 z 2026-08-19):**
+`getPricelistItemByCode()` (`?code=` filtr na `/pricelists/{id}`, používaný
+jako post-write verifikace v `pricelist-writer.ts`/`coupon-sales-writer.ts`)
+vrátil **NULL pro všech 5 testovaných kódů**, přestože plný paginovaný pull
+je najde bez problému. Potvrzeno teď živě i mimo dřív podezřelé "skryté
+produkty" (39373/68172) -- `?code=` filtr na tomhle endpointu/účtu vypadá
+nespolehlivý obecně, ne jen pro skryté položky.
+
+**Navržený fix -- IMPLEMENTOVÁNO (bod 1 dole), zbytek zůstává otevřený:**
+1. ~~Reconciliace: druhý nezávislý pull~~ -- **nahrazeno lepším řešením
+   přímo v `fetchPaginated()`** (viz níže), takže tenhle krok navíc není
+   potřeba: `reconcile-coupon-drift.ts` teď z principu nemůže dostat
+   neúplná data, aniž by o tom věděl.
+2. **`fetchPaginated()` (`shoptet-api/client.ts`) -- HOTOVO.** Přidán
+   integrity check: po dokončení pullu se porovná `items.length` s
+   `paginator.totalCount` z POSLEDNÍ stažené stránky (ne první -- totalCount
+   se může posunout uprostřed pullu stejným mechanismem jako počet
+   položek). Při nesedícím součtu se **celý pull opakuje od začátku**
+   (max. 3 pokusy), a pokud se ani po 3 pokusech nesrovná, funkce **throwne**
+   místo tichého vrácení neúplných dat -- volající (reconciliace, sync,
+   customers/orders čtení) teď dostane buď garantovaně kompletní data, nebo
+   explicitní chybu, nikdy tiše useknutý seznam. `maxPages`-truncated volání
+   (záměrně částečný fetch) integrity check přeskakují. Implementace přidala
+   `fetchPaginatedOnce()` jako interní helper, `fetchPaginated()` je teď
+   retry wrapper okolo něj. 4 nové regresní testy v `tests/client.test.ts`
+   (match/retry-success/exhausted-throw/maxPages-skip), celá sada
+   `cloudflare-worker` (103 testů) zelená po změně.
+3. **`getPricelistItemByCode()` nespolehlivost -- STÁLE OTEVŘENO.** Živě
+   potvrzeno (viz výše), ale mimo rozsah tohohle fixu -- dotýká se
+   `pricelist-writer.ts`/`coupon-sales-writer.ts` produkční zápisové cesty,
+   chce samostatné ověření/testing než se sáhne na post-write verifikaci.
+   Navrhované řešení beze změny: nahradit `getPricelistItemByCode()` malým
+   `getPricelistProducts(id, maxPages=1)` + klientským filtrem, nebo (pokud
+   kód může být na libovolné stránce) fallbackem na plný pull jen pro
+   verifikaci jednoho produktu po zápisu.
+4. **Další krok:** spustit `reconcile-coupon-drift.ts` naostro (příští cron
+   běh, nebo ručně) a ověřit, že 341 neshod z 2026-08-20 04:06 UTC kleslo na
+   reálné číslo (očekávaně blízko 0, pokud je hypotéza pagination-during-
+   mutation správná). Zatím neověřeno živě po nasazení.
+
+**Verze:**
+main (2026-08-20), fix v `cloudflare-worker/src/shoptet-api/client.ts`
+(nekomitnuto -- čeká na Janovo schválení commitu)
+
+---
+
 ## 2026-08-13 -- INC-011: Kupónová pole napříč katalogem nespolehlivá (OTEVŘENO, NEDOŘEŠENO)
 
 **Popis (Jan, živě z adminu):** Kupónová pole (`Slevový kupón` checkbox + skutečná

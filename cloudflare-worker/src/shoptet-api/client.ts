@@ -322,10 +322,50 @@ export class ShoptetApiClient {
     /**
      * Obecná metoda pro procházení Shoptet paginace
      */
+    // INC-012 (2026-08-20): a full paginated pull over a large pricelist (~168
+    // pages/ceník, 11 ceníků v reconciliaci) takes long enough that concurrent
+    // writes (cron sync, webhook coupon/price writes) can shift item ordering
+    // mid-pull -- Shoptet paginates over a live, mutating dataset with no cursor/
+    // snapshot guarantee, so a whole page's worth of items can silently vanish
+    // from the concatenated result (confirmed live: reconcile-coupon-drift.ts
+    // flagged a 15-consecutive-code block, 56384-56398, as "missing", but a fresh
+    // pull minutes later found all of them present with correct sales/price data --
+    // not a real gap, a pagination-during-mutation artifact). fetchPaginated() now
+    // verifies its own result against the API's own `paginator.totalCount` (from
+    // the LAST page fetched, since totalCount can itself drift page-to-page under
+    // the same mutation) and retries the whole pull (bounded) on mismatch, instead
+    // of silently returning a possibly-incomplete list like every caller
+    // (reconciliation, sync, customers/orders reads) previously had to assume was
+    // complete.
     private async fetchPaginated<T>(endpointPath: string, dataKey: string, itemsPerPage: number = 1000, maxPages?: number): Promise<T[]> {
+        const MAX_INTEGRITY_RETRIES = 3;
+        let lastMismatch: { got: number; expected: number } | null = null;
+
+        for (let attempt = 1; attempt <= MAX_INTEGRITY_RETRIES; attempt++) {
+            const { items, totalCount, truncatedByMaxPages } = await this.fetchPaginatedOnce<T>(endpointPath, dataKey, itemsPerPage, maxPages);
+
+            // maxPages is an intentional partial-fetch (callers that only want the
+            // first N pages) -- integrity check only makes sense for full pulls.
+            if (truncatedByMaxPages || totalCount === null || items.length === totalCount) {
+                if (attempt > 1) {
+                    console.log(`[Paginator] Integrity OK po ${attempt}. pokusu (${endpointPath}): ${items.length} položek odpovídá totalCount=${totalCount}.`);
+                }
+                return items;
+            }
+
+            lastMismatch = { got: items.length, expected: totalCount };
+            console.warn(`[Paginator] Integrity MISMATCH (${endpointPath}, pokus ${attempt}/${MAX_INTEGRITY_RETRIES}): staženo ${items.length} položek, API totalCount=${totalCount} -- pravděpodobně souběžný zápis posunul stránkování během pullu. ${attempt < MAX_INTEGRITY_RETRIES ? 'Opakuji celý pull.' : 'Vyčerpány pokusy.'}`);
+        }
+
+        throw new Error(`fetchPaginated(${endpointPath}): integrita dat se nepodařila potvrdit ani po ${MAX_INTEGRITY_RETRIES} pokusech (poslední: staženo ${lastMismatch?.got}, API hlásí totalCount=${lastMismatch?.expected}). Data jsou pravděpodobně neúplná kvůli souběžnému zápisu do stejného ceníku/entity -- volající NESMÍ tenhle výsledek použít jako kompletní.`);
+    }
+
+    private async fetchPaginatedOnce<T>(endpointPath: string, dataKey: string, itemsPerPage: number, maxPages?: number): Promise<{ items: T[]; totalCount: number | null; truncatedByMaxPages: boolean }> {
         let page = 1;
         let allItems: T[] = [];
         let totalPages = 1;
+        let totalCount: number | null = null;
+        let truncatedByMaxPages = false;
         const separator = endpointPath.includes('?') ? '&' : '?';
 
         do {
@@ -361,6 +401,11 @@ export class ShoptetApiClient {
 
             if (result.data.paginator) {
                 totalPages = result.data.paginator.pageCount;
+                // Deliberately overwritten every page, not just the first: totalCount
+                // can itself drift mid-pull under the same concurrent-write condition
+                // this check exists to catch, so the LAST page's totalCount is what
+                // gets compared against the final concatenated item count.
+                totalCount = typeof result.data.paginator.totalCount === 'number' ? result.data.paginator.totalCount : null;
             } else {
                 totalPages = 1; // Pokud endpoint nemá stránkování (ale my víme, že tyto mají)
             }
@@ -370,11 +415,12 @@ export class ShoptetApiClient {
             page++;
             if (maxPages && page > maxPages) {
                 console.log(`[Paginator] Dosažen nastavený limit maxPages = ${maxPages}. Ukončuji stahování.`);
+                truncatedByMaxPages = true;
                 break;
             }
         } while (page <= totalPages);
 
-        return allItems;
+        return { items: allItems, totalCount, truncatedByMaxPages };
     }
 
     /**

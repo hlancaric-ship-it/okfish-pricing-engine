@@ -7,6 +7,41 @@ why, and what's still open.
 
 ---
 
+## 2026-08-21 — Celý objednávkový dashboard (`/orders-dashboard-xk92q`) odstraněn -- Jan ho nepoužíval
+
+Návazně na předchozí zápis (odstranění skladového semaforu) Jan upřesnil: celá tahle
+funkce byl jen návrh, jak mu ulehčit práci s adminem, a reálně ji nepoužívá -- takže pryč
+celá, ne jen barevná kategorizace.
+
+**Odstraněno:**
+- `orders-dashboard.html` (root, FTP-deployed varianta) -- smazáno.
+- `cloudflare-worker/src/orders-dashboard-html.ts` (Worker-serve varianta stejné stránky) --
+  smazáno.
+- `cloudflare-worker/src/cli/compute-orders-stock-status.ts` -- smazáno (backend výpočet).
+- `cloudflare-worker/src/index.ts`: routy `GET/POST /v1/orders-status`, `POST
+  /v1/order-resolved`, `GET /orders-dashboard-xk92q`, `GET /objednavky-prehlad`, `POST
+  /v1/order-note` -- odstraněny i s importem `ORDERS_DASHBOARD_HTML`. `SECRET_TOKEN`/
+  `checkAuth()` zůstávají (používá je zbytek importních endpointů).
+- `.github/workflows/sync.yml`: krok "Přepočet stavu objednávek pro dashboard objednávek"
+  odstraněn.
+
+**Nedotčeno:** VIP_KV klíče `orders_status`/`resolved_orders` zůstávají v KV jako mrtvá data
+(žádný kód je už nečte ani nezapisuje, TTL 86400s u `orders_status` je časem samo smaže,
+`resolved_orders` TTL nemá -- neškodné, jen pár bajtů, nestojí za riziko ručního mazání KV).
+
+**Ověřeno:** grep na `orders-dashboard|ORDERS_DASHBOARD|orders_status|resolved_orders|
+order-resolved|order-note|compute-orders-stock-status|objednavky-prehlad` v celém repu --
+žádný zbylý výskyt. Root `npm run build` (autoritativní `tsc`, stejný jako CI) čistý. Celá
+sada 335 (root) + 105 (worker) testů zelená -- nic na tuhle funkci necílilo.
+
+**Why:** feature byla od začátku návrh/experiment ("jak mu ulehčit práci s adminem"), ne
+požadavek klienta -- klient ji v praxi nepoužívá, takže je to jen udržovaná mrtvá váha
+(vlastní KV klíče, vlastní sync.yml krok, vlastní auth cesta) bez přínosu.
+
+**Verze:** main (2026-08-21)
+
+---
+
 ## 2026-08-21 — GitHub Actions billing vyřešen, skladový semafor odstraněn z dashboardu, cron zpět na hodinový
 
 **Billing:** GitHub Actions na `hlancaric-ship-it` blokoval VŠECHNY runy ("recent account

@@ -714,6 +714,26 @@
     "expected": "discountCoupon=true/minPriceRatio=0.9800",
     "actual": "discountCoupon=false/minPriceRatio=0.000"
   },
+  "101816::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
+  "101817::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
+  "101818::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
+  "114046::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.9000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
   "23996-4::GUEST": {
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=false/minPriceRatio=1.0000",
@@ -750,11 +770,6 @@
     "actual": "discountCoupon=true/minPriceRatio=0.000"
   },
   "39376::GUEST": {
-    "firstSeen": "2026-08-20",
-    "expected": "discountCoupon=true/minPriceRatio=0.8000",
-    "actual": "discountCoupon=true/minPriceRatio=0.000"
-  },
-  "46438::GUEST": {
     "firstSeen": "2026-08-20",
     "expected": "discountCoupon=true/minPriceRatio=0.8000",
     "actual": "discountCoupon=true/minPriceRatio=0.000"
@@ -1004,6 +1019,11 @@
     "expected": "discountCoupon=true/minPriceRatio=0.9280",
     "actual": "discountCoupon=true/minPriceRatio=0.890"
   },
+  "88246::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
   "89504::GUEST": {
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9500",
@@ -1013,5 +1033,10 @@
     "firstSeen": "2026-08-15",
     "expected": "discountCoupon=true/minPriceRatio=0.9505",
     "actual": "discountCoupon=true/minPriceRatio=0.800"
+  },
+  "96572::GUEST": {
+    "firstSeen": "2026-08-21",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
   }
 }

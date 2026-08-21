@@ -1,12 +1,18 @@
+import * as fs from 'fs';
+import { fileURLToPath } from 'url';
+import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import Decimal from 'decimal.js';
 import { calculateAllTierPrices, CsvRow } from '../cloudflare-worker/src/engine/pricing.js';
 import { BRAND_SALE_DISCOUNTS, BRAND_LIMITS, TIER_NAMES } from '../cloudflare-worker/src/engine/config.js';
 import { calculateProductsPricing } from '../cloudflare-worker/src/shoptet-api/pricing-bridge.js';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const desktopPricingEngine = require('../desktop-app/lib/pricingEngine.js');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const policyRaw = require('../src/config/policies/policy-v1.json');
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// desktop-app/lib/pricingEngine.js is CommonJS -- dynamic import() (not require(),
+// which @typescript-eslint/no-require-imports forbids) triggers Vitest's ESM/CJS
+// interop, same technique used in tests/desktop-app-pricing-parity.test.ts.
+const desktopPricingEngine = (await import('../desktop-app/lib/pricingEngine.js')) as any;
+const policyRaw = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/config/policies/policy-v1.json'), 'utf-8'));
 
 // Covers INC-011-adjacent follow-up: policy-v1.json's brandSaleDiscounts (a
 // permanent, year-round brand-wide action price) is a COMPLETELY SEPARATE

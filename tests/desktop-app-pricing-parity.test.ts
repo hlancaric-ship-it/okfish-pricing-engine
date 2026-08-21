@@ -20,11 +20,10 @@ vi.mock('../cloudflare-worker/src/engine/config.js', () => ({
 
 const { calculateAllTierPrices: workerCalc, CsvRow } = await import('../cloudflare-worker/src/engine/pricing.js') as any;
 const { TIER_NAMES } = await import('../cloudflare-worker/src/engine/config.js');
-// desktop-app/lib/pricingEngine.js is CommonJS -- Vitest's ESM/CJS interop handles the
-// require transparently, same technique already used elsewhere in this repo for
-// cross-engine comparisons (tests/cli-vs-worker-identical-output.test.ts).
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const desktopEngine = require('../desktop-app/lib/pricingEngine.js');
+// desktop-app/lib/pricingEngine.js is CommonJS -- dynamic import() (not require(),
+// which @typescript-eslint/no-require-imports forbids) triggers Vitest's ESM/CJS
+// interop transparently, same technique used in tests/brand-sale-discounts.test.ts.
+const desktopEngine = (await import('../desktop-app/lib/pricingEngine.js')) as any;
 
 // Proves desktop-app/lib/pricingEngine.js (the manual 1:1 port used by
 // xlsxProductProcessor.js, the desktop admin app's XLSX price-recalculation feature)

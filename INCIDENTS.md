@@ -138,6 +138,49 @@ main (2026-08-20), fix v `cloudflare-worker/src/shoptet-api/client.ts`
 
 ---
 
+## 2026-08-21 -- INC-012: fix nasazen, ale hypotéza pagination-during-mutation VYVRÁCENA vlastním fixem
+
+**Kontext:** Fix z 2026-08-20 (integrity check v `fetchPaginated()`,
+commit `db08913`, pushnuto na `main`) běžel poprvé naostro v pravidelném
+cronu `reconcile-coupon-drift.yml` (run `32445846840`, 2026-08-21 04:08 UTC).
+
+**Výsledek:**
+- Zkontrolováno: 183 854 kombinací produkt×ceník.
+- ALERT -- zcela chybí: **220** (dřív 170 při běhu, co založil INC-012).
+- ALERT -- hodnota nesedí (2+ běhy): **202** (dřív 171).
+- Celkem **422 neshod** -- víc než dřívějších 341, ne míň.
+- Self-check OK (běh proběhl na plausibilním objemu dat).
+- **`[Paginator] Integrity` se v logu běhu neobjevuje ani jednou** -- žádný
+  mismatch proti `paginator.totalCount` nenastal, `fetchPaginated()` tedy
+  při tomhle běhu nezaznamenal jedinou stránku, co by tiše vypadla.
+
+**Závěr: hypotéza pagination-during-mutation z předchozí aktualizace je
+VYVRÁCENA vlastním fixem.** Pokud by byla správná, integrity check by teď
+odchytával mismatch, retryoval, a alerty by klesly k nule. Místo toho se
+integrity check ani jednou nespustil do retry větve A počet alertů
+STOUPL. Neshody jsou tedy reálné/přetrvávající, ne přechodný artefakt
+souběžného zápisu během dlouhého pullu.
+
+**Co to znamená pro fix z 2026-08-20:** není špatně -- dělá přesně to, co
+má (garantuje kompletnost dat nebo throwne), a zůstává v repu jako obecně
+správná ochrana pro všechny volající `fetchPaginated()`. Jen neřeší INC-012
+false-positives, protože to nikdy nebyla jejich příčina.
+
+**INC-012 zůstává OTEVŘENÝ, root cause NEZNÁMÝ.** Další krok: vrátit se
+k původním dvěma hypotézám z prvního zápisu (2026-08-20), tentokrát
+prozkoumat ne paginaci, ale skutečný obsah neshod -- konkrétně čím se liší
+těch 220 "zcela chybí" a 202 "hodnota nesedí" kódů od zbytku katalogu (růst
+oproti 341 -> 422 mezi dvěma běhy navíc naznačuje, že se problém možná i
+zhoršuje/rozšiřuje, ne že je stabilní). Zkontrolovat konkrétní kódy z
+aktuálního běhu (artifact `coupon-reconciliation-log` u run `32445846840`)
+stejným způsobem, jako se dřív živě ověřil 56167 -- přímým dotazem na
+Shoptet API, ne spekulací.
+
+**Verze:**
+main (2026-08-21), run `32445846840`
+
+---
+
 ## 2026-08-13 -- INC-011: Kupónová pole napříč katalogem nespolehlivá (OTEVŘENO, NEDOŘEŠENO)
 
 **Popis (Jan, živě z adminu):** Kupónová pole (`Slevový kupón` checkbox + skutečná

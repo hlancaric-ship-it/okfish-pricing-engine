@@ -7,6 +7,68 @@ why, and what's still open.
 
 ---
 
+## 2026-08-21 — `getPricelistItemByCode()` parsoval špatný tvar API odpovědi -- příčina občasných FAILED sync běhů (NE trvalé zamrznutí, oprava tohohle bodu níže)
+
+**Kontext:** zákazník (polak.maros@gmail.com) měl součet objednávek 2 436,44 € (mělo dát
+ZR16), ale Shoptet mu ukazoval ZR4.
+
+**Pozor -- oprava vlastního dřívějšího závěru ze stejné session:** první hypotéza byla, že
+`.sync_state.json`'s `lastSync` je zaseklý (lokální klon ukazoval `2026-08-19T13:07:36+0000`
+beze změny) a sync neběží už 2 dny. To byl **artefakt zastaralého lokálního klonu**, ne
+realita -- `git fetch` proti `origin/main` ukázal `lastSync` posunutý na
+`2026-08-21T03:35:15+0000` a stovky `[skip ci]` commitů mezitím. Skutečný vzorec: sync běží,
+ale NEPRAVIDELNĚ -- mezery mezi commity `.sync_state.json` běžně 20-90 min místo cílených 15
+min, což odpovídá občasnému `FAILED` (run, co selže, commit se nevytvoří), ne trvalému výpadku.
+**Poučení pro příště: než se z lokálního klonu vyvozuje "sync je mrtvý", nejdřív `git fetch` a
+porovnat s `origin/main` -- lokální stav může být libovolně starý.**
+
+**Root cause (potvrzený, nezávislý na výše uvedeném omylu):** `getPricelistItemByCode()`
+(`cloudflare-worker/src/shoptet-api/client.ts`) čte `result.data?.pricelist?.items`. Živě
+ověřeno (`GET /pricelists/{id}?code=X`), že Shoptet vrací `data.pricelist` jako POLE PŘÍMO
+(filtrovaný jeden záznam), ne objekt s `.items`. Tenhle nesoulad znamená, že funkce vrací
+`null` pro ÚPLNĚ KAŽDÝ produkt, ne jen pro skryté (39373/68172 z 19.8. záznamu byla jen
+náhoda, co bylo zrovna v logu, ne skutečný rozlišovací faktor). Potvrzeno i na `origin/main`
+(bug tam pořád je, nebyl mezitím opraven jiným commitem). `pricelist-writer.ts` volá tuhle
+funkci jako verifikaci po každém prvním zápisu ceny (`oldPrice === null`) -- verifikace vždy
+"selže" (CHYBÍ ZÁZNAM), i když zápis proběhl správně, spustí se zbytečný opravný zápis, který
+se ověří tou samou rozbitou funkcí a znovu selže → `verificationFailures` naplněné →
+`sync-orchestrator.ts`'s `isSuccess` vyjde `false` → `FAILED` -- ALE jen u runů, co obsahují
+aspoň jeden první zápis ceny na daném ceníku (nová položka/nový produkt), což vysvětluje
+přesně ten nepravidelný, ne trvalý, vzorec mezer v `.sync_state.json`. Platí od zavedení
+verifikace 15.8. (viz `CORE_LOGIC_AND_VALIDATION.md` INC-010 Stage 4 kontext).
+
+**Přímá souvislost s Marošem zůstává NEPOTVRZENÁ** -- nevíme jistě, jestli tenhle konkrétní bug
+způsobil zrovna jeho zaseknutý tier, nebo šlo o jiné okno, co jeho konkrétní objednávku minulo.
+Oprava níže je oprávněná sama o sobě (reálný, živě potvrzený bug), ne protože by vyřešila
+Marošův případ se stoprocentní jistotou.
+
+**Oprava:** `client.ts` teď čte `result.data?.pricelist` přímo jako pole. Nový regresní test
+`cloudflare-worker/tests/client-getPricelistItemByCode.test.ts` (skutečný živě ověřený tvar
+odpovědi, červený před opravou, zelený po). Celá sada ověřena zelená proti lokálnímu stavu
+(root 264 testů, `cloudflare-worker` 51 testů) -- **před pushem rebasováno na aktuální
+`origin/main`, testy spuštěny znovu po rebase, viz commit.**
+
+**Stopgap pro konkrétního zákazníka:** ruční přepnutí na ZR16 v Shoptet adminu (Jan) +
+`force-customer-discount-live.ts EMAIL=polak.maros@gmail.com DISCOUNT_PCT=16 LIVE=true` na
+Worker KV (dry-run first, pak ostrý zápis), ověřeno zpětným GET `/v1/discount/:hash` → `16`.
+Tenhle stopgap se při příštím zdravém syncu buď potvrdí (obrat sedí na ZR16), nebo přepíše
+zpátky podle skutečného přepočtu.
+
+**Zůstává:**
+- Sledovat sync běhy po pushi téhle opravy -- očekávám méně `FAILED` běhů a pravidelnější
+  ~15min kadenci `.sync_state.json` commitů, ne jednorázový skok.
+- Po pár úspěšných bězích ověřit, jestli se Marošův tier přepočítá znovu na ZR16 sám (potvrdí
+  stopgap) nebo na něco jiného (stopgap byl špatně a je potřeba dál pátrat).
+- Žádná periodická reconciliace pro zákaznické tiery zatím neexistuje, jen pro ceny/kupóny --
+  viz Stage 5 v `CORE_LOGIC_AND_VALIDATION.md` -- stojí za zvážení jako další krok.
+- Frontendová "rybka" (`goldfish-badge-header.js`/`goldfish-discount-badge.js` na FTP, mimo
+  git) má samostatný, nesouvisející problém -- viz vyšetřování ze stejné session, zatím
+  nezapsáno jako incident, čeká na rozhodnutí, jestli/jak se má do repa dostat.
+
+**Verze:** main (2026-08-21)
+
+---
+
 ## 2026-08-19 — Cron sync failing, 3 otevřené nálezy (nedořešeno, kontext session vyčerpán)
 
 **TO-DO (příští session, v tomhle pořadí):**

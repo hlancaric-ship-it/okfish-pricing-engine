@@ -169,7 +169,11 @@ export class ShoptetApiClient {
                 return json;
             }
         );
-        const items = result.data?.pricelist?.items as ShoptetPricelistItem[] | undefined;
+        // `GET /pricelists/{id}?code=X` returns `data.pricelist` as an array
+        // directly (one filtered item), not `data.pricelist.items` -- confirmed
+        // live 2026-08-21. The old `.items` read was always undefined here, so
+        // this always returned null regardless of what Shoptet actually had.
+        const items = result.data?.pricelist as ShoptetPricelistItem[] | undefined;
         return (items && items.length > 0) ? items[0] : null;
     }
 

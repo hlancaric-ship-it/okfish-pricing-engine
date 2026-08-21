@@ -7,6 +7,43 @@ why, and what's still open.
 
 ---
 
+## 2026-08-21 — GitHub Actions billing vyřešen, skladový semafor odstraněn z dashboardu, cron zpět na hodinový
+
+**Billing:** GitHub Actions na `hlancaric-ship-it` blokoval VŠECHNY runy ("recent account
+payments have failed") -- karta v Payment information byla platná (exp. 5/2031), ale
+interně u GitHubu/Stripe označená jako "failed" (bankou jednou odmítnutá autorizace, typicky
+3D Secure/podezření). Fix: Jan kartu v Payment information odebral a znovu přidal (i tu samou)
+-- vynutilo to novou autorizaci, potvrzeno "Your credit card has been successfully updated".
+Ruční `gh workflow run sync.yml` po tomhle prošel jako `SUCCESS` (4m49s, skutečná práce),
+poprvé po dnech instantních 3-10s odmítnutí. Stejný problém byl i na Janově druhém GitHub
+účtu, nezávisle -- karta samotná byla u procesoru označená jako failed, ne účet.
+
+**Cron zpomalen na hodinový:** `*/15 * * * *` -> `0 * * * *` v `sync.yml`. Důvod: náklad na
+GitHub Actions metered usage ($64,12 za srpen na jediném repu) -- 4x/hod bylo zbytečně moc,
+webhook (`repository_dispatch`) zůstává jako rychlá cesta pro skutečné order/product změny,
+hodinový cron je jen záložní síť.
+
+**Skladový semafor odstraněn** (`orders-dashboard.html` + `compute-orders-stock-status.ts`,
+na přímou žádost klienta). Odstraněno: `loadStockMap()`/`computeSemaphore()` (feed-based
+skladový výpočet), `semaphore`/`items`/`inStock` pole z `OrderStatus`, celá červená/žlutá/
+zelená kategorizace v dashboardu (summary karty, filtrovací záložky, barva řádků, seznam
+chybějících položek, "Kopírovat chýbajúce kódy"/"Exportovať do Excelu"). Zůstalo: seznam
+otevřených objednávek, stav platby (zaplatené/nezaplatené), poznámky, "označit jako
+vyriešené", odkaz do admina -- funkčně nedotčeno. `MASTER_FEED_URL` env proměnná odstraněna
+z toho kroku sync.yml (už se nepoužívá). Ověřeno: JS syntax OK, `tsc --noEmit` bez chyb na
+dotčeném souboru, celá sada 335 (root) + 105 (worker) testů zelená -- žádný test na tuhle
+funkci přímo necílil, takže nic nebylo potřeba upravovat/mazat v `tests/`.
+
+**Zůstává:**
+- Sledovat, jestli hodinový cron nezpůsobuje znatelné zpoždění v propisu cen/tierů, co by
+  vadilo klientovi -- pokud ano, zvážit mezistupeň (např. */30).
+- Frontendová "rybka" (`goldfish-badge-header.js`/`goldfish-discount-badge.js` na FTP, mimo
+  git) -- pořád otevřené, nesouvisející s dnešními změnami.
+
+**Verze:** main (2026-08-21)
+
+---
+
 ## 2026-08-21 — `getPricelistItemByCode()` parsoval špatný tvar API odpovědi -- příčina občasných FAILED sync běhů (NE trvalé zamrznutí, oprava tohohle bodu níže)
 
 **Kontext:** zákazník (polak.maros@gmail.com) měl součet objednávek 2 436,44 € (mělo dát

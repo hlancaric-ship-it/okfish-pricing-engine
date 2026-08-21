@@ -2,11 +2,12 @@ name: Shoptet Pricing Engine Sync
 
 on:
   schedule:
-    # Zrychleno 2026-08-05 (na žádost klienta) z hodinové na 15minutovou
-    # frekvenci — nové/upravené produkty a přepočet tierů se tak propíšou
-    # mnohem rychleji. Incrementální běh trvá řádově pod minutu (ověřeno),
-    # takže se do 15minutového okna bezpečně vejde.
-    - cron: '*/15 * * * *'
+    # Zpomaleno zpátky na hodinovou frekvenci 2026-08-21 (na žádost klienta,
+    # kvůli nákladům na GitHub Actions metered usage) -- 15minutová frekvence
+    # zavedená 2026-08-05 čtyřnásobila počet běhů/měsíc. Webhook
+    # (repository_dispatch, viz níže) zůstává jako rychlá cesta pro skutečné
+    # order/product změny -- hodinový cron je jen záložní síť.
+    - cron: '0 * * * *'
   workflow_dispatch: # Možnost manuálního spuštění přes UI
   repository_dispatch:
     # Spouští Worker (POST /v1/webhook/shoptet) během pár sekund po order:create/
@@ -118,16 +119,16 @@ jobs:
           PRODUCT_CODE: ${{ github.event.client_payload.eventInstance }}
         run: npx tsx src/cli/sync-coupon-fields-single-product.ts
 
-      # Skladový semafor + stav platby pro skrytou /orders-dashboard-xk92q stránku
-      # (2026-08-06). Běží při KAŽDÉM triggeru (cron i webhook), izolované,
-      # continue-on-error -- selhání tady nemůže ovlivnit nic z hlavního syncu.
-      - name: Přepočet skladového semaforu pro dashboard objednávek
+      # Stav platby otevřených objednávek pro skrytou /orders-dashboard-xk92q
+      # stránku (2026-08-06; skladový semafor odstraněn 2026-08-21). Běží při
+      # KAŽDÉM triggeru (cron i webhook), izolované, continue-on-error --
+      # selhání tady nemůže ovlivnit nic z hlavního syncu.
+      - name: Přepočet stavu objednávek pro dashboard objednávek
         if: success()
         continue-on-error: true
         working-directory: cloudflare-worker
         env:
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
-          MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
           CF_WORKER_URL: ${{ secrets.CF_WORKER_URL }}
           CF_WORKER_TOKEN: ${{ secrets.CF_WORKER_TOKEN }}
         run: npx tsx src/cli/compute-orders-stock-status.ts

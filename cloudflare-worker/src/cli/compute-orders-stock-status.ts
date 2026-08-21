@@ -1,13 +1,12 @@
-// Počítá skladový semafor (zelená/žlutá/červená) + stav platby pro všechny
-// OTEVŘENÉ objednávky (ne vybavené, ne zrušené) a zapíše výsledek do Workerovy
-// KV, odkud ho čte skrytá stránka /orders-dashboard-xk92q. Skladové množství
-// se čte z master feedu, součet sloupců `stock:Predvolený sklad` +
-// `stock:Feedový` (oba sklady mají v adminu zapnuté "Viditelnost skladu na
-// e-shopu", takže se sčítají do zákaznicky zobrazené dostupnosti -- ověřeno
-// živě 2026-08-06), takže netřeba dělat N+1 API volání na sklad pro položku.
+// Počítá stav platby pro všechny OTEVŘENÉ objednávky (ne vybavené, ne
+// zrušené) a zapíše výsledek do Workerovy KV, odkud ho čte skrytá stránka
+// /orders-dashboard-xk92q.
+//
+// Skladový semafor (zelená/žlutá/červená dostupnost položek) byl odstraněn
+// 2026-08-21 na žádost klienta -- dashboard teď ukazuje jen otevřené
+// objednávky + stav platby + poznámky/vyriešené, bez skladové kategorizace.
 import * as fs from 'fs';
 import * as path from 'path';
-import { CsvParserStream } from '../csv/csv-parser';
 import { ShoptetApiClient } from '../shoptet-api/client';
 
 function loadRootEnv() {
@@ -20,7 +19,6 @@ function loadRootEnv() {
 }
 loadRootEnv();
 
-const MASTER_FEED_URL = process.env.MASTER_FEED_URL;
 const CF_WORKER_URL = process.env.CF_WORKER_URL;
 const CF_WORKER_TOKEN = process.env.CF_WORKER_TOKEN;
 
@@ -38,13 +36,6 @@ const CLOSED_STATUS_IDS = new Set([-3, -4]);
 // "resolved" (nikdy nebyla otevřená v prvním místě).
 const FAKE_ORDER_STATUS_IDS = new Set([11]);
 
-interface OrderItemStatus {
-    name: string;
-    code: string | null;
-    ordered: number;
-    inStock: number | null; // null = kód nenalezen ve feedu (nedohledatelné)
-}
-
 interface OrderStatus {
     code: string;
     guid: string;
@@ -54,67 +45,14 @@ interface OrderStatus {
     priceWithVat: string;
     adminUrl: string;
     creationTime: string;
-    semaphore: 'green' | 'yellow' | 'red';
-    items: OrderItemStatus[];
     statusId: number;
     resolvedByStatus: boolean;
-}
-
-async function loadStockMap(): Promise<Record<string, number>> {
-    if (!MASTER_FEED_URL) throw new Error('MASTER_FEED_URL not set');
-    const res = await fetch(MASTER_FEED_URL);
-    if (!res.ok || !res.body) throw new Error(`Feed fetch failed: HTTP ${res.status}`);
-    const map: Record<string, number> = {};
-    const parsed = res.body.pipeThrough(new CsvParserStream());
-    const reader = parsed.getReader();
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const row = value as Record<string, string>;
-        const code = row['code'];
-        if (!code) continue;
-        // Shoptet má DVA fyzické sklady ("Predvolený sklad", "Feedový") a OBA mají
-        // zapnuté "Viditelnost skladu na e-shopu" (ověřeno živě v adminu 2026-08-06) --
-        // tzn. zákazníkům zobrazovaná dostupnost je součet obou, ne jen jednoho.
-        // Bez tohohle součtu jsme systematicky podhodnocovali sklad u ~3853/16650
-        // produktů (těch, co mají zásobu ve Feedový skladu), což vysvětlovalo
-        // případy, kdy objednávka šla vybavit i přes to, že náš dashboard hlásil
-        // "chýba" (potvrzeno živě: FOX mikina/tepláky, obj. 2026000958).
-        let sum = 0;
-        let any = false;
-        for (const col of ['stock:Predvolený sklad', 'stock:Feedový']) {
-            const v = row[col];
-            if (v !== undefined && v !== '') {
-                const n = parseFloat(v.replace(',', '.'));
-                if (!isNaN(n)) { sum += n; any = true; }
-            }
-        }
-        if (any) map[code] = sum;
-    }
-    return map;
-}
-
-function computeSemaphore(items: OrderItemStatus[]): 'green' | 'yellow' | 'red' {
-    let anyOk = false;
-    let anyMissing = false;
-    for (const item of items) {
-        if (item.inStock === null) { anyMissing = true; continue; }
-        if (item.inStock >= item.ordered) anyOk = true;
-        else anyMissing = true;
-    }
-    if (anyMissing && !anyOk) return 'red';
-    if (anyMissing) return 'yellow';
-    return 'green';
 }
 
 async function main() {
     const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
     if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set');
     if (!CF_WORKER_URL || !CF_WORKER_TOKEN) throw new Error('CF_WORKER_URL/TOKEN not set');
-
-    console.log('Načítám skladové množství z feedu...');
-    const stockMap = await loadStockMap();
-    console.log(`Načteno ${Object.keys(stockMap).length} skladových položek.`);
 
     const client = new ShoptetApiClient(token);
 
@@ -186,17 +124,6 @@ async function main() {
         // do dashboardu vůbec nezapisují.
         if (rawProductItems.length > 0 && realProductItems.length === 0) continue;
 
-        const items: OrderItemStatus[] = realProductItems
-            .map((i: any) => {
-                // Order items nesou productGuid, ne code -- ale feed je klíčovaný podle
-                // code. Zkusíme dohledat code z feedu podle guid, pokud ho items nemají
-                // rovnou (Private API u položek code obvykle nevrací).
-                const code = i.code || null;
-                const ordered = parseFloat(i.amount || '1');
-                const inStock = code && stockMap[code] !== undefined ? stockMap[code] : null;
-                return { name: i.name, code, ordered, inStock };
-            });
-
         results.push({
             code: order.code,
             guid: order.guid,
@@ -206,8 +133,6 @@ async function main() {
             priceWithVat: order.price.withVat,
             adminUrl: detail.adminUrl,
             creationTime: detail.creationTime,
-            semaphore: computeSemaphore(items),
-            items,
             statusId: order.status.id,
             resolvedByStatus: CLOSED_STATUS_IDS.has(order.status.id),
         });

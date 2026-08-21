@@ -21,13 +21,10 @@
 
   /* -- Súhrn hore: čo sa musí riešiť, jedným pohľadom -- */
   .summary-period { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); font-weight: 650; margin-bottom: 6px; }
-  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
   .sum-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
   .sum-card .num { font-size: 24px; font-weight: 700; line-height: 1; }
   .sum-card .lbl { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
-  .sum-card.red .num { color: var(--crit); }
-  .sum-card.yellow .num { color: var(--warn); }
-  .sum-card.green .num { color: var(--ok); }
 
   .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-btn {
@@ -62,22 +59,15 @@
   }
   .resolve-toggle:hover { background: var(--surface-2, #eee); }
   .order-row {
-    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid transparent;
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 8px; padding: 8px 12px;
   }
-  .order-row.red { border-left-color: var(--crit-bar); background: var(--crit-dim); border-color: #f3bcbd; }
-  .order-row.yellow { border-left-color: var(--warn-bar); background: var(--warn-dim); border-color: #f0dca3; }
-  .order-row.green { border-left-color: var(--ok-bar); background: var(--ok-dim); border-color: #c3e8cf; }
 
   .row-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .row-code { font-weight: 700; font-size: 14.5px; }
   .row-customer { color: var(--text); font-weight: 700; font-size: 14.5px; text-transform: uppercase; }
   .row-date { color: var(--text-faint); font-size: 11.5px; }
   .row-spacer { flex: 1; }
-  .row-summary { font-size: 12px; font-weight: 700; color: #fff; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
-  .row-summary.red { background: var(--crit-bar); }
-  .row-summary.yellow { background: var(--warn-bar); }
-  .row-summary.green { background: var(--ok-bar); }
   .row-price { font-weight: 650; }
   .badge { padding: 2px 9px; border-radius: 5px; font-size: 11px; font-weight: 650; white-space: nowrap; }
   .badge.paid { background: var(--ok-dim); color: var(--ok); }
@@ -85,40 +75,11 @@
 
   .row-detail { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 
-  .item-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 2px 0; font-size: 13px; flex-wrap: wrap; }
-  .item-name { color: var(--text-dim); flex: 1; }
-  .item-right { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
-  .item-code { color: var(--text-faint); font-size: 11.5px; width: 60px; display: inline-block; text-align: right; }
-  .item-status { font-weight: 600; }
-  .item-status.missing { color: var(--crit); }
-  .item-status.unknown { color: var(--text-faint); }
-  .all-ok { color: var(--ok); font-size: 13px; font-weight: 600; }
-
   .row-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .note-input {
     flex: 1; min-width: 160px; font-family: inherit; font-size: 12.5px;
     padding: 5px 8px; border-radius: 5px; border: 1px solid var(--border); background: #fff; color: var(--text);
   }
-  .action-row { display: flex; gap: 8px; margin-bottom: 16px; justify-content: flex-end; }
-  .copy-all-codes {
-    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--brand-dark); background: var(--brand);
-    color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
-  }
-  .copy-all-codes:hover { background: var(--brand-dark); }
-  .copy-all-codes.copied { background: var(--ok); border-color: var(--ok); }
-  .export-excel {
-    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--brand-dark); background: var(--brand);
-    color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
-  }
-  .export-excel:hover { background: var(--brand-dark); }
-
-  .copy-codes {
-    padding: 4px 9px; border-radius: 5px; border: 1px solid var(--crit); background: #fff; color: var(--crit);
-    font-size: 12.5px; font-weight: 650; cursor: pointer; white-space: nowrap;
-  }
-  .copy-codes:hover { background: var(--crit-dim); }
-  .copy-codes.copied { background: var(--ok-dim); border-color: var(--ok); color: var(--ok); }
-
   .note-save, a.admin-link {
     padding: 4px 9px; border-radius: 5px; border: none;
     background: var(--brand); color: #fff; font-size: 12.5px; font-weight: 650; cursor: pointer; text-decoration: none; white-space: nowrap;
@@ -152,23 +113,19 @@
 
 <div class="topbar app-hidden" id="appTopbar">
   <img src="https://cdn.myshoptet.com/usr/www.okfish.sk/user/logos/logo-fish.png" alt="OKFISH">
-  <div class="title">Objednávky — skladový prehľad<small>interný nástroj, nezdieľať</small></div>
+  <div class="title">Objednávky — prehľad<small>interný nástroj, nezdieľať</small></div>
 </div>
 
 <div class="wrap app-hidden" id="appWrap">
   <div class="summary-period">Prehľad za posledných 14 dní</div>
   <div class="summary" id="summary"></div>
   <div class="filters" id="filters"></div>
-  <div class="action-row">
-    <button class="copy-all-codes" id="copyAllCodes">Kopírovať VŠETKY chýbajúce kódy (spočítané spolu)</button>
-    <button class="export-excel" id="exportExcel">📥 Exportovať do Excelu (.csv)</button>
-  </div>
   <div class="list-header">
     <span class="lh-code">Objednávka</span>
     <span class="lh-customer">Zákazník</span>
     <span class="lh-date">Dátum</span>
     <span class="lh-spacer"></span>
-    <span class="lh-status">Platba / sklad</span>
+    <span class="lh-status">Platba</span>
     <span class="lh-price">Cena</span>
   </div>
   <div id="content"><div class="empty-state">Načítám…</div></div>
@@ -186,7 +143,7 @@
     document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + (60 * 60 * 24 * 30) + '; SameSite=Lax';
   }
   let TOKEN = getCookie('okfish_dash_token');
-  let currentFilter = 'all'; // 'all', 'action' (red+yellow), 'red', 'yellow', 'green'
+  let currentFilter = 'all'; // 'all', 'resolved'
   let lastData = null;
 
   async function tryLogin(password) {
@@ -222,35 +179,21 @@
     const d = new Date(iso);
     return d.toLocaleDateString('sk-SK') + ' ' + d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
   }
-  function missingItems(o) {
-    return (o.items || []).filter(i => i.inStock === null || i.inStock < i.ordered);
-  }
-
   function renderSummary(orders) {
-    const counts = { red: 0, yellow: 0, green: 0 };
-    let actionValue = 0;
-    orders.forEach(o => {
-      counts[o.semaphore]++;
-      if (o.semaphore !== 'green') actionValue += Number(o.priceWithVat) || 0;
-    });
+    const activeCount = orders.filter(o => !o.resolved).length;
+    const unpaidCount = orders.filter(o => !o.resolved && !o.paid).length;
     const summary = document.getElementById('summary');
     summary.innerHTML =
-      '<div class="sum-card red"><div class="num mono">' + counts.red + '</div><div class="lbl">nič skladom</div></div>' +
-      '<div class="sum-card yellow"><div class="num mono">' + counts.yellow + '</div><div class="lbl">niečo chýba</div></div>' +
-      '<div class="sum-card green"><div class="num mono">' + counts.green + '</div><div class="lbl">vše skladom</div></div>' +
-      '<div class="sum-card"><div class="num mono">' + fmtMoney(actionValue) + '</div><div class="lbl">súčet cien objednávok, kde niečo chýba skladom</div></div>';
+      '<div class="sum-card"><div class="num mono">' + activeCount + '</div><div class="lbl">aktívnych objednávok</div></div>' +
+      '<div class="sum-card"><div class="num mono">' + unpaidCount + '</div><div class="lbl">nezaplatených</div></div>';
   }
 
   function renderFilters(orders) {
-    const counts = { red: 0, yellow: 0, green: 0, resolved: 0 };
-    orders.forEach(o => { counts[o.semaphore]++; if (o.resolved) counts.resolved++; });
     const activeCount = orders.filter(o => !o.resolved).length;
+    const resolvedCount = orders.filter(o => o.resolved).length;
     const opts = [
       ['all', 'Aktívne (' + activeCount + ')'],
-      ['red', 'Nič skladom (' + counts.red + ')'],
-      ['yellow', 'Niečo chýba (' + counts.yellow + ')'],
-      ['green', 'Vše skladom (' + counts.green + ')'],
-      ['resolved', 'Vyriešené (' + counts.resolved + ')'],
+      ['resolved', 'Vyriešené (' + resolvedCount + ')'],
     ];
     const filters = document.getElementById('filters');
     filters.innerHTML = opts.map(([key, label]) =>
@@ -280,8 +223,7 @@
     const filtered = orders.filter(o => {
       if (currentFilter === 'resolved') return !!o.resolved;
       if (o.resolved) return false; // vyriešené sa mimo záložky "Vyriešené" neukazujú
-      if (currentFilter === 'all') return true;
-      return o.semaphore === currentFilter;
+      return true; // currentFilter === 'all'
     });
 
     if (filtered.length === 0) {
@@ -289,12 +231,9 @@
       return;
     }
 
-    const rowSummaryLabel = { red: 'nič skladom', yellow: 'niečo chýba', green: 'PRIPRAVENÉ NA ODOSLANIE' };
-
     let html = '<div class="list">';
     for (const o of filtered) {
-      const missing = missingItems(o);
-      html += '<div class="order-row ' + o.semaphore + (o.resolved ? ' is-resolved' : '') + '" data-code="' + o.code + '">';
+      html += '<div class="order-row' + (o.resolved ? ' is-resolved' : '') + '" data-code="' + o.code + '">';
       html += '<div class="row-top">';
       html += '<span class="row-code mono">' + o.code + '</span>';
       html += '<span class="row-customer">' + o.customerName + '</span>';
@@ -302,42 +241,11 @@
       html += '<span class="row-spacer"></span>';
       if (o.resolved) html += '<span class="resolve-badge">✓ VYRIEŠENÉ</span>';
       html += '<span class="badge ' + (o.paid ? 'paid' : 'unpaid') + '">' + (o.paid ? 'Zaplatené' : 'Nezaplatené') + '</span>';
-      // "Pripravené na odoslanie" má zmysel len keď je aj zaplatené -- sklad OK
-      // ale nezaplatená objednávka (napr. zlyhaná platba kartou) sa NEODOSIELA,
-      // bez ohľadu na sklad. Potvrdené živo: objednávka 2026000365 (Zlyhaná
-      // platba kartou) sa nesprávne ukazovala ako "pripravené na odoslanie".
-      const summaryText = missing.length > 0
-        ? missing.length + '× ' + rowSummaryLabel[o.semaphore]
-        : (o.semaphore === 'green' && !o.paid ? '✓ vše skladom (čaká na platbu)' : '✓ ' + rowSummaryLabel[o.semaphore]);
-      html += '<span class="row-summary ' + o.semaphore + '">' + summaryText + '</span>';
       html += '<span class="row-price mono">' + fmtMoney(o.priceWithVat) + '</span>';
       html += '</div>';
 
       html += '<div class="row-detail">';
-      if (missing.length === 0) {
-        html += '<div class="all-ok">✓ všetko skladom, netreba nič objednávať</div>';
-      } else {
-        for (const item of missing) {
-          const statusClass = item.inStock === null ? 'unknown' : 'missing';
-          let statusText;
-          if (item.inStock === null) {
-            statusText = 'neznámy sklad';
-          } else {
-            const shortBy = item.ordered - item.inStock;
-            statusText = shortBy > 0 ? ('chýba ' + shortBy + ' ks — treba objednať') : ('skladom len ' + item.inStock + ' ks');
-          }
-          const codeLabel = item.code ? '<span class="item-code mono">[' + item.code + ']</span>' : '<span class="item-code"></span>';
-          html += '<div class="item-row"><span class="item-name">' + item.name + '</span><span class="item-right">' + codeLabel + '<span class="item-status ' + statusClass + '">' + statusText + '</span></span></div>';
-        }
-      }
       html += '<div class="row-actions">';
-      if (missing.length > 0) {
-        const codesToCopy = missing.filter(i => i.code).map(i => {
-          const qty = i.inStock === null ? i.ordered : (i.ordered - i.inStock);
-          return i.code + ' x' + qty;
-        }).join(', ');
-        html += '<button class="copy-codes" data-codes="' + codesToCopy + '">Kopírovať chýbajúce kódy</button>';
-      }
       html += '<textarea class="note-input" rows="1" data-code="' + o.code + '" placeholder="Poznámka e-shopu…"></textarea>';
       html += '<button class="note-save" data-code="' + o.code + '">Uložiť poznámku</button>';
       html += '<span class="note-status" data-code="' + o.code + '"></span>';
@@ -354,63 +262,6 @@
     });
   }
 
-  function computeMissingTotals() {
-    // code -> { qty, name }, sčítané naprieč VŠETKÝMI otvorenými objednávkami
-    // (nezáleží na aktuálnom filtri v zobrazení).
-    const totals = {};
-    (lastData?.orders || []).forEach(o => {
-      missingItems(o).forEach(i => {
-        if (!i.code) return;
-        const qty = i.inStock === null ? i.ordered : (i.ordered - i.inStock);
-        if (!totals[i.code]) totals[i.code] = { qty: 0, name: i.name };
-        totals[i.code].qty += qty;
-      });
-    });
-    return totals;
-  }
-
-  document.getElementById('copyAllCodes').addEventListener('click', async (e) => {
-    if (!lastData) return;
-    const totals = computeMissingTotals();
-    const text = Object.entries(totals).map(([code, v]) => code + ' x' + v.qty).join(', ');
-    const btn = e.currentTarget;
-    try {
-      await navigator.clipboard.writeText(text);
-      const original = btn.textContent;
-      btn.textContent = '✓ Skopírované (' + Object.keys(totals).length + ' kódov)';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 2200);
-    } catch (err) {
-      btn.textContent = 'chyba kopírovania';
-    }
-  });
-
-  document.getElementById('exportExcel').addEventListener('click', () => {
-    if (!lastData) return;
-    const totals = computeMissingTotals();
-    const rows = [['Kód', 'Názov produktu', 'Počet ks na objednanie']];
-    Object.entries(totals).forEach(([code, v]) => rows.push([code, v.name, v.qty]));
-
-    const csv = rows.map(row =>
-      row.map(cell => {
-        const s = String(cell);
-        return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-      }).join(';')
-    ).join('\r\n');
-
-    // BOM pre správnu diakritiku pri otvorení v Exceli
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const today = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = 'okfish-chybajuce-produkty-' + today + '.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-
   document.getElementById('filters').addEventListener('click', (e) => {
     const btn = e.target.closest('.filter-btn');
     if (!btn) return;
@@ -419,20 +270,6 @@
   });
 
   document.getElementById('content').addEventListener('click', async (e) => {
-    if (e.target.classList.contains('copy-codes')) {
-      const codes = e.target.dataset.codes;
-      try {
-        await navigator.clipboard.writeText(codes);
-        const original = e.target.textContent;
-        e.target.textContent = '✓ Skopírované';
-        e.target.classList.add('copied');
-        setTimeout(() => { e.target.textContent = original; e.target.classList.remove('copied'); }, 1800);
-      } catch (err) {
-        e.target.textContent = 'chyba kopírovania';
-      }
-      return;
-    }
-
     if (e.target.classList.contains('resolve-toggle')) {
       const code = e.target.dataset.code;
       const newResolved = e.target.dataset.resolved !== '1';

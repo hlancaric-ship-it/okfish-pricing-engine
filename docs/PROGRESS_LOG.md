@@ -1388,3 +1388,60 @@ nerozřešeno.
    jestli force-sync problém sám vyřešil (přepočítal správně), nebo přetrvává.
 3. Zvážit CI krok, co po merge změny v `policy-v1.json` automaticky
    redeployuje Worker (dnešní FLACARP bug byl jen stale deploy od 12.8.).
+
+## 2026-08-25 — Oprava GlobalStats singletonu, live progress reportingu a ochrany prázdných entit v fetchPaginatedOnce (INC-013)
+
+**Vstupní problém:**
+1. Diagnostické metriky `GlobalStats` ukazovaly v CLI logách (`scripts/run-real-sync.ts`) a na monitorovacím dashboardu (`/dashboard`, `POST /v1/sync-stats`) neustále `phase=starting` a `GET=0` / `PATCH=0`, přestože produktová smyčka reálně stahovala tisíce položek (např. `"Stahuji detail produktu 5750/8648"`).
+2. Ve `fetchPaginatedOnce` (`client.ts`) bylo potřeba garantovat robustní chování při dotazování prázdných entit (např. zákazník s `totalCount: 0` nebo prázdná 1. stránka `items: []`), aby se paginator za žádných okolností nezacyklil.
+
+**Provedené úpravy a technické řešení:**
+1. **GlobalScope Singleton pro `GlobalStats` (`client.ts`):**
+   - Objekt metrik `GlobalStats` byl navázán na `globalThis` přes `Symbol.for('__SHOPTET_GLOBAL_STATS__')`.
+   - Tím je zamezeno vzniku oddělených instancí v paměti při rozdílném načítání modulů (.ts / .js / cesty).
+2. **Průběžný progress reporting fází (`products-reader.ts` a `customer-adapter.ts`):**
+   - Ve smyčce stahování detailů produktů se `GlobalStats.phase` aktualizuje dynamicky (např. `fetch-products (50/8648)`), stejně tak při force-syncu (`force-sync-product (1/5)`) a u zákazníků (`customer-orders (1/2)`, `customer-details (100/400)`).
+3. **Přepis `fetchPaginatedOnce` na chráněnou `while (true)` smyčku (`client.ts`):**
+   - Doplněn safe optional chaining `result?.data?.paginator`.
+   - Zaveden explicitní guard: `if (totalCount === 0 || totalPages <= 0) break;` — ukončí stránkování ihned po 1. requestu pro prázdné entity bez dalších volání.
+   - Zaveden guard pro prázdný list položek: `if (items.length === 0) break;`.
+   - Zajištěno bezpečné inkrementování `GlobalStats.apiRequests.GET = (GlobalStats.apiRequests.GET || 0) + 1`.
+4. **Rozšíření testovací sady (`client.test.ts`):**
+   - Nové testy: ověření okamžitého ukončení při `totalCount: 0`, integrity mismatch na prázdné stránce a sdíleného `globalThis` singletonu.
+5. **Testovací verifikace:**
+   - Worker testy: 12 test souborů / 108 testů — 100 % pass.
+   - Root Pricing Engine testy: 26 test souborů / 338 testů — 100 % pass.
+
+## 2026-08-25 — Úspěšný ostrý FULL SYNC celého e-shopu a nasazení modálu Rybárska stráž na SFTP
+
+### 1. Prémiový modál „Rybárska stráž“ v detailu produktu (`vip_detail.js`)
+- Na SFTP (`ftp.myshoptet.com`, user `LCode_767740`, složka `upload/CSSJS/vip_detail.js`) byl kompletně přepracován prvek hlídacího psa.
+- **Původní stav:** Shoptet otevíral výchozí generický dialog.
+- **Nový stav:**
+  - Vlastní responzivní modální okno s rozostřeným overlayem (`backdrop-filter: blur(5px)`).
+  - Hlavička s 👮 a popiskem *„Nastavte si sledovanie dostupnosti a ceny“*.
+  - Karta s náhledem produktu (obrázek, název, cena).
+  - Výběr sledování dostupnosti i poklesu ceny, automatické předvyplnění e-mailu pro přihlášeného zákazníka.
+  - Zelené CTA tlačítko `#88BA15` a AJAX odeslání bez nutnosti opustit stránku detailu.
+  - Na mobilu i desktopu upraveno spouštěcí tlačítko vedle ceny: jemná zaoblená nazelenalá pilulka (`border-radius: 8px`, `background: rgba(136, 186, 21, 0.08)`), kompaktní písmo a ikona, 100% ladící s designem okfish.sk.
+
+### 2. Výsledky kompletního ostrého FULL SYNCU (`run-real-sync.ts --full`)
+- **Doba běhu:** 2 502 s (~41.7 minut)
+- **Celkem HTTP requestů:** **52 199** (52 188 GET + 11 PATCH)
+- **HTTP statusy:** **52 199× HTTP 200 OK (100.0 % úspěšnost, 0 chyb, 0 retry, 0× 429)**
+- **Objednávky:** Načteno všech **192 121 objednávek**, spočten celoživotní obrat **2 280 724.42 €**.
+- **Zákazníci:** Zpracováno všech **47 937 zákazníků**.
+- **Katalog & Ceníky:** Zkontrolováno **16 740 produktů**, zapsáno **368 změn cen** napříč **11 věrnostními ceníky** v 11 dávkových PATCH requestech (průměr 33.5 položek/dávka) s okamžitým 100% ověřením.
+- **Stav:** Uložen nový `lastSync: 2026-08-25T09:54:50+0000` do `.sync_state.json`. `force-sync-products.json` vyčištěn. Ready for production: **YES**.
+
+### 3. Oprava DPH ve věrnostních ceníkách Shoptetu (INC-014)
+- **Zjištěno:** V administraci Shoptetu svítilo ve sloupci DPH u věrnostních ceníků `0% DPH` místo `23% DPH`.
+- **Příčina:** Shoptet API při volání `PATCH /api/pricelists/{id}` vyžaduje explicitní zaslání polí `vatRate` a `includingVat`. Bez nich nastaví výchozí hodnotu `0.00%` a `includingVat: false`.
+- **Provedená oprava:**
+  - `updatePricelistBatch` v `client.ts`, `ProductsReader`, `PricelistDiff`, `PricelistWriter` a `SyncOrchestrator` rozšířeny o předávání skutečné sazby DPH produktu (`vatRate`, `includingVat: true`).
+  - Vytvořen a spuštěn migrační skript `scripts/fix-pricelist-vat.ts`.
+  - Opraveno všech **205 položek** napříč všemi 10 věrnostními ceníky (ZR4–ZR25).
+  - Živě ověřeno na produktu `93850`: všechny ceníky mají `DPH = 23.00%`, `s DPH = true`, ceny i slevové stropy zůstaly 100% zachovány.
+
+
+

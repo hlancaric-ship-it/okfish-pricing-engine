@@ -6,6 +6,25 @@ Každý záznam by měl obsahovat: datum, popis problému, příčinu, řešení
 
 ---
 
+## 2026-08-25 -- INC-014: Nulová DPH (vatRate: 0.00% / includingVat: false) při zápisu do věrnostních ceníků přes API (VYŘEŠENO)
+
+**Popis:**
+V administraci Shoptetu v detailu produktů (např. Boilie DELPHIN kód `93850` / produkt `120449`) svítila v tabulce *Jiné ceníky* u všech věrnostních ceníků (ZR4 až ZR25) hodnota `0% DPH`, přestože hlavní ceník a nákupní/akční cena měly správně `23% DPH`.
+
+**Příčina:**
+Metoda `updatePricelistBatch` v `cloudflare-worker/src/shoptet-api/client.ts` při zápisu cen dávkově odesílala do Shoptet API (`PATCH /api/pricelists/{id}`) pouze pole `{ code, price }` bez polí `vatRate` a `includingVat`.
+Shoptet API u nově zakládaných položek ceníku nepřevezme sazbu DPH ze základního ceníku, ale nastaví výchozí hodnotu `vatRate: "0.00"` a `includingVat: false`.
+
+**Řešení:**
+1. Do rozhraní a payloadů `ProductsReader`, `PricelistDiff`, `PricelistWriter` a `ShoptetApiClient.updatePricelistBatch` doplněno předávání `vatRate` a `includingVat: true`.
+2. Vytvořen a úspěšně spuštěn migrační/opravný skript `scripts/fix-pricelist-vat.ts`, který prošel všech 10 věrnostních ceníků (ZR4 až ZR25), identifikoval všech **205 dotčených položek** a do Shoptetu zapsal správnou sazbu DPH `23.00%` a `includingVat: true`.
+3. Ověřeno živě na produktu `93850` napříč všemi 11 ceníky v Shoptet API i v administraci.
+
+**Verze:**
+main (2026-08-25)
+
+---
+
 ## 2026-08-20 -- INC-012: Kupónová rekonciliace hlásí false-positive "chybí záznam" (OTEVŘENO, NEDOŘEŠENO)
 
 **Popis:** Denní běh `reconcile-coupon-drift.ts` (run #32330621142, 2026-08-20
@@ -688,21 +707,27 @@ main (2026-08-13)
 
 ---
 
-*(Řádky výše jsou první reálné produkční incidenty. Formát pro další záznamy viz vzor níže.)*
+## 2026-08-25
 
-<!-- Vzor záznamu:
-## 2026-07-21
-
-### INC-001
+### INC-013
 **Popis:**
-VIP cena se nezobrazila po změně varianty.
+1. Diagnostické statistiky (`GlobalStats`) hlásily v konzoli a na monitorovacím dashboardu (`/dashboard`, `POST /v1/sync-stats`) trvale `phase=starting` a `GET=0` / `PATCH=0` i přesto, že synchronizační smyčka reálně stahovala a zpracovávala tisíce produktů (např. `"Stahuji detail produktu 5750/8648"`). Monitoring se tak jevil jako zamrzlý.
+2. V `client.ts` v metodě `fetchPaginatedOnce` hrozilo riziko zbytečných volání nebo nestandardního chování při dotazování prázdných entit (např. zákazník s 0 objednávkami, kde `totalCount === 0`, nebo prázdná 1. stránka `items: []`).
 
 **Příčina:**
-...
+1. **Module Singleton Hazard:** `GlobalStats` byl definován jako obyčejný exportovaný objekt v `client.ts`. Při načítání modulu v různých kontextech (ESM rozhraní, relativní vs. absolutní cesty mezi `scripts/run-real-sync.ts` a `cloudflare-worker/src/shoptet-api/`) docházelo k vytváření izolovaných instancí objektu v paměti Node.js procesu. Navíc dlouhé smyčky v `ProductsReader` a `CustomerAdapter` neaktualizovaly `GlobalStats.phase` průběžně.
+2. **Chybějící explicitní guard podmínky v do-while smyčce:** Původní `do-while` smyčka ve `fetchPaginatedOnce` pokračovala do další iterace, i když Shoptet API vrátilo prázdnou sadu položek nebo explicitně hlásilo `totalCount === 0` / `pageCount === 0`.
 
 **Oprava:**
-...
+1. `client.ts`: `GlobalStats` byl navázán na globální kontext `globalThis` pomocí `Symbol.for('__SHOPTET_GLOBAL_STATS__')`, což garantuje 100% identickou instanci napříč všemi importy v Node.js/Worker běhu.
+2. `products-reader.ts` a `customer-adapter.ts`: Přidány průběžné aktualizace `GlobalStats.phase` (např. `fetch-products (50/8648)`, `customer-orders (1/2)`, `customer-details (100/400)`).
+3. `client.ts`: Metoda `fetchPaginatedOnce` byla přepsána na robustní `while (true)` smyčku s explicitními guardy:
+   - Bezpečný optional chaining `result?.data?.paginator`.
+   - Okamžité ukončení při `totalCount === 0` nebo `totalPages <= 0` po prvním requestu.
+   - Okamžité ukončení při prázdné stránce (`items.length === 0`).
+   - Bezpečný inkrement čítače `GlobalStats.apiRequests.GET = (GlobalStats.apiRequests.GET || 0) + 1`.
+4. `client.test.ts`: Přidány komplexní automatizované testy ověřující okamžité ukončení při `totalCount: 0`, ochranu proti zacyklení a sdílený stav `GlobalStats` v `globalThis`.
 
 **Verze:**
-1.0.0-RC1
--->
+main (2026-08-25)
+

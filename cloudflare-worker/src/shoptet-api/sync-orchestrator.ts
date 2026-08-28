@@ -7,6 +7,7 @@ import { calculateProductsPricing } from './pricing-bridge';
 import { ICacheProvider } from './cache-provider';
 import { ICustomerCache } from './customer-cache';
 import { FileStateProvider, ISyncStateProvider } from './state-provider';
+import { detectPricingConfigChanges } from './pricing-config-fingerprint';
 import { CsvParserStream } from '../csv/csv-parser';
 import Decimal from 'decimal.js';
 import * as fs from 'fs';
@@ -78,6 +79,7 @@ export interface SyncOptions {
     token: string;
     priceCache: ICacheProvider;
     customerCache?: ICustomerCache;
+    stateProvider?: ISyncStateProvider;
     maxPages?: number;
 }
 
@@ -95,9 +97,18 @@ export class SyncOrchestrator {
         const syncStartedAt = new Date(startTime).toISOString().replace(/\.\d{3}Z$/, '+0000');
         
         GlobalStats.phase = 'state-read';
-        const stateProvider: ISyncStateProvider = new FileStateProvider();
+        const stateProvider: ISyncStateProvider = this.options.stateProvider || new FileStateProvider();
         const rawLastSync = await stateProvider.getLastSync();
+        const priorState = stateProvider.getState ? (await stateProvider.getState()) : (rawLastSync ? { lastSync: rawLastSync } : null);
         let lastSync = rawLastSync;
+
+        // Detekce změn v pricing konfiguraci (pravidla, overrides, limity)
+        const configDiff = detectPricingConfigChanges(priorState);
+        if (configDiff.hasChanges) {
+            console.log(`\n[PRICING RULES CHANGE] ${configDiff.changeSummary}`);
+        } else {
+            console.log(`\n[PRICING RULES] Konfigurace nezměněna (fingerprint: ${configDiff.currentFingerprint.substring(0, 12)}...)`);
+        }
         
         if (rawLastSync) {
             // 5 minutový přesah (overlap) pro jistotu
@@ -154,7 +165,20 @@ export class SyncOrchestrator {
         GlobalStats.phase = 'fetch-products';
         console.log(`\n3. Stahování produktů ze základního ceníku (ID: ${basePricelistId})...`);
         const productsReader = new ProductsReader(this.client);
-        const { products: sourceProducts, incompleteCodes } = await productsReader.fetchProducts(basePricelistId, this.options.maxPages, lastSync);
+        
+        // Pokud došlo ke změně globální politiky (policy-v1.json), vynutíme plný přepočet produktového katalogu
+        // při zachování lastSync pro zákazníky (aby se zbytečně netahalo 47 800 zákazníků).
+        const productLastSync = configDiff.requiresFullReevaluation ? null : lastSync;
+        if (configDiff.requiresFullReevaluation && lastSync) {
+            console.log(`   -> Vynucen plný přepočet produktů kvůli změně globální pricing policy.`);
+        }
+
+        const { products: sourceProducts, incompleteCodes } = await productsReader.fetchProducts(
+            basePricelistId,
+            this.options.maxPages,
+            productLastSync,
+            configDiff.affectedProductCodes
+        );
         if (incompleteCodes.length > 0) {
             console.warn(`\n[WARNING] ${incompleteCodes.length} produkt(y) vynechány z tohoto běhu (chybí perPricelistPrices, typicky čerstvě založený produkt): ${incompleteCodes.join(', ')}`);
         }
@@ -214,19 +238,10 @@ export class SyncOrchestrator {
         // 6b. Diff ceníků pomocí Cache
         const pricelistDiffsByMap: Record<number, { name: string, diffs: PricelistDiff[] }> = {};
         const engineProductsByCode = new Map(engineProducts.map(p => [p.code, p]));
+        const sourceProductsMap = new Map(sourceProducts.map(p => [p.code, p]));
+
         for (const pl of pricelists) {
             if (pl.id === basePricelistId) {
-                // brandSaleDiscounts write-back (policy-v1.json, viz pricing-bridge.ts) --
-                // jediné místo, kde se na základní/GUEST ceník vůbec zapisuje, a zapisuje
-                // se JEN actionPrice, nikdy price samotné (basePrice zůstává read-only
-                // zdroj pravdy, co calculateProductsPricing() výše už použil). Reálný
-                // zápis jde přes STEJNÝ PricelistWriter jako všechny ostatní ceníky níže
-                // -- žádný nový/paralelní zápisový mechanismus.
-                // `item.brandSaleActionPrice` je nastavené JEN pro produkty, co pricing-
-                // bridge.ts nedokázal spárovat s žádnou vlastní existující akční cenou --
-                // produkty s vlastním výprodejem se tímhle vůbec nedotknou (viz komentář
-                // tam). Nový produkt značky, co dnes v katalogu ještě není, projde touhle
-                // stejnou cestou při svém prvním syncu úplně automaticky.
                 const baseDiffs: PricelistDiff[] = [];
                 for (const item of calculated) {
                     if (!item.brandSaleActionPrice) continue;
@@ -235,12 +250,15 @@ export class SyncOrchestrator {
                     const newActionPrice = new Decimal(item.brandSaleActionPrice);
                     const oldActionPrice = engineProduct.actionPrice ?? null;
                     if (oldActionPrice && oldActionPrice.equals(newActionPrice)) continue;
+                    const shoptetProd = sourceProductsMap.get(item.code);
                     baseDiffs.push({
                         code: item.code,
                         oldPrice: engineProduct.basePrice,
                         newPrice: engineProduct.basePrice, // beze změny -- tenhle zápis se price nikdy nedotýká
                         oldActionPrice,
-                        newActionPrice
+                        newActionPrice,
+                        vatRate: shoptetProd?.vatRate || "23.00",
+                        includingVat: shoptetProd?.includingVat !== undefined ? shoptetProd.includingVat : true
                     });
                 }
                 pricelistDiffsByMap[pl.id] = { name: pl.name, diffs: baseDiffs };
@@ -260,10 +278,13 @@ export class SyncOrchestrator {
                 const oldPrice = oldPriceStr ? new Decimal(oldPriceStr) : null;
 
                 if (!oldPrice || !oldPrice.equals(newPrice)) {
+                    const shoptetProd = sourceProductsMap.get(item.code);
                     diffs.push({
                         code: item.code,
                         oldPrice,
-                        newPrice
+                        newPrice,
+                        vatRate: shoptetProd?.vatRate || "23.00",
+                        includingVat: shoptetProd?.includingVat !== undefined ? shoptetProd.includingVat : true
                     });
                 }
             }
@@ -440,11 +461,9 @@ export class SyncOrchestrator {
         console.log(`READY FOR PRODUCTION:`);
         if (isSuccess && !this.options.dryRun) {
             console.log(`YES`);
-            // Zapíšeme state pouze pokud neselhal ani jeden zápis A nic nebylo
-            // vynecháno pro chybějící data -- jinak by se nedokončený produkt už
-            // nikdy nedostal do dalšího inkrementálního okna.
-            await stateProvider.setLastSync(syncStartedAt);
-            console.log(`[State] Uložen nový lastSync: ${syncStartedAt}`);
+            // Zapíšeme state včetně nového fingerprintu konfigurace
+            await stateProvider.setLastSync(syncStartedAt, configDiff.currentFingerprint, configDiff.currentConfigState);
+            console.log(`[State] Uložen nový lastSync: ${syncStartedAt} (fingerprint: ${configDiff.currentFingerprint.substring(0, 12)}...)`);
 
             // Force-synced codes have now gone through the normal diff/write
             // path like any other product — clear the escape hatch so they

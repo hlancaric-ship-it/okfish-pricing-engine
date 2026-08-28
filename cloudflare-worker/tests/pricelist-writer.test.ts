@@ -83,7 +83,7 @@ describe('PricelistWriter', () => {
         await writer.processDiff(2, 'ZR10', diffs);
 
         const [, sentItems] = client.updatePricelistBatch.mock.calls[0];
-        expect(sentItems[0]).toEqual({ code: 'SKU1', price: '90.00', actionPrice: '75.00' });
+        expect(sentItems[0]).toEqual({ code: 'SKU1', price: '90.00', actionPrice: '75.00', vatRate: '23.00', includingVat: true });
         expect('actionPrice' in sentItems[1]).toBe(false);
     });
 

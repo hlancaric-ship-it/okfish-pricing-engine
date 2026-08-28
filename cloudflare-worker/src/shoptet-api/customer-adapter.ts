@@ -65,8 +65,10 @@ export class CustomerAdapter {
             }
             
             console.log('[CustomerAdapter] Stahuji celoživotní historii objednávek POUZE pro dotčené zákazníky (přepočet z nuly)...');
-            // Stáhneme celoživotní historii POUZE pro tyto zákazníky (bod 4 a 5)
+            let custIdx = 0;
             for (const guid of affectedCustomerGuids) {
+                custIdx++;
+                GlobalStats.phase = `customer-orders (${custIdx}/${affectedCustomerGuids.size})`;
                 const customerOrders = await this.apiClient.getCustomerOrders(guid);
                 orders.push(...customerOrders);
             }
@@ -116,8 +118,9 @@ export class CustomerAdapter {
         let processed = 0;
         for (const baseCustomer of baseCustomers) {
             processed++;
-            if (processed % 100 === 0) {
+            if (processed % 100 === 0 || processed === 1 || processed === baseCustomers.length) {
                 console.log(`[CustomerAdapter] Zpracováno zákazníků: ${processed}/${baseCustomers.length}`);
+                GlobalStats.phase = `customer-details (${processed}/${baseCustomers.length})`;
             }
 
             const totalSpend = customerSpendMap.get(baseCustomer.guid)?.toNumber() || 0;

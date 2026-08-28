@@ -9,6 +9,8 @@ export interface PricelistDiff {
     newPrice: Decimal;
     oldActionPrice?: Decimal | null;
     newActionPrice?: Decimal | null;
+    vatRate?: string;
+    includingVat?: boolean;
 }
 
 export interface PricelistWriterOptions {
@@ -105,7 +107,9 @@ export class PricelistWriter {
             const batchPayload = chunk.map(d => {
                 const item: Record<string, any> = {
                     code: d.code,
-                    price: d.newPrice.toFixed(2)
+                    price: d.newPrice.toFixed(2),
+                    vatRate: d.vatRate || "23.00",
+                    includingVat: d.includingVat !== undefined ? d.includingVat : true
                 };
                 if (d.newActionPrice !== undefined) {
                     item.actionPrice = d.newActionPrice !== null ? d.newActionPrice.toFixed(2) : null;
@@ -118,7 +122,6 @@ export class PricelistWriter {
                 const apiResult = await this.apiClient.updatePricelistBatch(pricelistId, batchPayload);
                 const duration = Date.now() - reqStart;
                 stats.processed += chunk.length;
-                stats.successfulDiffs.push(...chunk);
 
                 // Přidání požadovaného Audit Logu
                 for (const item of chunk) {
@@ -128,6 +131,8 @@ export class PricelistWriter {
                 }
 
                 console.log(`[WRITE] Dávka ${Math.floor(i / chunkSize) + 1} úspěšně zapsána pro ceník ${pricelistName}.`);
+
+                const failedCodesInChunk = new Set<string>();
 
                 // Zjištěno 2026-08-14 (reconcile-pricelist-drift.ts po brandSaleDiscounts
                 // rolloutu): Shoptet umí na PATCH pro kód, co na tomhle ceníku ještě NIKDY
@@ -176,14 +181,21 @@ export class PricelistWriter {
                                 console.log(`[VERIFY] ${d.code} na ceníku ${pricelistName}: opravný zápis potvrzen, ${reactual}.`);
                             } else {
                                 console.error(`[ALERT] ${d.code} na ceníku ${pricelistName}: i po opravném zápisu neshoda -- čekáno ${expected}, Shoptet má ${reactual ?? 'CHYBÍ ZÁZNAM'}.`);
+                                failedCodesInChunk.add(d.code);
                                 stats.verificationFailures.push({ code: d.code, expected, actual: reactual });
                             }
                         } catch (retryErr: any) {
                             console.error(`[ALERT] ${d.code} na ceníku ${pricelistName}: opravný zápis selhal: ${retryErr.message}.`);
+                            failedCodesInChunk.add(d.code);
                             stats.verificationFailures.push({ code: d.code, expected, actual: null });
                         }
                     }
                 }
+
+                // Bezpečný zápis do cache: Pouze položky, u kterých je prokázáno,
+                // že je Shoptet skutečně uložil. Zabraňuje cache poisoning.
+                stats.successfulDiffs.push(...chunk.filter(d => !failedCodesInChunk.has(d.code)));
+
             } catch (err: any) {
                 console.error(`[ERROR] Chyba při zápisu dávky pro ceník ${pricelistName}:`, err.message);
                 stats.errors.push(err.message);

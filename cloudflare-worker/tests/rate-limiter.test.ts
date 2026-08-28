@@ -67,8 +67,8 @@ describe('ShoptetRateLimiter', () => {
         'parses Retry-After as an HTTP-date, not just delay-seconds (regression: Shoptet sends a date, ' +
         'e.g. "Mon, 01 Jul 2024 12:01:11 GMT" -- parseInt() on that silently returned NaN and the header was ignored)',
         async () => {
-            const limiter = new ShoptetRateLimiter({ initialBackoffMs: 1, maxBackoffMs: 2000 });
-            const futureDate = new Date(Date.now() + 1500).toUTCString();
+            const limiter = new ShoptetRateLimiter({ initialBackoffMs: 1, maxBackoffMs: 2500 });
+            const futureDate = new Date(Date.now() + 2000).toUTCString();
             let call = 0;
             const requestFn = vi.fn(async () => {
                 call++;

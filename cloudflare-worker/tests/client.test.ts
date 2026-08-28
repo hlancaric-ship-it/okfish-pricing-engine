@@ -251,4 +251,41 @@ describe('ShoptetApiClient', () => {
         expect(GlobalStats.apiRequests.GET).toBe(1);
         expect(GlobalStats.apiRequests.PATCH).toBe(1);
     });
+
+    it('terminates pagination immediately in 1 request when entity is empty (totalCount: 0)', async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+            data: {
+                orders: [],
+                paginator: { page: 1, pageCount: 0, totalCount: 0 }
+            }
+        }));
+        const client = new ShoptetApiClient('fake-token');
+
+        const orders = await client.getCustomerOrders('cust-no-orders');
+        expect(orders).toEqual([]);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('terminates pagination immediately when page 1 returns empty items (throws integrity mismatch on full pull)', async () => {
+        fetchMock.mockResolvedValue(jsonResponse(200, {
+            data: {
+                orders: [],
+                paginator: { page: 1, pageCount: 5, totalCount: 50 }
+            }
+        }));
+        const client = new ShoptetApiClient('fake-token');
+
+        // fetchPaginated with mismatch retry will retry MAX_INTEGRITY_RETRIES times and throw
+        // verifying it safely breaks without looping indefinitely within any single run
+        await expect(client.getCustomerOrders('cust-empty-page')).rejects.toThrow(/integrita dat/);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('shares GlobalStats singleton across global scope', () => {
+        const symbolKey = Symbol.for('__SHOPTET_GLOBAL_STATS__');
+        const globalRef = (globalThis as any)[symbolKey];
+        expect(globalRef).toBeDefined();
+        expect(globalRef).toBe(GlobalStats);
+    });
 });
+

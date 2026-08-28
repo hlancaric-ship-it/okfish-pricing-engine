@@ -1,4 +1,4 @@
-import { ShoptetApiClient } from './client';
+import { ShoptetApiClient, GlobalStats } from './client';
 import Decimal from 'decimal.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,6 +8,8 @@ export interface ShoptetProduct {
     price: Decimal;
     actionPrice?: Decimal;
     productMaxDiscount?: Decimal;
+    vatRate?: string;
+    includingVat?: boolean;
 }
 
 interface ForceSyncEntry {
@@ -45,6 +47,7 @@ export class ProductsReader {
 
     /**
      * Stáhne produkty (plně nebo inkrementálně, pokud je k dispozici lastSync).
+     * `extraCodes` obsahuje dodatečné kódy produktů k přehodnocení (např. z důvodu změny pricing pravidel).
      * `incompleteCodes` obsahuje kódy produktů, které SE ZMĚNILY, ale Shoptet pro ně
      * ještě nevrátil perPricelistPrices na základním ceníku (typicky produkt založený
      * jen pár minut/hodin předtím — propagace do ceníku má u Shoptetu zpoždění).
@@ -54,7 +57,12 @@ export class ProductsReader {
      * Orchestrátor musí tyto kódy zohlednit a NEPOSOUVAT lastSync dál, dokud se
      * nedopočítají — jinak zmizí z dalšího inkrementálního okna navždy.
      */
-    public async fetchProducts(pricelistId: number, maxPages?: number, lastSync?: string | null): Promise<{ products: ShoptetProduct[]; incompleteCodes: string[] }> {
+    public async fetchProducts(
+        pricelistId: number,
+        maxPages?: number,
+        lastSync?: string | null,
+        extraCodes?: string[]
+    ): Promise<{ products: ShoptetProduct[]; incompleteCodes: string[] }> {
         if (lastSync) {
             console.log(`ProductsReader: INKREMENTÁLNÍ REŽIM - Hledám změněné produkty od ${lastSync}...`);
             const changes = await this.apiClient.getProductChanges(lastSync);
@@ -80,7 +88,10 @@ export class ProductsReader {
             let processed = 0;
             for (const change of changes) {
                 processed++;
-                if (processed % 50 === 0) console.log(`   Stahuji detail produktu ${processed}/${changes.length}`);
+                if (processed % 50 === 0 || processed === 1 || processed === changes.length) {
+                    console.log(`   Stahuji detail produktu ${processed}/${changes.length}`);
+                    GlobalStats.phase = `fetch-products (${processed}/${changes.length})`;
+                }
 
                 if (change.changeType === 'delete') continue;
 
@@ -139,12 +150,62 @@ export class ProductsReader {
                     }
                 }
 
+                const vatRate = pricelistEntry.vatRate || detail.vatRate || "23.00";
+                const includingVat = pricelistEntry.includingVat !== undefined ? pricelistEntry.includingVat : true;
+
                 products.push({
                     code,
                     price: new Decimal(basePrice),
                     actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
-                    productMaxDiscount
+                    productMaxDiscount,
+                    vatRate,
+                    includingVat
                 });
+            }
+
+            // Re-evaluace produktů dotčených změnou pricing pravidel / overrides
+            if (extraCodes && extraCodes.length > 0) {
+                const covered = new Set(products.map(p => p.code));
+                for (let i = 0; i < extraCodes.length; i++) {
+                    const code = extraCodes[i];
+                    if (covered.has(code) || incompleteCodes.includes(code)) continue;
+                    GlobalStats.phase = `config-re-evaluate (${i + 1}/${extraCodes.length})`;
+                    console.log(`ProductsReader: [RuleChange] Doplňuji produkt ${code} k přehodnocení po změně pricing pravidel.`);
+
+                    try {
+                        const item = await this.apiClient.getPricelistItemByCode(pricelistId, code);
+                        if (!item) {
+                            console.warn(`ProductsReader: [RuleChange] Produkt ${code} nemá záznam na ceníku ${pricelistId} -- VYNECHÁVÁM.`);
+                            incompleteCodes.push(code);
+                            continue;
+                        }
+                        const basePrice = parseFloat(item.price?.price ?? "0") || 0;
+                        let actPrice: number | undefined = undefined;
+                        let productMaxDiscount: Decimal | undefined = undefined;
+                        const actionPriceVal = item.price?.actionPrice?.price;
+                        if (actionPriceVal !== null && actionPriceVal !== undefined) actPrice = parseFloat(actionPriceVal);
+                        const ratio = item.sales?.minPriceRatio;
+                        if (ratio !== null && ratio !== undefined) {
+                            const ratioNum = parseFloat(ratio);
+                            if (!isNaN(ratioNum) && ratioNum <= 1) productMaxDiscount = new Decimal(1).minus(new Decimal(ratioNum));
+                        }
+                        const vatRate = item.vatRate || "23.00";
+                        const includingVat = item.includingVat !== undefined ? item.includingVat : true;
+
+                        products.push({
+                            code: item.code || code,
+                            price: new Decimal(basePrice),
+                            actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
+                            productMaxDiscount,
+                            vatRate,
+                            includingVat
+                        });
+                        covered.add(code);
+                    } catch (e: any) {
+                        console.warn(`ProductsReader: [RuleChange] Chyba při stahování produktu ${code}:`, e.message || e);
+                        incompleteCodes.push(code);
+                    }
+                }
             }
 
             // Escape hatch pro produkty, které Shoptet /products/changes API vůbec
@@ -155,8 +216,10 @@ export class ProductsReader {
             // incompleteCodes ochraně výše místo fabrikace basePrice=0).
             const forceEntries = loadForceSyncEntries();
             const alreadyCovered = new Set(products.map(p => p.code));
-            for (const entry of forceEntries) {
+            for (let i = 0; i < forceEntries.length; i++) {
+                const entry = forceEntries[i];
                 if (alreadyCovered.has(entry.code) || incompleteCodes.includes(entry.code)) continue;
+                GlobalStats.phase = `force-sync-product (${i + 1}/${forceEntries.length})`;
                 console.log(`ProductsReader: [ForceSync] Doplňuji produkt ${entry.code}, chybí v Shoptet changes API.`);
                 const detail = await this.apiClient.getProductDetail(entry.guid);
                 if (!detail) {
@@ -185,11 +248,16 @@ export class ProductsReader {
                     const ratioNum = parseFloat(ratio);
                     if (!isNaN(ratioNum) && ratioNum <= 1) productMaxDiscount = new Decimal(1).minus(new Decimal(ratioNum));
                 }
+                const vatRate = pricelistEntry.vatRate || detail.vatRate || "23.00";
+                const includingVat = pricelistEntry.includingVat !== undefined ? pricelistEntry.includingVat : true;
+
                 products.push({
                     code: variant?.code || detail.code || entry.code,
                     price: new Decimal(basePrice),
                     actionPrice: actPrice !== undefined ? new Decimal(actPrice) : undefined,
-                    productMaxDiscount
+                    productMaxDiscount,
+                    vatRate,
+                    includingVat
                 });
             }
 
@@ -215,7 +283,9 @@ export class ProductsReader {
                 code: item.code,
                 price: new Decimal(basePrice),
                 actionPrice: actPrice !== null && actPrice !== undefined ? new Decimal(actPrice) : undefined,
-                productMaxDiscount
+                productMaxDiscount,
+                vatRate: item.vatRate || "23.00",
+                includingVat: item.includingVat !== undefined ? item.includingVat : true
             };
         });
 

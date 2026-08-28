@@ -1,7 +1,7 @@
 import { EngineBuilder } from '../../../src/core/EngineBuilder.js';
 import { ValidationEngine } from '../../../src/core/ValidationEngine.js';
 import { CustomerTier, PricingInput } from '../../../src/core/interfaces.js';
-import { BRAND_SALE_DISCOUNTS } from '../engine/config.js';
+import { BRAND_SALE_DISCOUNTS, PRODUCT_LIMITS } from '../engine/config.js';
 import Decimal from 'decimal.js';
 import * as path from 'path';
 
@@ -79,17 +79,10 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
                 sku: p.code,
                 basePrice: new Decimal(basePriceNum),
                 salePrice: effectiveSalePriceNum !== undefined ? new Decimal(effectiveSalePriceNum) : undefined,
-                // Deliberately NOT passing p.productMaxDiscount here anymore. It comes
-                // straight from Shoptet's live sales.minPriceRatio on the base
-                // pricelist -- the SAME field the coupon-fields export writes GUEST's
-                // computed coupon room into (e.g. 5% for Delphin, ~20% for ordinary
-                // products). DiscountLimitPolicy's Product->Brand->Category hierarchy
-                // treats a defined productMaxDiscount as authoritative and overrides
-                // the correct brandLimits/categoryLimits from policy-v1.json, so this
-                // would silently reintroduce the exact field-overload bug fixed
-                // elsewhere on 2026-08-06 (e.g. capping Delphin at 5% instead of its
-                // real flat 15% action price). Confirmed live 2026-08-06 -- brand
-                // caps must come ONLY from policy-v1.json's brandLimits now.
+                // Product-level override always wins -- sourced from curated PRODUCT_LIMITS
+                // (product-max-discount-overrides.json, zero-discount-products.json, clearance-sale-products.json),
+                // NOT from live feed sales.minPriceRatio which contains coupon room.
+                productMaxDiscount: PRODUCT_LIMITS[p.code] !== undefined ? new Decimal(PRODUCT_LIMITS[p.code]) : undefined,
                 customerTier: pl.name as CustomerTier,
                 allowLoyaltyDiscount: true,
                 // Required for DiscountLimitPolicy's brand fallback (brandLimits in
@@ -121,13 +114,16 @@ export function calculateProductsPricing(products: Array<any>, pricelists: Array
                     failures.push({ code: p.code, tier: pl.name, reason });
                     continue;
                 }
+
+                // Bezpečné uložení do mapy výsledků
                 itemResult.prices[pl.name] = res.finalPrice.toFixed(4);
-            } catch (e) {
-                const reason = `exception: ${(e as Error).message}`;
-                console.warn(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
+            } catch (err: any) {
+                const reason = `exception: ${err.message || String(err)}`;
+                console.error(`[pricing-bridge] ${p.code} / ${pl.name}: ${reason}`);
                 failures.push({ code: p.code, tier: pl.name, reason });
             }
         }
+
         results.push(itemResult);
     }
 

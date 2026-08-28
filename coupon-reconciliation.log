@@ -1,0 +1,951 @@
+=== COUPON RECONCILIATION / COUPON INTEGRITY LAYER ===
+Datum běhu: 2026-08-27
+
+1. Stahuji seznam ceníků...
+   Všech 11 očekávaných ceníků (10 ZR tierů + GUEST) potvrzeno živě.
+2. Stahuji atributy z master feedu (manufacturer/category/allowLoyaltyDiscount)...
+   16726 kódů s atributy.
+3. Stahuji základní/GUEST ceník (id 1, zdroj basePrice/actionPrice)...
+[Paginator] Fetching /pricelists/1 - Stránka 1 / 168
+[Paginator] Fetching /pricelists/1 - Stránka 50 / 168
+[Paginator] Fetching /pricelists/1 - Stránka 100 / 168
+[Paginator] Fetching /pricelists/1 - Stránka 150 / 168
+[Paginator] Fetching /pricelists/1 - Stránka 168 / 168
+   16726 položek.
+   16720 produktů s platnou basePrice.
+4. Počítám očekávané kupónové zápisy pro všechny ceníky (stejná funkce jako produkce: computeCouponWrites())...
+   Spočítáno pro 16720 produktů × 11 ceníků.
+
+=== Stahuji a porovnávám ceník ZR4 (2) ===
+[Paginator] Fetching /pricelists/2 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/2 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/2 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/2 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/2 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR6 (5) ===
+[Paginator] Fetching /pricelists/5 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/5 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/5 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/5 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/5 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR8 (8) ===
+[Paginator] Fetching /pricelists/8 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/8 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/8 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/8 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/8 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR10 (11) ===
+[Paginator] Fetching /pricelists/11 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/11 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/11 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/11 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/11 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR12 (14) ===
+[Paginator] Fetching /pricelists/14 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/14 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/14 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/14 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/14 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR14 (17) ===
+[Paginator] Fetching /pricelists/17 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/17 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/17 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/17 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/17 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR16 (20) ===
+[Paginator] Fetching /pricelists/20 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/20 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/20 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/20 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/20 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR18 (23) ===
+[Paginator] Fetching /pricelists/23 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/23 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/23 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/23 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/23 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR20 (26) ===
+[Paginator] Fetching /pricelists/26 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/26 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/26 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/26 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/26 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník ZR25 (29) ===
+[Paginator] Fetching /pricelists/29 - Stránka 1 / 166
+[Paginator] Fetching /pricelists/29 - Stránka 50 / 166
+[Paginator] Fetching /pricelists/29 - Stránka 100 / 166
+[Paginator] Fetching /pricelists/29 - Stránka 150 / 166
+[Paginator] Fetching /pricelists/29 - Stránka 166 / 166
+
+=== Stahuji a porovnávám ceník GUEST (1) ===
+
+
+=========================================
+VÝSLEDEK KUPÓNOVÉ RECONCILIACE
+=========================================
+Zkontrolováno: 183920 (produkt × ceník kombinací)
+Sedí: 181240
+Nově zjištěné neshody (čeká na potvrzení příští běh, zatím NEALERTOVÁNO): 316
+ALERT -- ZR20/ZR25 lock porušen (okamžitě): 80
+ALERT -- zcela chybí / bez sales polí (okamžitě): 1804
+ALERT -- hodnota nesedí (přetrvává 2+ běhy): 480
+
+--- ALERTY ---
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 110006 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 110011 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 114046 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 31186 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39374 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39375 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39376 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 41792 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46445 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46446 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46447 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46449 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46451 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46965 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 59723 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 64580 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 65805 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 66764 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77667 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77826 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77854 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77865 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 88246 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 88764 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89283 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89284 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89285 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89286 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89287 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89288 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89289 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89290 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89291 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89292 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89293 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89294 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89295 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89296 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89297 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 96572 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 97174 (ceník ZR20) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 110006 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 110011 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 114046 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 31186 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39374 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39375 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 39376 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 41792 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46445 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46446 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46447 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46449 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46451 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 46965 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 59723 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 64580 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 65805 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 66764 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77826 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77854 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 77865 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 88246 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89283 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89284 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89285 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89286 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89287 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89288 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89289 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89290 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89291 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89292 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89293 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89294 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89295 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89296 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 89297 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 96572 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false (Rule 4, lockedTiers, absolutní precedence). Shoptet má discountCoupon=true/minPriceRatio=0.000. Produkt 97174 (ceník ZR25) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100464 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100465 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100467 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100468 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100469 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100580 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100594 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100595 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100597 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100598 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100599 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100659 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100769 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100770 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100771 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100772 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100773 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100774 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101591 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101594 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101816 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101817 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101818 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 104257 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109021 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109023 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110001 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110002 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110007 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110009 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110010 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110012 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110014 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110015 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110016 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110017 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110019 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110020 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110021 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110022 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110023 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110024 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110036 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110037 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29983 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29985 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29986 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31185 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31187 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31212 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31822 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38350 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38353 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41019 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41760 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41761 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41762 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41763 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41764 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41765 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41790 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41793 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41812 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41867 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41868 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41869 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41870 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41871 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42947 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42948 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43749 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43750 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43751 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43752 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46439 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46443 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46450 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46452 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46536 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46537 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46541 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46543 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46966 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46973 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47055 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47171 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47405 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47406 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47407 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47408 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47409 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47410 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47411 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47412 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47413 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47414 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47415 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47416 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50933 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50934 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50935 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50936 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50937 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50938 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50940 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55907 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55908 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55909 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55910 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55911 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56328 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56329 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56330 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56331 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 58787 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59721 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59724 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 62362 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64579 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64581 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64582 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65804 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65806 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65807 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65808 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65809 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65810 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66756 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66783 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66789 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68181 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8897. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68182 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8885. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68309 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68313 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68319 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8901. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68521 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68522 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68523 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68524 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77666 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77668 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77669 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77670 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77671 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77672 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77673 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77674 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77825 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77840 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77841 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77842 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77843 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77844 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77853 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77855 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77856 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77857 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77858 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77859 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77860 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77864 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77868 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77870 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77871 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77872 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79234 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79236 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88595 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88596 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88598 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88762 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88872 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88875 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97054 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97173 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97176 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97177 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97290 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97629 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8400. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97630 (ceník ZR4) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100464 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100465 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100467 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100468 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100469 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100580 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100594 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100595 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100597 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100598 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100599 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100659 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100769 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100770 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100771 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100772 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100773 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100774 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101591 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101594 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101816 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101817 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101818 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 104257 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109021 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109023 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110001 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110002 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110007 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110009 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110010 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110012 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110014 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110015 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110016 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110017 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110019 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110020 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110021 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110022 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110023 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110024 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110036 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110037 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29983 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29985 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29986 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31185 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31187 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31212 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31822 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38350 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38353 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41019 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41760 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41761 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41762 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41763 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41764 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41765 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41790 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41793 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41812 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41867 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41868 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41869 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41870 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41871 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42947 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42948 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43749 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43750 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43751 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43752 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46439 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46443 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46450 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46452 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46536 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46537 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46541 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46543 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46966 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46973 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47055 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47171 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47405 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47406 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47407 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47408 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47409 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47410 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47411 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47412 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47413 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47414 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47415 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47416 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50933 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50934 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50935 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50936 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50937 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50938 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50940 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55907 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55908 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55909 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55910 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55911 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56328 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56329 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56330 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56331 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 58787 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59721 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59724 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 62362 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64579 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64581 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64582 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65804 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65806 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65807 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65808 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65809 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65810 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66756 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66783 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66789 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68181 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8897. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68182 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8885. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68309 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68313 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68319 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8901. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68521 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68522 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68523 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68524 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77666 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77668 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77669 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77670 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77671 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77672 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77673 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77674 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77825 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77840 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77841 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77842 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77843 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77844 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77853 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77855 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77856 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77857 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77858 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77859 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77860 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77864 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77868 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77870 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77871 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77872 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79234 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79236 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88595 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88596 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88598 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88762 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88872 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88875 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97054 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97173 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97176 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97177 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97290 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97629 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8600. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97630 (ceník ZR6) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100464 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100465 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100467 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100468 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100469 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100580 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100594 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100595 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100597 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100598 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100599 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100659 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100769 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100770 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100771 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100772 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100773 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100774 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101591 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101594 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101816 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101817 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101818 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 104257 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109021 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109023 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110001 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110002 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110007 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110009 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110010 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110012 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110014 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110015 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110016 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110017 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110019 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110020 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110021 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110022 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110023 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110024 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110036 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110037 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29983 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29985 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29986 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31185 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31187 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31212 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31822 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38350 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38353 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41019 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41760 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41761 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41762 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41763 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41764 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41765 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41790 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41793 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41812 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41867 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41868 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41869 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41870 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41871 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42947 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42948 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43749 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43750 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43751 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43752 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46439 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46443 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46450 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46452 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46536 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46537 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46541 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46543 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46966 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46973 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47055 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47171 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47405 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47406 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47407 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47408 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47409 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47410 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47411 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47412 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47413 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47414 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47415 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47416 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50933 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50934 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50935 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50936 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50937 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50938 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50940 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55907 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55908 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55909 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55910 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55911 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56328 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56329 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56330 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56331 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 58787 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59721 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59724 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 62362 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64579 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64581 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64582 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65804 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65806 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65807 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65808 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65809 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65810 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66756 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66783 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66789 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68181 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8897. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68182 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8885. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68309 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68313 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68319 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8901. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68521 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68522 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68523 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68524 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77666 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77668 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77669 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77670 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77671 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77672 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77673 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77674 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77825 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77840 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77841 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77842 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77843 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77844 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77853 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77855 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77856 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77857 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77858 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77859 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77860 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77864 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77868 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77870 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77871 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77872 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79234 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79236 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88595 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88596 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88598 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88762 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88872 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88875 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97054 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97173 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97176 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97177 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97290 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97629 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.8800. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97630 (ceník ZR8) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100464 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100465 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100467 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100468 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100469 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100580 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100594 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100595 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100597 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100598 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100599 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100659 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100769 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100770 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100771 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100772 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100773 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100774 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101591 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101594 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101816 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101817 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101818 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 104257 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109021 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109023 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110001 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110002 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110007 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110009 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110010 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110012 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110014 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110015 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110016 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110017 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110019 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110020 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110021 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110022 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110023 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110024 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110036 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110037 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29983 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29985 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29986 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31185 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31187 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31212 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31822 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38350 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 38353 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41019 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41760 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41761 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41762 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41763 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41764 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41765 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41790 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41793 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41812 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41867 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41868 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41869 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41870 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 41871 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42947 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 42948 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43749 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43750 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43751 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 43752 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46439 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46443 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46450 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46452 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46536 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46537 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46541 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46543 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46966 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 46973 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47055 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47171 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47405 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47406 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47407 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47408 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47409 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47410 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47411 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47412 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47413 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47414 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47415 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 47416 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50933 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50934 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50935 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50936 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50937 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50938 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 50940 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55907 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55908 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55909 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55910 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 55911 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56328 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56329 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56330 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 56331 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 58787 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59721 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 59724 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 62362 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64579 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64581 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 64582 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65804 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65806 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65807 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65808 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65809 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 65810 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66756 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66783 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 66789 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68181 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68182 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68309 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68313 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68319 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68521 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68522 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68523 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 68524 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77666 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77668 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77669 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77670 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77671 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77672 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77673 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77674 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77825 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77840 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77841 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77842 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77843 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77844 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77853 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77855 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77856 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77857 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77858 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77859 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77860 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77864 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77868 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77870 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77871 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 77872 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79234 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 79236 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88595 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88596 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88598 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88762 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88872 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 88875 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97054 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97173 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97176 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97177 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97290 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97629 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 97630 (ceník ZR10) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100464 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100465 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100467 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100468 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100469 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100580 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100594 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100595 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100597 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100598 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100599 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100659 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100769 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100770 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100771 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100772 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100773 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 100774 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101591 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101594 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101816 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101817 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 101818 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 104257 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109021 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 109023 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110001 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110002 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110007 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110009 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110010 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110012 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110014 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110015 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110016 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110017 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110019 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110020 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110021 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110022 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110023 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110024 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110036 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 110037 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29983 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29985 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=false/minPriceRatio=1.0000. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 29986 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31185 (ceník ZR12) nebyl synchronizován. -> ALERT.
+Kupón měl být discountCoupon=true/minPriceRatio=0.9200. Shoptet má CHYBÍ CELÝ ZÁZNAM. Produkt 31187 (ceník ZR12) nebyl synchronizován. -> ALERT.

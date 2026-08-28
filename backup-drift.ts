@@ -44,7 +44,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Decimal from 'decimal.js';
 import { ShoptetApiClient } from '../shoptet-api/client';
-import { CouponSalesWriter } from '../coupon/coupon-sales-writer';
 import { CsvParserStream } from '../csv/csv-parser';
 import { computeCouponWrites, CouponWriteItem, ProductCouponInput } from '../coupon/compute-coupon-writes';
 import { ALL_PRICELISTS_MAP, GUEST_PRICELIST_ID, LOCKED_COUPON_TIERS } from '../coupon/tier-pricelist-map';
@@ -149,7 +148,6 @@ function formatCoupon(applyDiscountCoupon: boolean, minPriceRatio: string): stri
 }
 
 async function main() {
-    const applyFixes = process.argv.includes('--apply');
     const token = process.env.SHOPTET_PRIVATE_API_TOKEN;
     const feedUrl = process.env.MASTER_FEED_URL;
     if (!token) throw new Error('SHOPTET_PRIVATE_API_TOKEN not set');
@@ -215,22 +213,15 @@ async function main() {
         for (const item of items) byTier.set(item.tier, item);
         expectedByCode.set(product.code, byTier);
     }
-
     console.log(`   Spočítáno pro ${expectedByCode.size} produktů × ${Object.keys(ALL_PRICELISTS_MAP).length} ceníků.`);
 
+    const state = loadState();
+    const newState: ReconciliationState = {};
+    const lockViolationAlerts: Alert[] = [];
+    const missingAlerts: Alert[] = [];
+    const escalatedMismatchAlerts: Alert[] = [];
     let totalChecked = 0;
-    
-    // Unified stats tracking
-    const stats = {
-        MATCHED: 0,
-        MISSING: [] as any[],
-        MISMATCH: [] as any[],
-        LOCK_VIOLATION: [] as any[],
-        ORPHAN: [] as any[],
-        VERIFICATION_ERROR: [] as any[]
-    };
-
-    const writer = new CouponSalesWriter(client, { dryRun: !applyFixes });
+    let totalMatched = 0;
 
     for (const [tier, pricelistId] of Object.entries(ALL_PRICELISTS_MAP)) {
         console.log(`\n=== Stahuji a porovnávám ceník ${tier} (${pricelistId}) ===`);
@@ -245,114 +236,107 @@ async function main() {
         }
 
         const isLockedTier = (LOCKED_COUPON_TIERS as readonly string[]).includes(tier);
-        const correctionsForTier: any[] = [];
 
+        // We iterate over baseItems to ensure we catch ALL products, including orphans
+        // previously excluded from expectedByCode.
         for (const baseItem of baseItems) {
             const code = baseItem.code;
+            totalChecked++;
             
             const isOrphan = !feedAttrs.has(code);
             if (isOrphan) {
-                totalChecked++;
-                stats.ORPHAN.push({ code, tier, expected: 'N/A (Odstraněno z feedu)', actual: 'ORPHAN', kind: 'orphan' });
+                orphanAlerts.push({ code, tier, expected: 'N/A (Odstraněno z feedu)', actual: 'ORPHAN', kind: 'orphan' });
                 continue;
             }
 
             const expectedByTier = expectedByCode.get(code);
             const expected = expectedByTier?.get(tier);
-            if (!expected) continue; 
+            if (!expected) continue; // Should not happen for non-orphans
             
-            totalChecked++;
-            
+            const key = `${code}::${tier}`;
             const actual = actualByCode.get(code);
             const expectedStr = formatCoupon(expected.applyDiscountCoupon, expected.minPriceRatio.toFixed(4));
 
-            if (actual === undefined || actual === null) {
-                const actStr = actual === undefined ? 'CHYBÍ CELÝ ZÁZNAM' : 'ZÁZNAM BEZ sales.discountCoupon/minPriceRatio';
-                stats.MISSING.push({ code, tier, expected: expectedStr, actual: actStr, kind: 'missing', item: expected });
-                correctionsForTier.push(expected);
+            if (actual === undefined) {
+                // Produkt zcela chybí v tomhle ceníku -- žádná legitimní příčina, okamžitý alert.
+                missingAlerts.push({ code, tier, expected: expectedStr, actual: 'CHYBÍ CELÝ ZÁZNAM', kind: 'missing' });
+                continue;
+            }
+            if (actual === null) {
+                // Záznam existuje, ale nemá vůbec sales.discountCoupon/minPriceRatio (INC-011:
+                // "checkbox zaškrtnutý, ale hodnota nedopočítaná" projevuje se přesně takhle).
+                missingAlerts.push({ code, tier, expected: expectedStr, actual: 'ZÁZNAM BEZ sales.discountCoupon/minPriceRatio', kind: 'missing' });
                 continue;
             }
 
+            // FIRST/SIMPLEST CHECK, per Jan's explicit instruction: ZR20/ZR25 must
+            // ALWAYS show discountCoupon=false (Rule 4, absolute precedence, no
+            // exceptions) -- checked here as its own immediate-alert category,
+            // independent of whatever computeCouponWrites() itself says (which will
+            // also always say false for these tiers -- this check catches Shoptet
+            // disagreeing with that, not the engine disagreeing with itself).
             if (isLockedTier && actual.discountCoupon === true) {
-                stats.LOCK_VIOLATION.push({
+                lockViolationAlerts.push({
                     code, tier,
-                    expected: 'discountCoupon=false (Rule 4)',
+                    expected: 'discountCoupon=false (Rule 4, lockedTiers, absolutní precedence)',
                     actual: formatCoupon(actual.discountCoupon, actual.minPriceRatio),
-                    kind: 'lock-violation', item: expected
+                    kind: 'lock-violation'
                 });
-                correctionsForTier.push(expected);
                 continue;
             }
 
             const actualStr = formatCoupon(actual.discountCoupon, actual.minPriceRatio);
             const flagMatches = actual.discountCoupon === expected.applyDiscountCoupon;
-            
+            // minPriceRatio only has real (checkout-visible) meaning when the coupon is
+            // actually enabled -- when discountCoupon=false on BOTH sides, checkout never
+            // consults minPriceRatio at all, and live Shoptet products routinely carry a
+            // stale/never-explicitly-set 0.000 there instead of the "no room" 1.0000
+            // computeCouponWrites() would write. Comparing it anyway floods the alert
+            // list with values that are true (field wasn't set to what the engine would
+            // set) but have zero financial/checkout impact -- not the kind of drift this
+            // reconciliation exists to surface. Only compare the ratio when the coupon
+            // is meant to be usable (expected true) or Shoptet currently has it enabled
+            // (actual true) -- either case means the ratio value is checkout-relevant.
             const ratioMatters = expected.applyDiscountCoupon || actual.discountCoupon;
             const actualRatio = parseFloat(actual.minPriceRatio);
             const expectedRatio = expected.minPriceRatio.toNumber();
             const ratioMatches = !ratioMatters || (!isNaN(actualRatio) && Math.abs(actualRatio - expectedRatio) <= RATIO_TOLERANCE);
 
             if (flagMatches && ratioMatches) {
-                stats.MATCHED++;
-                continue;
+                totalMatched++;
+                continue; // sedí -- případný pending mismatch tím "vyřeší" a zmizí ze stavu
             }
 
-            stats.MISMATCH.push({ code, tier, expected: expectedStr, actual: actualStr, kind: 'mismatch', item: expected });
-            correctionsForTier.push(expected);
-        }
-
-        if (applyFixes && correctionsForTier.length > 0) {
-            console.log(`[WRITE] Odesílám ${correctionsForTier.length} oprav pro tier ${tier}...`);
-            const writeStats = await writer.processTierBatch(pricelistId, tier, correctionsForTier);
-            
-            // Re-classify based on verification results
-            // Note: processTierBatch returns verificationFailures
-            const failedCodes = new Set(writeStats.verificationFailures.map(v => v.code));
-            
-            // We need to move successful ones to MATCHED, and failed ones to VERIFICATION_ERROR
-            for (const cat of [stats.MISSING, stats.MISMATCH, stats.LOCK_VIOLATION]) {
-                // iterate backwards to allow removal
-                for (let i = cat.length - 1; i >= 0; i--) {
-                    const alert = cat[i];
-                    if (alert.tier === tier) {
-                        if (failedCodes.has(alert.code) || writeStats.failed > 0) { // For simplicity, if any failed, assume they might be in errors
-                            // Move to VERIFICATION_ERROR
-                            stats.VERIFICATION_ERROR.push({...alert, kind: 'verification-error'});
-                            cat.splice(i, 1);
-                        } else {
-                            // Successfully fixed!
-                            stats.MATCHED++;
-                            cat.splice(i, 1);
-                        }
-                    }
-                }
+            const prior = state[key];
+            if (prior && prior.firstSeen < today) {
+                escalatedMismatchAlerts.push({ code, tier, expected: expectedStr, actual: actualStr, kind: 'mismatch' });
+                newState[key] = { firstSeen: prior.firstSeen, expected: expectedStr, actual: actualStr };
+            } else {
+                newState[key] = { firstSeen: prior?.firstSeen || today, expected: expectedStr, actual: actualStr };
             }
         }
     }
+
+    saveState(newState);
 
     console.log('\n\n=========================================');
-    console.log(applyFixes ? 'AFTER (PO OPRAVĚ)' : 'BEFORE (STAV NA SHOPTETU)');
+    console.log('VÝSLEDEK KUPÓNOVÉ RECONCILIACE');
     console.log('=========================================');
-    console.log(`MATCHED: ${stats.MATCHED}`);
-    console.log(`MISSING: ${stats.MISSING.length}`);
-    console.log(`MISMATCH: ${stats.MISMATCH.length}`);
-    console.log(`LOCK_VIOLATION: ${stats.LOCK_VIOLATION.length}`);
-    console.log(`ORPHAN: ${stats.ORPHAN.length}`);
-    console.log(`VERIFICATION_ERROR: ${stats.VERIFICATION_ERROR.length}`);
-    console.log(`TOTAL: ${stats.MATCHED + stats.MISSING.length + stats.MISMATCH.length + stats.LOCK_VIOLATION.length + stats.ORPHAN.length + stats.VERIFICATION_ERROR.length}`);
+    console.log(`Zkontrolováno: ${totalChecked} (produkt × ceník kombinací)`);
+    console.log(`Sedí: ${totalMatched}`);
+    console.log(`Nově zjištěné neshody (čeká na potvrzení příští běh, zatím NEALERTOVÁNO): ${Object.keys(newState).length - escalatedMismatchAlerts.length}`);
+    console.log(`ALERT -- ZR20/ZR25 lock porušen (okamžitě): ${lockViolationAlerts.length}`);
+    console.log(`ALERT -- zcela chybí / bez sales polí (okamžitě): ${missingAlerts.length}`);
+    console.log(`ALERT -- hodnota nesedí (přetrvává 2+ běhy): ${escalatedMismatchAlerts.length}`);
 
-    const totalCalculated = stats.MATCHED + stats.MISSING.length + stats.MISMATCH.length + stats.LOCK_VIOLATION.length + stats.ORPHAN.length + stats.VERIFICATION_ERROR.length;
-    if (totalCalculated !== totalChecked) {
-        throw new Error(`Integrity chyba matematiky! totalChecked=${totalChecked}, secteno=${totalCalculated}`);
-    }
-
-    const allAlerts = [...stats.LOCK_VIOLATION, ...stats.MISSING, ...stats.MISMATCH, ...stats.VERIFICATION_ERROR];
+    const allAlerts = [...lockViolationAlerts, ...missingAlerts, ...escalatedMismatchAlerts];
     if (allAlerts.length > 0) {
         console.log('\n--- ALERTY ---');
         for (const a of allAlerts) {
-            console.log(`Kupón měl být ${a.expected}. Shoptet má ${a.actual}. Produkt ${a.code} (ceník ${a.tier}). -> ${a.kind.toUpperCase()}`);
+            console.log(`Kupón měl být ${a.expected}. Shoptet má ${a.actual}. Produkt ${a.code} (ceník ${a.tier}) nebyl synchronizován. -> ALERT.`);
         }
     }
+
     // --- SELF-CHECK (meta-validace) ---------------------------------------
     // Stejný důvod jako reconcile-pricelist-drift.ts: "0 alertů" je
     // nerozeznatelné od "reconciliace se sama potichu rozbila a nezkontrolovala
@@ -389,7 +373,7 @@ async function main() {
         throw new Error(`COUPON RECONCILIATION SELF-CHECK SELHAL (validace sama je podezřelá, nezávisle na ${allAlerts.length} nalezených alertech): ${selfCheckFailures.join(' | ')}`);
     }
     if (allAlerts.length > 0) {
-        throw new Error(`Kupónová reconciliace našla ${allAlerts.length} neshod (${stats.LOCK_VIOLATION.length}x ZR20/ZR25 lock porušen, ${stats.MISSING.length}x zcela chybí, ${stats.MISMATCH.length}x hodnota nesedí přes 2+ běhy). Detail výše v logu.`);
+        throw new Error(`Kupónová reconciliace našla ${allAlerts.length} neshod (${lockViolationAlerts.length}x ZR20/ZR25 lock porušen, ${missingAlerts.length}x zcela chybí, ${escalatedMismatchAlerts.length}x hodnota nesedí přes 2+ běhy). Detail výše v logu.`);
     }
 }
 

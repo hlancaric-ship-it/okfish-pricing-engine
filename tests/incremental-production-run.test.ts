@@ -21,13 +21,6 @@ describe('Kontrolovaný produkční běh (Simulace)', () => {
             setPrice: vi.fn(),
             commit: vi.fn()
         };
-
-        orchestrator = new SyncOrchestrator({
-            dryRun: true, // v testu pustíme DRY RUN, abychom viděli logy a průběh
-            token: 'test-token',
-            priceCache: mockCacheProvider,
-            maxPages: 1
-        });
     });
 
     it('Scénář: 1 změněný produkt, 1 změněný zákazník, 1 změněná objednávka', async () => {
@@ -40,8 +33,14 @@ describe('Kontrolovaný produkční běh (Simulace)', () => {
             getLastSync: vi.fn().mockResolvedValue(mockLastSync),
             setLastSync: vi.fn().mockResolvedValue(undefined)
         };
-        // Dependency Injection pro stateProvider by bylo hezčí, ale orchestrator instanciuje FileStateProvider napřímo.
-        // Obejdeme to zafixováním vnitřních metod apiClienta.
+
+        orchestrator = new SyncOrchestrator({
+            dryRun: true, // v testu pustíme DRY RUN, abychom viděli logy a průběh
+            token: 'test-token',
+            priceCache: mockCacheProvider,
+            stateProvider: mockStateProvider,
+            maxPages: 1
+        });
 
         // MOCK API CLIENTA (První běh)
         (orchestrator as any).client.getPricelists = vi.fn().mockResolvedValue([

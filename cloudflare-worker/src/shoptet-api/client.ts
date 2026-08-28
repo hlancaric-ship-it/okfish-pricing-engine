@@ -1,20 +1,40 @@
 import { ShoptetRateLimiter } from './rate-limiter';
 
-export const GlobalStats = {
-    apiRequests: { GET: 0, PATCH: 0 } as Record<string, number>,
-    httpResponses: {} as Record<number, number>,
-    retries: {} as Record<number, number>,
-    auditLogs: 0,
-    rollbackSnapshots: 0,
-    ordersLoaded: 0,
-    turnoverCalculated: 0,
-    // Diagnostic breadcrumb -- set by SyncOrchestrator at each major step, read by
-    // the stats reporter (scripts/run-real-sync.ts). Lets the dashboard show WHICH
-    // step a stuck run is stuck on, since raw GitHub Actions logs aren't readable
-    // while a job is still in progress. Added 2026-08-06 after several runs stalled
-    // with zero API requests and no way to tell where.
-    phase: 'starting' as string
-};
+export interface GlobalStatsType {
+    apiRequests: { GET: number; PATCH: number };
+    httpResponses: Record<number, number>;
+    retries: Record<number, number>;
+    auditLogs: number;
+    rollbackSnapshots: number;
+    ordersLoaded: number;
+    turnoverCalculated: number;
+    phase: string;
+}
+
+// Global singleton attached to globalThis to eliminate dual-module/dual-package
+// hazards when imported from different paths (.ts vs .js vs extensionless).
+const GLOBAL_STATS_KEY = Symbol.for('__SHOPTET_GLOBAL_STATS__');
+const globalScope = globalThis as unknown as { [GLOBAL_STATS_KEY]?: GlobalStatsType };
+
+if (!globalScope[GLOBAL_STATS_KEY]) {
+    globalScope[GLOBAL_STATS_KEY] = {
+        apiRequests: { GET: 0, PATCH: 0 },
+        httpResponses: {},
+        retries: {},
+        auditLogs: 0,
+        rollbackSnapshots: 0,
+        ordersLoaded: 0,
+        turnoverCalculated: 0,
+        // Diagnostic breadcrumb -- set by SyncOrchestrator at each major step, read by
+        // the stats reporter (scripts/run-real-sync.ts). Lets the dashboard show WHICH
+        // step a stuck run is stuck on, since raw GitHub Actions logs aren't readable
+        // while a job is still in progress. Added 2026-08-06 after several runs stalled
+        // with zero API requests and no way to tell where.
+        phase: 'starting'
+    };
+}
+
+export const GlobalStats: GlobalStatsType = globalScope[GLOBAL_STATS_KEY]!;
 
 // Základní typy podle zjištění v API Discovery
 export interface ShoptetPricelist {
@@ -372,12 +392,12 @@ export class ShoptetApiClient {
         let truncatedByMaxPages = false;
         const separator = endpointPath.includes('?') ? '&' : '?';
 
-        do {
+        while (true) {
             const url = `${this.baseUrl}${endpointPath}${separator}page=${page}&itemsPerPage=${itemsPerPage}`;
 
             const result = await this.rateLimiter.execute(
                 async () => {
-                    GlobalStats.apiRequests.GET++;
+                    GlobalStats.apiRequests.GET = (GlobalStats.apiRequests.GET || 0) + 1;
                     const res = await fetch(url, { headers: this.getHeaders() });
                     GlobalStats.httpResponses[res.status] = (GlobalStats.httpResponses[res.status] || 0) + 1;
                     return res;
@@ -392,37 +412,55 @@ export class ShoptetApiClient {
             );
 
             // Shoptet API vrací např. result.data.pricelist.items, result.data.orders
-            let itemsRaw: any = result.data;
+            let itemsRaw: any = result?.data;
             for (const key of dataKey.split('.')) {
                 if (itemsRaw) {
                     itemsRaw = itemsRaw[key];
                 }
             }
-            const items = itemsRaw as T[];
-            if (items && Array.isArray(items)) {
-                allItems = allItems.concat(items);
-            }
+            const items = Array.isArray(itemsRaw) ? (itemsRaw as T[]) : [];
+            allItems = allItems.concat(items);
 
-            if (result.data.paginator) {
-                totalPages = result.data.paginator.pageCount;
+            if (result?.data?.paginator) {
+                const paginator = result.data.paginator;
+                totalPages = typeof paginator.pageCount === 'number' ? paginator.pageCount : 1;
                 // Deliberately overwritten every page, not just the first: totalCount
                 // can itself drift mid-pull under the same concurrent-write condition
                 // this check exists to catch, so the LAST page's totalCount is what
                 // gets compared against the final concatenated item count.
-                totalCount = typeof result.data.paginator.totalCount === 'number' ? result.data.paginator.totalCount : null;
+                totalCount = typeof paginator.totalCount === 'number' ? paginator.totalCount : null;
             } else {
                 totalPages = 1; // Pokud endpoint nemá stránkování (ale my víme, že tyto mají)
             }
+
             if (page % 50 === 0 || page === 1 || page === totalPages) {
-                console.log(`[Paginator] Fetching ${endpointPath} - Stránka ${page} / ${totalPages}`);
+                console.log(`[Paginator] Fetching ${endpointPath} - Stránka ${page} / ${Math.max(totalPages, 1)} (staženo ${allItems.length}${totalCount !== null ? `/${totalCount}` : ''})`);
             }
-            page++;
-            if (maxPages && page > maxPages) {
-                console.log(`[Paginator] Dosažen nastavený limit maxPages = ${maxPages}. Ukončuji stahování.`);
-                truncatedByMaxPages = true;
+
+            // Ochrana proti zacyklení a prázdným entitám (např. zákazník bez objednávek)
+            if (totalCount === 0 || totalPages <= 0) {
                 break;
             }
-        } while (page <= totalPages);
+
+            // Pokud aktuální stránka neobsahuje žádné položky, další stránky již neexistují
+            if (items.length === 0) {
+                break;
+            }
+
+            if (maxPages && page >= maxPages) {
+                if (page < totalPages) {
+                    console.log(`[Paginator] Dosažen nastavený limit maxPages = ${maxPages}. Ukončuji stahování.`);
+                    truncatedByMaxPages = true;
+                }
+                break;
+            }
+
+            if (page >= totalPages) {
+                break;
+            }
+
+            page++;
+        }
 
         return { items: allItems, totalCount, truncatedByMaxPages };
     }
@@ -430,27 +468,19 @@ export class ShoptetApiClient {
     /**
      * Uloží dávku cen do ceníku (WRITE)
      */
-    public async updatePricelistBatch(pricelistId: number, items: Array<{ code: string, price: string, actionPrice?: string | null }>): Promise<{ requestId: string, response: string, timestamp: string, status: number, endpoint: string }> {
+    public async updatePricelistBatch(pricelistId: number, items: Array<{ code: string, price: string, actionPrice?: string | null, includingVat?: boolean, vatRate?: string }>): Promise<{ requestId: string, response: string, timestamp: string, status: number, endpoint: string }> {
         const endpointPath = `/pricelists/${pricelistId}`;
         const url = `${this.baseUrl}${endpointPath}`;
         const body = {
-            // BUG opraveno 2026-08-14: tahle metoda dřív stavěla `price: { price }` a
-            // JAKÉKOLI jiné pole na `item` (včetně `actionPrice`, co pricelist-writer.ts
-            // do batch payloadu vkládá) se tiše zahodilo -- PATCH request na Shoptet
-            // proto nikdy neobsahoval akční cenu, přestože kód volajícího (PricelistWriter,
-            // brandSaleDiscounts write-back v sync-orchestrator.ts) se tvářil, že ji
-            // zapisuje. Nikdy předtím se nechytilo, protože žádný dřívější zápis
-            // (FLACARP, produktové ceny obecně) `actionPrice` nikdy neposílal -- první
-            // reálné použití byl až tenhle base/GUEST ceník zápis. `actionPrice` se
-            // vnořuje pod `price` stejně jako ve čtecím tvaru (`price.actionPrice.price`,
-            // viz ShoptetPricelistItem); bez `fromDate`/`toDate` zůstává neomezené
-            // (celoroční), přesně jak brandSaleDiscounts vyžaduje.
             data: items.map(item => {
                 const priceObj: Record<string, any> = { price: item.price };
                 if (item.actionPrice !== undefined) {
                     priceObj.actionPrice = item.actionPrice === null ? null : { price: item.actionPrice };
                 }
-                return { code: item.code, price: priceObj };
+                const entry: Record<string, any> = { code: item.code, price: priceObj };
+                if (item.includingVat !== undefined) entry.includingVat = item.includingVat;
+                if (item.vatRate !== undefined) entry.vatRate = item.vatRate;
+                return entry;
             })
         };
 

@@ -94,11 +94,26 @@ async function run() {
         process.exit(1);
     }
 
+    const isFullSyncRequested = process.argv.includes('--full') || process.env.FULL_SYNC === '1';
+    let stateProvider;
+    if (isFullSyncRequested) {
+        console.log("-> Vynucen FULL SYNC (--full flag) — stahuji kompletní katalog a zákazníky bez filtru změn.");
+        stateProvider = {
+            getLastSync: async () => null,
+            setLastSync: async (ts: string) => {
+                const fs = await import('fs');
+                const path = await import('path');
+                fs.writeFileSync(path.join(process.cwd(), '.sync_state.json'), JSON.stringify({ lastSync: ts }, null, 2), 'utf8');
+            }
+        };
+    }
+
     const orchestrator = new SyncOrchestrator({
         dryRun: false, // DŮLEŽITÉ: false znamená OSTRÝ BĚH (bude zapisovat PATCH requesty!)
         token: token,
         priceCache: cacheProvider,
         customerCache: customerCache,
+        stateProvider: stateProvider,
         maxPages: undefined // Projdeme vše, co je potřeba
     });
 

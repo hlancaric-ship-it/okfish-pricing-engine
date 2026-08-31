@@ -1,1 +1,12 @@
-{}
+{
+  "38352::GUEST": {
+    "firstSeen": "2026-08-31",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  },
+  "38354::GUEST": {
+    "firstSeen": "2026-08-31",
+    "expected": "discountCoupon=true/minPriceRatio=0.8000",
+    "actual": "discountCoupon=true/minPriceRatio=0.000"
+  }
+}

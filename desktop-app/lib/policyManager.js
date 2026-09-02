@@ -151,6 +151,12 @@ async function ensureRepoCloned(log) {
         log('Nastavuji .env (API klíč, adresa katalogu)...');
         fs.copyFileSync(BUNDLED_ENV_PATH, envPath);
     }
+
+    // Nastavit git konfiguraci pro aplikaci (jednoduše a bez přepisu globálních nastavení)
+    log('Nastavuji git konfiguraci aplikace...');
+    await git(['config', 'user.email', 'pricing-app@okfish-engine.local']);
+    await git(['config', 'user.name', 'L-Code Pricing Engine App']);
+    log('Git konfigurován pro práci s pravidly.');
 }
 
 // Commits and pushes ONLY the one policy file the current save actually wrote

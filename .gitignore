@@ -16,5 +16,6 @@ products_mock_*.csv
 .snapshots/
 cloudflare-worker/.snapshots/
 coupon-dry-run-report.json
+backfill-plan.json
 *.sync_state.json.bak
 .claude/

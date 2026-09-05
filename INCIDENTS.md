@@ -6,6 +6,51 @@ Každý záznam by měl obsahovat: datum, popis problému, příčinu, řešení
 
 ---
 
+## 2026-09-05 -- INC-015: FULL SYNC větev fabrikovala basePrice=0 pro produkty s chybějící cenou -- root cause ~1850 produkt×tier reconciliation alertů (VYŘEŠENO)
+
+**Popis:**
+Issue #8 (Price Integrity) a #9 (Coupon Integrity) hlásily denně od 2026-08-19/20
+neshodu mezi očekávanou a skutečnou cenou -- k 2026-09-04 celkem 144 zcela chybějících
++ 1706 trvale nesedících = ~1850 produkt×tier záznamů. `.reconciliation_state.json`
+ukázal, že 92 % z nich (1600 záznamů, 160 unikátních kódů) má `firstSeen: 2026-08-28`,
+ne rozptýlené v čase -- silný signál jedné konkrétní události, ne pomalého driftu.
+
+**Příčina:**
+`ProductsReader.fetchProducts()` (`cloudflare-worker/src/shoptet-api/products-reader.ts`)
+má dvě větve: inkrementální (běží, když je k dispozici `lastSync`) a FULL SYNC (běží při
+prvním běhu nebo když `pricing-config-fingerprint.ts` detekuje `requiresFullReevaluation`,
+např. změna `policy-v1.json`). Inkrementální větev má od INCIDENTU 2026-08-12 (99459/103525)
+ochranu: pokud Shoptet nevrátí platnou `price.price`, produkt se vynechá a nahlásí jako
+`incompleteCodes`, NIKDY se nefabrikuje `basePrice=0`. **FULL SYNC větev tuhle ochranu
+nikdy nedostala** -- řádek `const basePrice = item.price?.price ? item.price.price : 0;`
+tiše zapisoval nulovou cenu pro jakýkoli produkt s chybějící/prázdnou `price.price`, a vždy
+vracela `incompleteCodes: []` bez ohledu na realitu.
+
+2026-08-28 v 17:39 CEST byl commitem `e5172e4` poprvé nasazen `pricing-config-fingerprint.ts`.
+Jeho první běh (žádný uložený `configFingerprint`) vždy vrací `requiresFullReevaluation: true`
+(bootstrap), což vynutilo FULL SYNC větev při běhu v 20:00 UTC téhož dne -- 160 produktů,
+u kterých Shoptet v tu chvíli nevrátil `price.price` (typicky produkty v přechodném stavu),
+dostalo fabrikovanou nulu místo vynechání, což se v cílovém ceníku projevilo jako chybějící/
+nesedící záznam napříč všemi 10 tiery (160 × 10 = 1600).
+
+**Řešení:**
+FULL SYNC větev v `products-reader.ts` přepsána ze `.map()` na `for` smyčku se stejnou
+`incompleteCodes` ochranou jako inkrementální větev: chybějící/prázdná `price.price`
+produkt vyloučí z běhu a nahlásí, místo aby zapsala nulu. Přidány 2 regresní testy
+(`tests/products-reader.test.ts`, sekce "full sync price extraction").
+
+**Backfill dokončen (2026-09-05):** `cloudflare-worker/src/cli/backfill-reconciliation-drift.ts`
+napsán, dry-run ověřen (1731/1742 záznamů k opravě, 11 se mezitím srovnalo samo, 0 chybějících
+basePrice), po schválení spuštěn ostře -- všech 1731 položek napříč 10 tiery zapsáno a
+živě ověřeno, 0 selhání. Součástí i produkt 93683 (4 záznamy, ZR16/18/20/25, jiná/starší
+kategorie -- existující cena 12.71 přepsána na přepočítanou hodnotu podle aktuální policy,
+schváleno explicitně). Plán zápisu uložen v `backfill-plan.json` (needituje se do gitu).
+
+**Verze:**
+main (2026-09-05)
+
+---
+
 ## 2026-08-25 -- INC-014: Nulová DPH (vatRate: 0.00% / includingVat: false) při zápisu do věrnostních ceníků přes API (VYŘEŠENO)
 
 **Popis:**

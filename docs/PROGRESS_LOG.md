@@ -7,6 +7,28 @@ why, and what's still open.
 
 ---
 
+## 2026-09-05 (pokračování) — Root cause ~1850 produkt×tier reconciliation alertů nalezen a opraven (INC-015)
+
+Hypotéza ze zápisu níže (okno 15.–21.8., `getPricelistItemByCode` bug) byla **vyvrácena
+daty** — `.reconciliation_state.json` ukázal 92 % postižených záznamů (1600/1742) s
+`firstSeen: 2026-08-28`, ne v okně 15.–21.8. Vyšetřením (stažené `reconciliation-log`
+artifacty z běhů 27.8./28.8., `git show e5172e4`, čtení `products-reader.ts` a
+`pricing-config-fingerprint.ts`) potvrzen skutečný mechanismus — viz `INCIDENTS.md`
+INC-015 pro plný popis. Stručně: FULL SYNC větev `ProductsReader.fetchProducts()`
+fabrikovala `basePrice=0` pro produkty s chybějící cenou (na rozdíl od inkrementální
+větve, co má tuhle ochranu od 12.8.), a `pricing-config-fingerprint.ts` (nasazen
+28.8. 17:39 CEST) svým prvním bootstrapem vynutil FULL SYNC ten samý den ve 20:00 UTC.
+
+**Opraveno:** `products-reader.ts` FULL SYNC větev teď má stejnou `incompleteCodes`
+ochranu jako inkrementální větev. 2 nové regresní testy v `tests/products-reader.test.ts`.
+Build čistý, 364 (root) + 120 (worker) testů passed. **Needitováno a needitováno commitnuto
+zatím** — čeká na schválení.
+
+**Zůstává:** Backfill ~1850 existujících produkt×tier záznamů, co uvízly PŘED touhle
+opravou (oprava zastavuje nové mezery, nedoplňuje staré) — dry-run skript zatím nenapsán.
+
+---
+
 ## 2026-09-05 (pokračování) — Lokální klon dohnán na origin/main, rozdělaná customer-import/force-sync práce sloučena zpět
 
 **Zjištěno:** Lokální klon zaostával o 14 dní (HEAD na `6ddc5c4`, 2026-08-21) oproti

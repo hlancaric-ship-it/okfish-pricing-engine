@@ -269,8 +269,26 @@ export class ProductsReader {
         console.log(`ProductsReader: FULL SYNC - Stahování všech produktů pro ceník ID ${pricelistId}...`);
         const items = await this.apiClient.getPricelistProducts(pricelistId, maxPages);
 
-        const products: ShoptetProduct[] = items.map(item => {
-            const basePrice = item.price?.price ? item.price.price : 0;
+        // Stejná ochrana jako v inkrementální větvi výše (viz komentář nad metodou,
+        // INCIDENT 2026-08-12: 99459/103525): dokud Shoptet nevrátí platnou price.price,
+        // NEFABRIKUJEME basePrice=0 -- to by se dřív zapsalo jako platná (nulová/nesprávná)
+        // cena na wholesale ceník beze stopy. Místo toho produkt vynecháváme z tohoto běhu
+        // a hlásíme ho jako incomplete, aby se zkusil znovu příští synchronizací.
+        // Bug potvrzen živě 2026-09-05: FULL SYNC větev (spouští se při
+        // requiresFullReevaluation, např. první běh pricing-config-fingerprint.ts nebo
+        // změna policy-v1.json) fabrikovala basePrice=0 a vracela incompleteCodes: []
+        // bez ohledu na skutečný stav dat -- root cause ~1850 produkt×tier reconciliation
+        // alertů z 28.8. (issue #8/#9).
+        const incompleteCodesFullSync: string[] = [];
+        const products: ShoptetProduct[] = [];
+        for (const item of items) {
+            const rawPrice = item.price?.price;
+            if (rawPrice === null || rawPrice === undefined || rawPrice === '') {
+                console.warn(`ProductsReader: [FullSync] Produkt ${item.code} nemá platnou price.price na ceníku ${pricelistId} -- VYNECHÁVÁM, bude zkusen znovu příští synchronizací.`);
+                incompleteCodesFullSync.push(item.code);
+                continue;
+            }
+            const basePrice = rawPrice;
             const actPrice = item.price?.actionPrice?.price;
             let productMaxDiscount: Decimal | undefined = undefined;
             if (item.sales?.minPriceRatio) {
@@ -279,17 +297,17 @@ export class ProductsReader {
                     productMaxDiscount = new Decimal(1).minus(new Decimal(ratio));
                 }
             }
-            return {
+            products.push({
                 code: item.code,
                 price: new Decimal(basePrice),
                 actionPrice: actPrice !== null && actPrice !== undefined ? new Decimal(actPrice) : undefined,
                 productMaxDiscount,
                 vatRate: item.vatRate || "23.00",
                 includingVat: item.includingVat !== undefined ? item.includingVat : true
-            };
-        });
+            });
+        }
 
-        console.log(`ProductsReader: Staženo ${products.length} produktů z ceníku ID ${pricelistId}.`);
-        return { products, incompleteCodes: [] };
+        console.log(`ProductsReader: Staženo a zpracováno ${products.length} produktů z ceníku ID ${pricelistId} (${incompleteCodesFullSync.length} vynecháno pro chybějící ceníková data).`);
+        return { products, incompleteCodes: incompleteCodesFullSync };
     }
 }

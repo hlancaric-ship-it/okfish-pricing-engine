@@ -171,3 +171,48 @@ describe('ProductsReader — incremental sync price/maxDiscount extraction', () 
         expect(incompleteCodes).toEqual(['GONE-1']);
     });
 });
+
+describe('ProductsReader — full sync price extraction (no lastSync)', () => {
+    // Regression test: unlike the incremental branch above (fixed 2026-08-12 for
+    // INCIDENT 99459/103525), the full-sync branch (triggered when lastSync is
+    // null/undefined -- e.g. bootstrap, or requiresFullReevaluation from a
+    // policy-v1.json change via pricing-config-fingerprint.ts) fabricated
+    // basePrice=0 for any item with a missing/empty price.price and always
+    // returned incompleteCodes: [], with no protection at all. Confirmed live
+    // 2026-09-05 as the root cause of ~1850 product×tier reconciliation alerts
+    // (issue #8/#9) first appearing 2026-08-28, the day a policy change forced a
+    // full re-evaluation. Fix: same as the incremental branch -- exclude the
+    // product and report it via incompleteCodes instead of writing a fabricated
+    // zero price.
+    it('excludes the product and reports it via incompleteCodes when price.price is missing (does NOT fabricate price=0)', async () => {
+        const reader = new ProductsReader({
+            getPricelistProducts: async () => [
+                { code: 'SKU-OK', price: { price: '100.00' }, sales: { minPriceRatio: 0.9 } },
+                { code: 'SKU-NO-PRICE', price: {} },
+                { code: 'SKU-NULL-PRICE', price: { price: null } },
+            ],
+        } as any);
+
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID);
+
+        expect(products).toHaveLength(1);
+        expect(products[0].code).toBe('SKU-OK');
+        expect(incompleteCodes).toEqual(['SKU-NO-PRICE', 'SKU-NULL-PRICE']);
+    });
+
+    it('reads price, actionPrice and productMaxDiscount normally for full sync when price.price is present', async () => {
+        const reader = new ProductsReader({
+            getPricelistProducts: async () => [
+                { code: 'SKU-1', price: { price: '650.00', actionPrice: { price: '500.00' } }, sales: { minPriceRatio: 0.95 }, vatRate: '23.00', includingVat: true },
+            ],
+        } as any);
+
+        const { products, incompleteCodes } = await reader.fetchProducts(BASE_PRICELIST_ID);
+
+        expect(incompleteCodes).toHaveLength(0);
+        expect(products).toHaveLength(1);
+        expect(products[0].price.toNumber()).toBe(650);
+        expect(products[0].actionPrice!.toNumber()).toBe(500);
+        expect(products[0].productMaxDiscount!.toNumber()).toBeCloseTo(0.05);
+    });
+});

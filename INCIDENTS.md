@@ -6,6 +6,75 @@ Každý záznam by měl obsahovat: datum, popis problému, příčinu, řešení
 
 ---
 
+## 2026-09-05 -- INC-016: Shoptet Premium potvrdil "HTTP 200 nestačí" u PATCH /api/pricelists/{id} (VYŘEŠENO — konkrétní SKU uzavřeny, poznatek k API chování ponechán)
+
+**Popis:**
+Nahlásili jsme Shoptet Premium (Stanislav Vinc, Premium Technical Consultant)
+podezření na rozdíl mezi odeslanou a následně načtenou hodnotou u SKU
+`100464` a `110006` na věrnostních ceníkách. Odpověď (2026-09-05, e-mail):
+
+> "Jeden request na endpoint PATCH /api/pricelists/{id} môže obsahovať až
+> 300 aktualizácií. Ak časť položiek uspeje a časť zlyhá, API vráti stav
+> 200 OK, pričom neúspešne spracované položky uvedie v poli `errors` v
+> tele odpovede. Samotný HTTP status preto nestačí na posúdenie úspešného
+> spracovania každej jednotlivej položky v dávke."
+
+Potvrdil zároveň, že endpoint je synchronní (ne fire-and-forget) — položka
+bez záznamu v `errors` by měla být po dokončení requestu skutečně uložená.
+
+**Zjištěno u SKU 100464**: poskytnutý zápis se týkal ceníku ID `23`, ale
+přiložená následná kontrola (z naší strany) se týkala ceníku `ZR10` —
+Vinc na to upozornil jako na nesrovnalost v našem podkladu, ne jako na
+potvrzenou chybu API. Než se prokáže cokoliv dál, je potřeba dohledat
+skutečný request/response pár pro SKU 100464 na ceník `23` (ne `ZR10`,
+to byl náš omyl v podkladu) a zvlášť pro SKU 110006.
+
+**Vztah k existujícímu kódu (`cloudflare-worker/src/shoptet-api/client.ts:498-502`):**
+`updatePricelistBatch` už dnes `errors` pole kontroluje — ale **na úrovni
+celého batch requestu** (`if (json.errors && json.errors.length > 0) throw
+...`), ne per-položka. Pokud Shoptet u dávky 100 položek (viz `pricelist-
+writer.ts:104`, `chunkSize = 100`) vrátí `errors` jen pro 1 z nich, celý
+`throw` shodí i těch 99 úspěšných jako neověřených — opačný problém, než
+co popisuje Vinc (tichý neúspěch), ale ze stejného kořene: kód dnes
+nerozlišuje "celý request OK", "částečný úspěch s per-item errors" a
+"skutečně nic nezapsáno".
+
+Existující first-write verifikace (`pricelist-writer.ts:154-193`,
+zavedená INC z 2026-08-15, produkt 77764) cílí jen na `oldPrice === null`
+položky (poprvé na daném ceníku) — SKU s existujícím starým záznamem,
+kde se jen mění hodnota, tímhle guardem NEPROCHÁZÍ, takže by podobný
+tichý drift u NICH nezachytila.
+
+**Požadavek Shoptetu k dalšímu postupu:**
+Vyplnit formulář `https://salesforce-eu.123formbuilder.com/form-82632/premium-api-issues`
+se všemi poli, samostatně pro každý prověřovaný případ (SKU 100464 a SKU
+110006 zvlášť) — vyžaduje kompletní tělo PATCH requestu i odpovědi API
+pro obě SKU. Bez tohohle Shoptet nemůže dál posoudit, jestli jde o
+skutečnou chybu API nebo chybu na naší straně (viz nesrovnalost ceník
+23 vs. ZR10 výše).
+
+**Řešení:**
+Jan potvrdil (2026-09-05), že konkrétní případ SKU `100464`/`110006` je
+už dávno vyřešený — uzavřeno mimo tenhle kód/repo (ne prostřednictvím
+per-item přepisu `updatePricelistBatch`, viz "Otevřená technická mezera"
+níže, ta zůstává platná zvlášť). Tenhle záznam se ponechává kvůli
+trvale platnému poznatku od Shoptet Premium (200 OK ≠ úspěch všech
+položek dávky, `errors` pole je zdroj pravdy per-item) — ne kvůli
+otevřenému TODO na těchhle dvou SKU.
+
+**Otevřená technická mezera (samostatná od vyřešeného incidentu, NEOPRAVOVAT NASLEPO):**
+`errors`-parsing v `client.ts:498-502` zůstává na úrovni celého batch
+requestu, ne per-položka — a first-write verifikace (`pricelist-
+writer.ts:154-193`) se stále netýká SKU s existujícím starým záznamem.
+Tohle je potenciální budoucí zdroj podobného tichého driftu, ale bez
+konkrétního tvaru `errors` pole ze skutečné Shoptet odpovědi by přepis
+byl domněnka, ne oprava podle ověřeného chování API. Řešit až při
+příštím konkrétním výskytu, ne preventivně teď.
+
+**Verze:** main (2026-09-05)
+
+---
+
 ## 2026-09-05 -- INC-015: FULL SYNC větev fabrikovala basePrice=0 pro produkty s chybějící cenou -- root cause ~1850 produkt×tier reconciliation alertů (VYŘEŠENO)
 
 **Popis:**

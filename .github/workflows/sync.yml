@@ -104,20 +104,45 @@ jobs:
           commit_message: "chore: aktualizace času poslední synchronizace [skip ci]"
           file_pattern: .sync_state.json force-sync-products.json
 
-      # Nový, IZOLOVANÝ krok -- pouze pro webhook product:create/product:update.
-      # Vědomě na samém konci, PO už ověřeném a funkčním hlavním syncu i
-      # sync-products kroku, a s continue-on-error, aby jakákoli chyba tady
-      # (chybějící produkt ve feedu, timeout apod.) nemohla nijak zpětně ovlivnit
-      # nebo shodit už úspěšně dokončené kroky výše.
-      - name: Živý zápis kupónových polí pro 1 nový/změněný produkt (jen z product webhooku)
-        if: success() && github.event_name == 'repository_dispatch' && (github.event.client_payload.event == 'product:create' || github.event.client_payload.event == 'product:update')
+      # ZMĚNĚNO 2026-09-04: dřív běželo jen na webhook product:create/product:update
+      # (github.event_name == 'repository_dispatch'), který je dokumentovaně
+      # nespolehlivý (CORE_LOGIC_AND_VALIDATION.md §3.6) -- Shoptet ho nemusí
+      # poslat vůbec, zvlášť při hromadném importu více produktů najednou. Hodinový
+      # schedule cron tuhle podmínku nikdy nesplňoval (event_name je 'schedule', ne
+      # 'repository_dispatch'), takže kupónová pole neměla ŽÁDNOU zálohovanou cestu
+      # -- na rozdíl od cen, kde run-real-sync.ts běží při KAŽDÉM triggeru. Zjištěno
+      # 2026-09-04: SKU 38352/38354 chyběly kupónové zápisy na všech 10 tierech,
+      # protože zjevně přišly bez funkčního webhooku a žádný pravidelný běh je
+      # nikdy nezachytil (coupon-fields.yml, plošný scheduled fallback, byl
+      # archivován 2026-08-12 bez náhrady).
+      #
+      # Řešení: sjednoceno s cenovou architekturou. sync-coupon-fields-diff.ts běží
+      # při KAŽDÉM úspěšném triggeru (cron i webhook), diff-aware proti
+      # coupon-state.json (jen změny se zapisují), s vlastními Stage 2 pojistkami
+      # (MIN_EXPECTED_PRODUCTS=5000, MAX_CHANGE_RATIO=30% -- viz
+      # CORE_LOGIC_AND_VALIDATION.md §3.2). continue-on-error zachováno, aby chyba
+      # tady nemohla zpětně shodit už úspěšně dokončené kroky výše.
+      - name: Živý diff-aware zápis kupónových polí (fallback pro celý katalog, ne jen webhook)
+        if: success()
         continue-on-error: true
         working-directory: cloudflare-worker
         env:
           SHOPTET_PRIVATE_API_TOKEN: ${{ secrets.SHOPTET_PRIVATE_API_TOKEN }}
           MASTER_FEED_URL: ${{ secrets.MASTER_FEED_URL }}
-          PRODUCT_CODE: ${{ github.event.client_payload.eventInstance }}
-        run: npx tsx src/cli/sync-coupon-fields-single-product.ts
+        run: npx tsx src/cli/sync-coupon-fields-diff.ts --live
+
+      # Bez tohohle by cloudflare-worker/coupon-state.json zůstal zamrzlý na
+      # posledním stavu z archivovaného coupon-fields.yml (12.8.) a diff by se
+      # navždy počítal proti čím dál zastaralejšímu základu -- stejný vzor jako
+      # .sync_state.json o pár kroků výš. continue-on-error na předchozím kroku
+      # znamená, že tenhle běží i po jeho neúspěchu; commit se ale reálně
+      # nezmění, pokud diff skript sám nedoběhl do zápisu stavu.
+      - name: Uložení coupon-state.json do repozitáře
+        if: success()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: aktualizace coupon-state.json [skip ci]"
+          file_pattern: cloudflare-worker/coupon-state.json
 
       - name: Uložení logu v případě chyby
         if: failure() # Tento krok se provede pouze při selhání některého z předchozích kroků

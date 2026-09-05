@@ -1,8 +1,9 @@
 import * as dotenv from 'dotenv';
-import { SyncOrchestrator } from '../cloudflare-worker/src/shoptet-api/sync-orchestrator.ts';
-import { RemoteCustomerCache, FileCustomerCache } from '../cloudflare-worker/src/shoptet-api/customer-cache.ts';
-import { RemotePriceCache } from '../cloudflare-worker/src/shoptet-api/remote-price-cache.ts';
-import { GlobalStats } from '../cloudflare-worker/src/shoptet-api/client.ts';
+import { SyncOrchestrator } from '../cloudflare-worker/src/shoptet-api/sync-orchestrator';
+import { RemoteCustomerCache, FileCustomerCache } from '../cloudflare-worker/src/shoptet-api/customer-cache';
+import { RemotePriceCache } from '../cloudflare-worker/src/shoptet-api/remote-price-cache';
+import { RemoteForceSync } from '../cloudflare-worker/src/shoptet-api/remote-force-sync';
+import { GlobalStats } from '../cloudflare-worker/src/shoptet-api/client';
 import * as path from 'path';
 
 // Zkusíme načíst .env z kořenové složky
@@ -82,11 +83,14 @@ async function run() {
     // naživo neúčinný (viz INCIDENTS.md INC-007).
     let customerCache;
     let cacheProvider;
+    let forceSync;
     if (process.env.CF_WORKER_URL && process.env.CF_WORKER_TOKEN) {
         console.log("-> Using RemoteCustomerCache (CF Worker KV API)");
         customerCache = new RemoteCustomerCache(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
         console.log("-> Using RemotePriceCache (CF Worker KV API)");
         cacheProvider = new RemotePriceCache(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
+        console.log("-> Using RemoteForceSync (CF Worker KV API)");
+        forceSync = new RemoteForceSync(process.env.CF_WORKER_URL, process.env.CF_WORKER_TOKEN);
     } else {
         console.error("❌ CHYBA: Chybí CF_WORKER_URL a/nebo CF_WORKER_TOKEN.");
         console.error("Ostrý běh (dryRun: false) bez nich by zapsal zákaznické tiery jen lokálně -- Worker by se o změně nikdy nedozvěděl.");

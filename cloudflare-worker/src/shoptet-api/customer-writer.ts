@@ -65,24 +65,9 @@ export class CustomerWriter {
 
             console.log(`[DIFF] Zákazník: ${diff.customerName} (${diff.customerGuid}) | Ceník ID: ${diff.oldPricelistId} -> ${diff.newPricelistId} (${diff.oldTier || 'None'} -> ${diff.newTier})`);
             
-            // Tvorba Snapshotu před prvním zápisem v tomto běhu
-            if (!stats.dryRun && stats.processed === 0 && diffs.length > 0) {
-                try {
-                    const snapshotData = diffs.map(d => ({
-                        customerGuid: d.customerGuid,
-                        originalTier: d.oldTier,
-                        originalPricelistId: d.oldPricelistId
-                    }));
-                    const snapshotDir = path.resolve('./.snapshots');
-                    if (!fs.existsSync(snapshotDir)) fs.mkdirSync(snapshotDir, { recursive: true });
-                    const snapshotPath = path.join(snapshotDir, `customer_rollback_${Date.now()}.json`);
-                    fs.writeFileSync(snapshotPath, JSON.stringify(snapshotData, null, 2), 'utf-8');
-                    GlobalStats.rollbackSnapshots++;
-                    console.log(`[SNAPSHOT] Vytvořen rollback snapshot pro zákazníky: ${snapshotPath}`);
-                } catch (e) {
-                    console.warn(`[SNAPSHOT] Varování: Nepodařilo se vytvořit snapshot: ${e}`);
-                }
-            }
+            // Očištěno 2026-08-25: Původní tvorba Snapshotu (customer_rollback_*.json)
+            // byla smazána. Na GitHub Actions běžela na efemérním disku, takže se
+            // soubor okamžitě ztratil a žádná reálná záloha nevznikla.
 
             if (!stats.dryRun) {
                 try {

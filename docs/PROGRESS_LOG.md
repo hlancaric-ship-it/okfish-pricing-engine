@@ -7,6 +7,92 @@ why, and what's still open.
 
 ---
 
+## 2026-09-05 (pokračování) — Lokální klon dohnán na origin/main, rozdělaná customer-import/force-sync práce sloučena zpět
+
+**Zjištěno:** Lokální klon zaostával o 14 dní (HEAD na `6ddc5c4`, 2026-08-21) oproti
+`origin/main`, který mezitím dostal commity `e5172e4` (2026-08-28, fingerprinting proti
+pricing rule driftu) a dnešní `8e9a94e` (2026-09-05 05:25, sync.yml úpravy + clearance-sale
+policy přepracování + `investigate-lock-violation-impact.ts` — forenzní, read-only nástroj
+na 41 SKU s ZR20/ZR25 kupónovou lock violation, výsledek `[]`, žádný nalezený finanční dopad).
+
+**Provedeno:**
+1. Nekomitovaná WIP práce (customer-import na stabilní KV klíče bez verzí + force-sync fronta
+   přesunutá z lokálního `force-sync-products.json` do KV, `remote-force-sync.ts`) uložena
+   do stashe.
+2. `git pull origin main` — fast-forward, bez ztráty historie.
+3. Stash aplikován zpět, 2 konflikty vyřešeny:
+   - `client.ts`: duplicitní pagination-empty-page guard — upstream už měl stejnou ochranu
+     (`totalCount === 0`/`items.length === 0` break) o pár řádků níž, moje duplicitní verze
+     zahozena.
+   - `run-real-sync.ts`: `stateProvider` (upstream) i `forceSync` (moje WIP) měly být oba v
+     `SyncOrchestrator` configu — ale `SyncOptions` interface (`sync-orchestrator.ts:77-84`)
+     `forceSync` vůbec nezná, takže by to spadlo na TS excess-property chybě. `forceSync`
+     instance zůstává vytvořená a připravená, ALE nepředává se do orchestrátoru, dokud
+     orchestrátor nedostane vlastní logiku, co s frontou z KV dělat (kdy ji číst, jak
+     filtrovat/kombinovat s normálním syncem, kdy čistit) — to je rozhodnutí, které čeká na
+     explicitní zadání, ne na dohad.
+4. Ověřeno: `npm run build` čistý, root testy 362/362 passed, worker testy 118/118 passed.
+
+**Zůstává:**
+- Dopojit `RemoteForceSync` do `SyncOrchestrator` (potřeba specifikovat chování).
+- `ai.py` (untracked, Groq API CLI pomocník) — nesouvisí s tímhle mergem, ponechán netknutý.
+- Diagnóza root cause sync.yml selhání (issue #7, viz zápis níže) — `TypeError: terminated`/
+  `SocketError: other side closed` v `cloudflare-worker/src/cli/sync-products.ts:118`
+  (`reader.read()` na streamu master feedu není chráněné retry, na rozdíl od `fetchWithRetry`,
+  co kryje jen počáteční `fetch()`) — zůstává neopravené.
+- Backfill ~1850 produkt×tier záznamů (viz zápis níže) — stále needitováno.
+
+---
+
+## 2026-09-05 — DIAGNOSTIKOVÁNO (needitováno): Price + Coupon Integrity Reconciliation selhává 8+ dní v kuse (29.8.–4.9.), ~1850 produkt×tier záznamů má prázdnou/chybějící cenu
+
+**Zjištěno přes `gh run list`/`gh run view --log-failed`/staažené `reconciliation-log`
+artifacty a otevřenou GitHub issue #8 (price-integrity, otevřená od 2026-08-19, aktivní
+komentáře každý den 29.8.–4.9., NIKDY neuzavřená).**
+
+Poslední běh (2026-09-04, run `33848787781`): zkontrolováno 167 480 kombinací produkt×tier,
+sedí 165 594, **ALERT chybí celý záznam: 144** (okamžitě), **ALERT hodnota nesedí, přetrvává
+2+ běhy: 1706**, nově zjištěné (zatím jen sledované): 36. Vzorek alertů: produkt 37033
+(tier ZR8) má být 5.34 Kč, chybí celý záznam; produkt 38352 (tier ZR8) má být 32.26 Kč, chybí
+celý záznam. Coupon Integrity Reconciliation (issue #9, stejný vzorec) selhává souběžně,
+stejné dny — detailní log zatím nestažen (jiný artifact název, než jsem čekal).
+
+**Vzorec je STABILNÍ, ne rostoucí** — log z 29.8. (run `33245514902`) ukazuje stejný typ
+alertů (produkty s `null`/prázdnou cenou v konkrétním tieru, hlavně vysoké tiery ZR20/ZR25,
+i ZR8), ne nový nebo zhoršující se problém.
+
+**Hypotéza root cause (NEOVĚŘENO jistě, jen silná shoda s dřívějším zápisem):** Odpovídá bugu
+zapsanému výše (2026-08-21 — `getPricelistItemByCode()` parsoval špatný tvar API odpovědi,
+způsobovalo to, že verifikace po PRVNÍM zápisu ceny na ceníku vždy "selhala" jako CHYBÍ
+ZÁZNAM, což spustilo zbytečný opravný zápis, co se znovu neúspěšně ověřil). Oprava (`db08913`
+→`b521cb9`) byla podle zápisu commitnutá a otestovaná, ALE **reconciliation dnes pořád hlásí
+stovky produktů s prázdnou/chybějící cenou** — možné vysvětlení: oprava zastavila VZNIKÁNÍ
+nových mezer, ale produkty, co se do mezery dostaly PŘED opravou (mezi 15.8., kdy byla
+zavedena verifikace, a 21.8., kdy byl bug opraven), zůstávají v tomhle stavu navždy, dokud je
+někdo/něco ručně nedopíše — žádný retroaktivní backfill neproběhl.
+
+**Ověřeno živě (2026-09-05), nic needitováno:**
+- Worker běží (`GET /v1/sync-stats` → HTTP 200, `running: false`, `phase: done`).
+- Hlavní sync workflow (`sync.yml`) běží zdravě — všechny poslední běhy `success`, žádný
+  retry/4xx/5xx v logu.
+- CI (`ci.yml`) zelené na posledním reálném commitu (`5993e7e`, 2026-09-05T02:58Z).
+- Git repo (main) je aktuální vůči `origin/main` na GitHubu, žádná odchýlená větev/PR.
+
+**ZBÝVÁ (další krok, NEPROVEDENO — potřebuje čerstvou session s plným kontextem a
+explicitní svolení, dry-run-first podle firemních pravidel):**
+1. Ověřit hypotézu — zjistit, jestli všech ~1850 postižených produkt×tier kombinací
+   vzniklo v okně 15.8.–21.8. (potvrdilo by hypotézu), nebo je rozptýlené jinak (vyvrátilo by
+   ji a je potřeba hledat jiný root cause).
+2. Napsat jednorázový nápravný (backfill) skript, co projde `reconciliation.log`/state a
+   dopíše/opraví chybějící a nesedící ceny v Shoptet ceníku — DRY-RUN NEJDŘÍV, schválený diff,
+   pak ostrý běh (viz firemní pravidlo "Dry-run first").
+3. Stáhnout a přečíst detailní `Coupon Integrity` log (issue #9) — jiný název artifactu než
+   `reconciliation-log`, nezjištěno proč, nestihnuto kvůli kontextovému limitu.
+4. Po opravě sledovat, jestli se issue #8/#9 konečně zavřou samy (self-check "0 alertů") místo
+   dalšího denního komentáře.
+
+---
+
 ## 2026-08-21 — Celý objednávkový dashboard (`/orders-dashboard-xk92q`) odstraněn -- Jan ho nepoužíval
 
 Návazně na předchozí zápis (odstranění skladového semaforu) Jan upřesnil: celá tahle

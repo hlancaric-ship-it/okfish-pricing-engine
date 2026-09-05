@@ -82,23 +82,9 @@ export class PricelistWriter {
             return stats;
         }
 
-        // Tvorba Snapshotu před prvním zápisem v tomto běhu
-        if (!stats.dryRun && diffs.length > 0) {
-            try {
-                const snapshotData = diffs.map(d => ({
-                    code: d.code,
-                    originalPrice: d.oldPrice ? d.oldPrice.toFixed(2) : null
-                }));
-                const snapshotDir = path.resolve('./.snapshots');
-                if (!fs.existsSync(snapshotDir)) fs.mkdirSync(snapshotDir, { recursive: true });
-                const snapshotPath = path.join(snapshotDir, `pricelist_${pricelistId}_rollback_${Date.now()}.json`);
-                fs.writeFileSync(snapshotPath, JSON.stringify(snapshotData, null, 2), 'utf-8');
-                GlobalStats.rollbackSnapshots++;
-                console.log(`[SNAPSHOT] Vytvořen rollback snapshot pro ceník ${pricelistName}: ${snapshotPath}`);
-            } catch (e) {
-                console.warn(`[SNAPSHOT] Varování: Nepodařilo se vytvořit snapshot: ${e}`);
-            }
-        }
+        // Očištěno 2026-08-25: Původní tvorba Snapshotu (pricelist_*_rollback_*.json)
+        // byla smazána. Na GitHub Actions běžela na efemérním disku, takže se
+        // soubor okamžitě ztratil a žádná reálná záloha nevznikla.
 
         // Chunking po 100 kusech pro reálný zápis
         const chunkSize = 100;

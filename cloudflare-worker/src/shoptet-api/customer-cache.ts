@@ -105,29 +105,17 @@ export class RemoteCustomerCache implements ICustomerCache {
 
         if (allItems.length === 0) return;
 
-        let targetVersion = version;
-        
-        if (!isFullSync) {
-            // Pro inkrement zjistíme aktivní verzi z Workeru
-            const activeRes = await fetch(`${this.baseUrl}/v1/import/active`, {
-                headers: { 'Authorization': `Bearer ${this.token}` }
-            });
-            if (activeRes.ok) {
-                const activeData = await activeRes.json();
-                if (activeData.version) {
-                    targetVersion = activeData.version;
-                }
-            }
-        }
-
-        console.log(`[RemoteCustomerCache] Odesílám ${allItems.length} zákazníků do Workeru (verze: ${targetVersion}, isFullSync: ${isFullSync})...`);
+        console.log(`[RemoteCustomerCache] Odesílám ${allItems.length} zákazníků do Workeru (diff-aware zápis)...`);
 
         const BATCH_SIZE = 250;
         const totalBatches = Math.ceil(allItems.length / BATCH_SIZE);
+        
+        let totalWritten = 0, totalSkipped = 0;
 
         for (let i = 0; i < totalBatches; i++) {
             const batchItems = allItems.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
-            const payload = { version: targetVersion, customers: batchItems };
+            // Verze už se neposílá (změna na stabilní klíče, 2026-08-25)
+            const payload = { customers: batchItems };
 
             let attempts = 0;
             let success = false;
@@ -142,6 +130,11 @@ export class RemoteCustomerCache implements ICustomerCache {
                         body: JSON.stringify(payload)
                     });
                     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+                    
+                    const resData = await res.json();
+                    if (resData.written) totalWritten += resData.written;
+                    if (resData.skipped) totalSkipped += resData.skipped;
+                    
                     success = true;
                 } catch (err: any) {
                     attempts++;
@@ -151,37 +144,7 @@ export class RemoteCustomerCache implements ICustomerCache {
             }
         }
 
-        if (isFullSync) {
-            const finishRes = await fetch(`${this.baseUrl}/v1/import/finish`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`
-                },
-                body: JSON.stringify({ version: targetVersion, customers: allItems.length })
-            });
-            if (!finishRes.ok) throw new Error(`Finish failed: ${finishRes.status}`);
-            
-            const finalData = await finishRes.json();
-            const oldVersion = finalData.oldVersion;
-
-            if (oldVersion && oldVersion !== targetVersion) {
-                try {
-                    await fetch(`${this.baseUrl}/v1/import/cleanup`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.token}`
-                        },
-                        body: JSON.stringify({ version: oldVersion })
-                    });
-                } catch (err) {
-                    // Ignore cleanup errors
-                }
-            }
-        }
-
-        console.log(`[RemoteCustomerCache] Úspěšně zapsáno ${allItems.length} zákazníků přes API Workeru pod verzí ${targetVersion}.`);
+        console.log(`[RemoteCustomerCache] Úspěšně zpracováno: ${totalWritten} zapsáno (nové/změněné), ${totalSkipped} přeskočeno (beze změny).`);
         this.cache = {};
     }
 }

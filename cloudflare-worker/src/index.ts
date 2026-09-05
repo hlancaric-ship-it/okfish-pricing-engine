@@ -195,75 +195,61 @@ export default {
             return jsonResponse(JSON.parse(data));
         }
 
-        // === POST /v1/import/begin ===
-        // Starts a new customer-discount import version. Blue/Green: nothing live is
-        // touched until /finish flips 'active_customer_version'.
-        if (path === '/v1/import/begin' && request.method === 'POST') {
-            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const version = `v${Date.now()}`;
-            return jsonResponse({ version });
-        }
-
         // === POST /v1/import/chunk ===
-        // Body: { version, customers: [{ hash, discount }] }. Each customer is stored
-        // under a version-scoped key so an in-progress import never affects live reads.
+        // Body: { customers: [{ hash, discount }] }. Diff-aware zápis (2026-08-25).
         if (path === '/v1/import/chunk' && request.method === 'POST') {
             if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const body = await request.json() as { version: string; customers: Array<{ hash: string; discount: number }> };
-            if (!body?.version || !Array.isArray(body.customers)) {
+            const body = await request.json() as { customers: Array<{ hash: string; discount: number }> };
+            if (!body?.customers || !Array.isArray(body.customers)) {
                 return jsonResponse({ error: 'Invalid payload' }, 400);
             }
-            await Promise.all(body.customers.map(c =>
-                env.VIP_KV.put(`customer:${body.version}:${c.hash}`, String(c.discount))
-            ));
-            return jsonResponse({ ok: true, count: body.customers.length });
+            let written = 0, skipped = 0;
+            await Promise.all(body.customers.map(async (c) => {
+                const key = `customer:${c.hash}`;
+                const newValue = String(c.discount);
+                const existing = await env.VIP_KV.get(key);
+                if (existing === newValue) { skipped++; return; }
+                await env.VIP_KV.put(key, newValue);
+                written++;
+            }));
+            return jsonResponse({ ok: true, count: body.customers.length, written, skipped });
         }
 
-        // === GET /v1/import/active ===
-        if (path === '/v1/import/active' && request.method === 'GET') {
+        // === GET /v1/force-sync ===
+        // Čtení fronty ručně vynucených produktů z KV (náhrada za lokální force-sync-products.json)
+        if (path === '/v1/force-sync' && request.method === 'GET') {
             if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const version = await env.VIP_KV.get('active_customer_version');
-            return jsonResponse({ version });
+            const data = await env.VIP_KV.get('force_sync_products');
+            return jsonResponse({ entries: data ? JSON.parse(data) : [] });
         }
 
-        // === POST /v1/import/finish ===
-        // Flips 'active_customer_version' to the new version — the atomic cutover.
-        // Returns the previous active version so the caller can clean it up.
-        if (path === '/v1/import/finish' && request.method === 'POST') {
+        // === POST /v1/force-sync ===
+        // Zápis/vyčištění fronty ručně vynucených produktů v KV
+        if (path === '/v1/force-sync' && request.method === 'POST') {
             if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const body = await request.json() as { version: string; customers: number };
-            if (!body?.version) return jsonResponse({ error: 'Invalid payload' }, 400);
-            const oldVersion = await env.VIP_KV.get('active_customer_version');
-            await env.VIP_KV.put('active_customer_version', body.version);
-            return jsonResponse({ ok: true, version: body.version, oldVersion });
-        }
-
-        // === POST /v1/import/cleanup ===
-        // Deletes all customer:<version>:* keys for a retired (no longer active) version.
-        if (path === '/v1/import/cleanup' && request.method === 'POST') {
-            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const body = await request.json() as { version: string };
-            if (!body?.version) return jsonResponse({ error: 'Invalid payload' }, 400);
-            let cursor: string | undefined;
-            let deleted = 0;
-            do {
-                const list = await env.VIP_KV.list({ prefix: `customer:${body.version}:`, cursor });
-                await Promise.all(list.keys.map(k => env.VIP_KV.delete(k.name)));
-                deleted += list.keys.length;
-                cursor = list.list_complete ? undefined : (list as any).cursor;
-            } while (cursor);
-            return jsonResponse({ ok: true, deleted });
+            const body = await request.json() as { entries: Array<{ code: string; guid: string }> };
+            if (!body || !Array.isArray(body.entries)) return jsonResponse({ error: 'Invalid payload' }, 400);
+            await env.VIP_KV.put('force_sync_products', JSON.stringify(body.entries));
+            return jsonResponse({ ok: true, count: body.entries.length });
         }
 
         // === GET /v1/discount/:hash ===
         // Public (no auth — called directly from the customer's browser). Looks up the
-        // SHA-256 hash of the logged-in customer's email against the currently ACTIVE
-        // import version only, so an in-progress /chunk upload never leaks partial data.
+        // SHA-256 hash of the logged-in customer's email.
         if (path.startsWith('/v1/discount/') && request.method === 'GET') {
             const hash = path.substring('/v1/discount/'.length);
-            const activeVersion = await env.VIP_KV.get('active_customer_version');
-            if (!activeVersion) return jsonResponse({ error: 'No active customer data' }, 404);
-            const discountStr = await env.VIP_KV.get(`customer:${activeVersion}:${hash}`);
+            
+            // Zkusí nejdřív stabilní klíč (bez verze)
+            let discountStr = await env.VIP_KV.get(`customer:${hash}`);
+            
+            if (discountStr === null) {
+                // Fallback na starý verzovaný klíč (aby nedošlo k výpadku během migrace)
+                const activeVersion = await env.VIP_KV.get('active_customer_version');
+                if (activeVersion) {
+                    discountStr = await env.VIP_KV.get(`customer:${activeVersion}:${hash}`);
+                }
+            }
+            
             if (discountStr === null) return jsonResponse({ error: 'Not found' }, 404);
             return jsonResponse({ v: 1, discount: Number(discountStr) });
         }

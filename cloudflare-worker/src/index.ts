@@ -24,6 +24,48 @@ const STATIC_JS_FILES: Record<string, string> = {
 
 const SECRET_TOKEN = 'shoptet-vip-secret-12345';
 
+// --- In-memory cache pro `active_customer_version` -----------------------------
+// PROČ: `GET /v1/discount/:hash` se volá z prohlížeče KAŽDÉHO návštěvníka e-shopu
+// (frontend vip_*.js) a u nepřihlášeného/neznámého návštěvníka -- což je naprosto
+// nejčastější případ -- vždycky minul stabilní klíč a sáhl do KV ještě dvakrát:
+// jednou pro `active_customer_version` a jednou pro starý verzovaný klíč. To dělalo
+// 3 KV čtení na jeden 404 a byl to hlavní tahoun 13+ M KV operací za měsíc.
+//
+// Verze se dnes prakticky nemění -- přepisoval ji jen `KvCustomerCache`, který se
+// už nepoužívá (`RemoteCustomerCache` píše rovnou pod stabilní klíč), takže je
+// hodnota fakticky zmrazená. Držíme ji proto v module-scope proměnné: Worker isolate
+// přežívá mezi requesty, takže se z KV přečte jednou za život isolate, ne při každém
+// 404. TTL je pojistka, aby se po deploy/ručním přepnutí verze cache sama obnovila.
+//
+// Negative caching je povinné: kdyby se `null` (klíč neexistuje) necachovalo, četlo
+// by se pořád dokola a celá úspora by padla.
+const ACTIVE_VERSION_TTL_MS = 5 * 60 * 1000; // 5 minut
+let activeVersionCache: string | null = null;
+let activeVersionCachedAt = 0; // 0 = ještě nikdy nenačteno
+
+async function getActiveCustomerVersion(env: Env): Promise<string | null> {
+    const now = Date.now();
+    if (activeVersionCachedAt !== 0 && now - activeVersionCachedAt < ACTIVE_VERSION_TTL_MS) {
+        return activeVersionCache;
+    }
+    try {
+        activeVersionCache = await env.VIP_KV.get('active_customer_version');
+        activeVersionCachedAt = now;
+    } catch (err) {
+        // KV výpadek nesmí shodit lookup slevy -- vrátíme poslední známou hodnotu
+        // (klidně null) a necháme timestamp být, ať se to zkusí znovu příští request.
+        console.error('[discount] Čtení active_customer_version selhalo:', err);
+    }
+    return activeVersionCache;
+}
+
+// Test-only: vyresetuje in-memory cache verze mezi testy (isolate v testech žije
+// napříč všemi případy, takže by si jinak testy navzájem přetahovaly stav).
+export function __resetActiveCustomerVersionCache(): void {
+    activeVersionCache = null;
+    activeVersionCachedAt = 0;
+}
+
 function jsonResponse(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data, null, 2), {
         status,
@@ -228,10 +270,13 @@ export default {
             
             // Zkusí nejdřív stabilní klíč (bez verze)
             let discountStr = await env.VIP_KV.get(`customer:${hash}`);
-            
+
             if (discountStr === null) {
-                // Fallback na starý verzovaný klíč (aby nedošlo k výpadku během migrace)
-                const activeVersion = await env.VIP_KV.get('active_customer_version');
+                // Fallback na starý verzovaný klíč (aby nedošlo k výpadku během migrace).
+                // Verzi bereme z in-memory cache (viz getActiveCustomerVersion) --
+                // ušetří to jedno KV čtení na každý miss, což je při volání z prohlížeče
+                // každého návštěvníka ten hlavní zdroj KV nákladů.
+                const activeVersion = await getActiveCustomerVersion(env);
                 if (activeVersion) {
                     discountStr = await env.VIP_KV.get(`customer:${activeVersion}:${hash}`);
                 }
@@ -331,6 +376,34 @@ export default {
             const oldVersion = await env.VIP_KV.get('active_product_version');
             await env.VIP_KV.put('active_product_version', body.version);
             return jsonResponse({ ok: true, version: body.version, oldVersion });
+        }
+
+        // === GET /v1/products/feed-hash ===
+        // Feed hash guard (2026-09-06, KV NÁKLADY): sync-products.ts si sem uloží
+        // SHA-256 otisk obsahu master feedu po ÚSPĚŠNÉM dokončení importu. Při dalším
+        // běhu si otisk přečte, spočítá aktuální a když se shodují, celý import
+        // přeskočí — tj. ~16 700 KV čtení (`product:${code}` per produkt v import/chunk)
+        // se vůbec neprovede. Stejná myšlenka jako pricing-config-fingerprint.ts,
+        // jen pro feed místo config souborů. Jeden klíč, jedno čtení + jeden zápis
+        // za běh = zanedbatelné proti 16 700 čtením.
+        if (path === '/v1/products/feed-hash' && request.method === 'GET') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const hash = await env.VIP_KV.get('products_feed_hash');
+            return jsonResponse({ hash });
+        }
+
+        // === POST /v1/products/feed-hash ===
+        // Body: { hash: string } — 64 hex znaků (SHA-256). Volá se AŽ PO úspěšném
+        // import/finish, nikdy před ním: kdyby se hash uložil dopředu a běh pak spadl
+        // v půlce, další běh by ho považoval za hotový a katalog by zůstal nedopsaný.
+        if (path === '/v1/products/feed-hash' && request.method === 'POST') {
+            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+            const body = await request.json().catch(() => null) as { hash?: string } | null;
+            if (!body?.hash || !/^[0-9a-f]{64}$/.test(body.hash)) {
+                return jsonResponse({ error: 'Invalid payload: hash must be 64 hex chars (SHA-256)' }, 400);
+            }
+            await env.VIP_KV.put('products_feed_hash', body.hash);
+            return jsonResponse({ ok: true, hash: body.hash });
         }
 
         // === GET /v1/price-cache/:pricelistId ===

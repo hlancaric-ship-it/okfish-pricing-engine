@@ -1,6 +1,5 @@
 import { Env, runFeedGeneration } from './feed-generator';
 import { calculateAllTierPrices, CsvRow } from './engine/pricing';
-import { DASHBOARD_HTML } from './dashboard-html';
 import {
     VIP_PRICES_JS, VIP_DETAIL_JS, VIP_CART_JS, VIP_CATALOG_JS,
     VIP_CART_COUPON_LOCK_JS, VIP_REGISTRATION_HIDE_TYPES_JS
@@ -116,13 +115,6 @@ export default {
             });
         }
 
-        // === GET /dashboard ===
-        // Serves the live sync-monitor page same-origin (avoids the strict CSP that
-        // blocks external fetch() from claude.ai Artifacts entirely).
-        if (path === '/dashboard' && request.method === 'GET') {
-            return new Response(DASHBOARD_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-        }
-
         // === GET /v1/feed/status ===
         if (path === '/v1/feed/status' && request.method === 'GET') {
             const statusData = await env.VIP_KV.get('feed_generation_status');
@@ -188,28 +180,6 @@ export default {
             } catch (e: any) {
                 return jsonResponse({ error: e?.message ?? String(e) }, 500);
             }
-        }
-
-        // === POST /v1/sync-stats ===
-        // Written every 15s by scripts/run-real-sync.ts during a live sync run, so a
-        // dashboard (Artifact) can poll live API load/stability without needing to
-        // watch GitHub Actions logs. Body: free-form JSON snapshot (request counts,
-        // HTTP status breakdown, retries, elapsed time).
-        if (path === '/v1/sync-stats' && request.method === 'POST') {
-            if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
-            const body = await request.json().catch(() => null);
-            if (!body) return jsonResponse({ error: 'Invalid JSON body' }, 400);
-            await env.VIP_KV.put('sync_stats', JSON.stringify({ ...body, updatedAt: new Date().toISOString() }), { expirationTtl: 3600 });
-            return jsonResponse({ ok: true });
-        }
-
-        // === GET /v1/sync-stats ===
-        // Public read (no auth) so the dashboard page can poll it directly from the
-        // browser (CORS already open via jsonResponse's Access-Control-Allow-Origin).
-        if (path === '/v1/sync-stats' && request.method === 'GET') {
-            const data = await env.VIP_KV.get('sync_stats');
-            if (!data) return jsonResponse({ status: 'idle', message: 'No sync has run recently.' });
-            return jsonResponse(JSON.parse(data));
         }
 
         // === POST /v1/import/chunk ===

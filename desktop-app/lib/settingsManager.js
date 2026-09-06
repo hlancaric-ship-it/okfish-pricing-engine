@@ -18,12 +18,32 @@ const REPO_ROOT = path.join(os.homedir(), 'okfish-pricing-engine');
 const ENV_PATH = path.join(REPO_ROOT, '.env');
 const KEY_NAME = 'SHOPTET_PRIVATE_API_TOKEN';
 
-function readEnvLines() {
-    if (!fs.existsSync(ENV_PATH)) return [];
-    return fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+// VĚDOMÉ ROZHODNUTÍ (Lucky, 2026-09-06): token je zapečený do buildu, aby Pavel
+// nemusel po instalaci nic zadávat. Uživatelské nastavení (.env v jeho klonu repa)
+// má ale VŽDY přednost -- zapečená hodnota je jen fallback, když .env token nemá.
+// Threat model: asar JDE rozbalit, token je z instalačky čitelný. Akceptováno,
+// protože jde o jediného klienta (okfish.sk) a appka není veřejně distribuovaná.
+// bakedToken.js generuje scripts/bake-token.js při buildu; ve vývoji nemusí existovat.
+let BAKED_TOKEN = '';
+try {
+    BAKED_TOKEN = require('./bakedToken').BAKED_SHOPTET_TOKEN || '';
+} catch (err) {
+    // Soubor neexistuje (dev bez buildu) -- fallback prostě není k dispozici.
+    BAKED_TOKEN = '';
 }
 
-function readApiKey() {
+function readEnvLines() {
+    if (!fs.existsSync(ENV_PATH)) return [];
+    try {
+        return fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    } catch (err) {
+        return [];
+    }
+}
+
+// Vrací jen token z .env (bez fallbacku) -- potřeba pro rozlišení, jestli
+// uživatel má vlastní hodnotu, nebo jede na zapečené.
+function readEnvApiKey() {
     for (const line of readEnvLines()) {
         const trimmed = line.trim();
         if (trimmed.startsWith(`${KEY_NAME}=`)) {
@@ -33,13 +53,24 @@ function readApiKey() {
     return '';
 }
 
+// Efektivní token: uživatelské nastavení > zapečená hodnota.
+function readApiKey() {
+    return readEnvApiKey() || BAKED_TOKEN;
+}
+
 // Masked so the Nastavení tab can show "je nastaveno" without the raw secret
 // sitting in the renderer's DOM/devtools by default -- the "Zobrazit/skrýt"
 // button in the UI is a separate, explicit user action to reveal it.
 function getApiKeyStatus() {
-    const key = readApiKey();
-    if (!key) return { isSet: false, masked: '' };
-    return { isSet: true, masked: key.length > 4 ? `${'•'.repeat(key.length - 4)}${key.slice(-4)}` : '••••' };
+    const envKey = readEnvApiKey();
+    const key = envKey || BAKED_TOKEN;
+    if (!key) return { isSet: false, masked: '', source: 'none' };
+    return {
+        isSet: true,
+        masked: key.length > 4 ? `${'•'.repeat(key.length - 4)}${key.slice(-4)}` : '••••',
+        // 'env' = vlastní hodnota od uživatele, 'baked' = zapečená z buildu.
+        source: envKey ? 'env' : 'baked'
+    };
 }
 
 function setApiKey(newValue) {
@@ -62,4 +93,4 @@ function setApiKey(newValue) {
     fs.writeFileSync(ENV_PATH, nextLines.join('\n').replace(/\n*$/, '\n'), 'utf8');
 }
 
-module.exports = { getApiKeyStatus, setApiKey };
+module.exports = { getApiKeyStatus, setApiKey, readApiKey };

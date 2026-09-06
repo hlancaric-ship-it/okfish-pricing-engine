@@ -29,16 +29,17 @@ const TIER_PRICELIST_MAP = {
     ZR14: 17, ZR16: 20, ZR18: 23, ZR20: 26, ZR25: 29
 };
 
+// Jediný zdroj pravdy pro token je settingsManager: uživatelské .env má přednost,
+// zapečená hodnota z buildu je fallback. Viz komentář tamtéž ohledně vědomého
+// rozhodnutí zapéct token natvrdo (Lucky, 2026-09-06) a jeho threat modelu.
+const settingsManager = require('./settingsManager');
+
 function readToken() {
-    const envPath = path.join(REPO_ROOT, '.env');
-    const content = fs.readFileSync(envPath, 'utf8');
-    for (const line of content.split('\n')) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('SHOPTET_PRIVATE_API_TOKEN=')) {
-            return trimmed.slice('SHOPTET_PRIVATE_API_TOKEN='.length).trim().replace(/^['"]|['"]$/g, '');
-        }
+    const token = settingsManager.readApiKey();
+    if (!token) {
+        throw new Error('SHOPTET_PRIVATE_API_TOKEN není k dispozici (chybí v .env i v zapečené konfiguraci).');
     }
-    throw new Error('SHOPTET_PRIVATE_API_TOKEN nenalezen v .env');
+    return token;
 }
 
 function headers() {

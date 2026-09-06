@@ -1,14 +1,20 @@
 {
   "name": "l-code-pricing-engine",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
   "description": "L-Code Pricing Engine — desktop nástroj pro přepočet ceníků a přiřazení věrnostních tierů zákazníků",
   "author": "L-Code Dynamics",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "bake-token": "node scripts/bake-token.js",
+    "prebuild:mac": "npm run bake-token",
     "build:mac": "electron-builder --mac",
+    "prebuild:win": "npm run bake-token",
     "build:win": "electron-builder --win",
+    "prepublish:mac": "npm run bake-token",
+    "publish:mac": "electron-builder --mac --publish always",
+    "prepublish:win": "npm run bake-token",
     "publish:win": "electron-builder --win --publish always"
   },
   "dependencies": {

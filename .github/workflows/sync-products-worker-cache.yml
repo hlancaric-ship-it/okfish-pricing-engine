@@ -3,11 +3,35 @@ name: Sync products to Worker cache (frontend discount badges)
 on:
   schedule:
     # Automatizováno 2026-08-05 na žádost klienta — posunuto o 5 minut proti
-    # hlavnímu sync.yml (*/15), aby vždy běželo těsně PO přepočtu cen, ne
-    # souběžně s ním. Bezpečné automatizovat: nesahá na Shoptet vůbec, jen
-    # čte veřejný feed a píše do Worker KV cache přes jeho vlastní import
-    # API — nemůže ovlivnit produkční ceny/kupóny ani feed generation.
-    - cron: '5,20,35,50 * * * *'
+    # hlavnímu sync.yml, aby vždy běželo těsně PO přepočtu cen, ne souběžně
+    # s ním. Bezpečné automatizovat: nesahá na Shoptet vůbec, jen čte veřejný
+    # feed a píše do Worker KV cache přes jeho vlastní import API — nemůže
+    # ovlivnit produkční ceny/kupóny ani feed generation.
+    #
+    # ZPOMALENO 2026-09-06 z '5,20,35,50 * * * *' (4×/hod = 96 běhů/den) na
+    # 90minutový interval (16 běhů/den) — KV NÁKLADY. Každý běh čte KV klíč
+    # `product:${code}` pro KAŽDÝ z ~16 700 produktů katalogu (diff-aware
+    # zápis šetří jen PUT, ale GET se platí vždycky), tj. ~1,6 M KV čtení
+    # denně jen z tohohle workflow. Minulý měsíc: 13+ M operací celkem.
+    # 6× méně běhů = 6× méně čtení, výměnou za to, že se badge slevy na
+    # frontendu aktualizují do 90 min místo do 15 min.
+    #
+    # NOČNÍ PAUZA 22:00–6:00 ČESKÉHO ČASU (Lucky, 2026-09-06): v noci se
+    # katalog nemění a nikdo na e-shopu není — běhy v tom okně by jen platily
+    # KV čtení za nic.
+    #
+    # POZOR: GitHub Actions cron je VŽDY UTC, nezná letní/zimní čas. Časy níž
+    # jsou proto nastavené na CEST (UTC+2, letní čas, platí ~duben–říjen), kdy
+    # UTC 4:05–19:35 = 6:05–21:35 SELČ. Po přechodu na zimní čas (CET, UTC+1)
+    # se okno posune o hodinu dřív (5:05–20:35 SEČ) — pokud to bude vadit,
+    # posunout všechny hodiny o +1.
+    #
+    # Cron neumí "každých 90 minut" (90 se nedělí do hodiny beze zbytku),
+    # takže je to výčet časů s 90min odstupem uvnitř denního okna:
+    # UTC 4:05, 5:35, 7:05, 8:35, 10:05, 11:35, 13:05, 14:35, 16:05, 17:35, 19:05
+    # = 11 běhů/den (bylo 96).
+    - cron: '5 4,7,10,13,16,19 * * *'
+    - cron: '35 5,8,11,14,17 * * *'
   workflow_dispatch:
 
 jobs:

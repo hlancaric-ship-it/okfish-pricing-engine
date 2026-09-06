@@ -12,20 +12,10 @@ export async function uploadToWorker(vipDiscountsMap: Record<string, number>, up
     const startTime = performance.now();
     const { createHash } = await import('crypto');
 
-    let version: string;
-    try {
-        const beginRes = await fetch(`${baseUrl}/v1/import/begin`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!beginRes.ok) throw new Error(`Begin failed: ${beginRes.status}`);
-        const beginData = await beginRes.json();
-        version = beginData.version;
-    } catch (err: any) {
-        console.error("❌ Nepodařilo se zahájit import:", err.message);
-        return;
-    }
-
+    // Verzovaný import (begin/finish = atomické přepnutí active_customer_version)
+    // zanikl v e3aa5dd -- zákazníci se píšou pod STABILNÍ klíče customer:${hash}
+    // bez verze. Zůstalo jen diff-aware POST /v1/import/chunk, takže odpadá i
+    // cleanup staré verze (žádné osiřelé verzované klíče nevznikají).
     const allItems = Object.entries(vipDiscountsMap).map(([email, discount]) => ({
         hash: createHash('sha256').update(email).digest('hex'),
         discount
@@ -34,14 +24,13 @@ export async function uploadToWorker(vipDiscountsMap: Record<string, number>, up
     const BATCH_SIZE = 250;
     const totalBatches = Math.ceil(allItems.length / BATCH_SIZE);
 
+    let totalWritten = 0, totalSkipped = 0;
+
     for (let i = 0; i < totalBatches; i++) {
         console.log(`Uploading chunk ${i + 1}/${totalBatches}`);
         const batchItems = allItems.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
         
-        const payload = {
-            version,
-            customers: batchItems
-        };
+        const payload = { customers: batchItems };
 
         let attempts = 0;
         let success = false;
@@ -68,6 +57,11 @@ export async function uploadToWorker(vipDiscountsMap: Record<string, number>, up
                 if (!res.ok) {
                     throw new Error(`HTTP Error: ${res.status}`);
                 }
+
+                const resData: any = await res.json().catch(() => ({}));
+                if (resData.written) totalWritten += resData.written;
+                if (resData.skipped) totalSkipped += resData.skipped;
+
                 success = true;
 
             } catch (err: any) {
@@ -82,46 +76,11 @@ export async function uploadToWorker(vipDiscountsMap: Record<string, number>, up
         }
     }
     
-    let oldVersion: string | null = null;
-    try {
-        const finishRes = await fetch(`${baseUrl}/v1/import/finish`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ version, customers: allItems.length })
-        });
-        if (!finishRes.ok) throw new Error(`Finish failed: ${finishRes.status}`);
-        
-        const finalData = await finishRes.json();
-        oldVersion = finalData.oldVersion;
-    } catch (err: any) {
-        console.error("\n❌ Nepodařilo se dokončit (aktivovat) import:", err.message);
-        return;
-    }
-    
-    if (oldVersion && oldVersion !== version) {
-        try {
-            const cleanupRes = await fetch(`${baseUrl}/v1/import/cleanup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ version: oldVersion })
-            });
-            
-            if (!cleanupRes.ok) throw new Error(`Cleanup failed`);
-        } catch (err: any) {
-            // Ignorujeme v rámci logiky cleanupu
-        }
-    }
-    
     const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
-    
+
     console.log(`\nImport completed`);
     console.log(`Customers: ${allItems.length}`);
     console.log(`Chunks: ${totalBatches}`);
+    console.log(`Written: ${totalWritten} (nové/změněné), Skipped: ${totalSkipped} (beze změny)`);
     console.log(`Duration: ${durationSec} s\n`);
 }

@@ -96,14 +96,57 @@ plnohodnotná náhrada, dokumentace je o krok pozadu.
 goldfish soubory. Nejlevnější náprava: CI krok porovnávající
 `wrangler deployments list` s `git rev-parse HEAD`.
 
-**Zůstává (nové, z tohoto auditu):**
-1. **Zapnout R2 na Cloudflare účtu** a vrátit binding → feed ožije.
-2. Opravit 4 call sites volající neexistující `/v1/import/{active,begin,finish}` —
-   nebo ty endpointy do Workeru doplnit (rozhodnutí, co z toho je zamýšlené).
-3. Napsat `import-chunk-contract.test.ts` (díra, co umožnila tenhle výpadek).
-4. Deploy CI / drift check "nasazený artefakt == repo".
-5. Migrační skript staré verzované customer klíče → stabilní, pak smazat fallback.
-6. Rozhodnout osud `goldfish-*.js` (do repa, nebo vědomě nechat mimo).
+**OPRAVENO TÝŽ DEN (4 paralelní agenti, nasazeno jako `917b8b13`):**
+
+1. ✅ **4 rozbité call sites** — `e3aa5dd` odstranil `/v1/import/{active,begin,finish}`
+   (customer varianty) ZÁMĚRNĚ (versioned import nedává smysl u stabilních klíčů),
+   ale call sites refaktor nedostaly. Opraveny na přímý `chunk` bez `version`:
+   `cli/force-customer-discount-live.ts`, `restore-kv.mjs`,
+   `desktop-app/lib/workerSync.js` (signatura beze změny, call site v `main.js:283`
+   nevyžadoval úpravu), `src/cli/upload.ts`. Bonus: `restore-kv.mjs` dřív vůbec
+   nekontroloval `res.ok` — doplněno. `syncProducts()` v desktop-app ponechán,
+   produktové `/v1/products/import/*` endpointy pořád existují.
+2. ✅ **`tests/import-chunk-contract.test.ts`** — 9 nových testů: klient posílá
+   správný tvar → zachycené tělo nakrmeno přímo do `worker.fetch()` → 200 + zápis
+   pod `customer:${hash}`. Plus: hash konzistence s `/v1/discount/:hash`,
+   diff-aware skip, zpětná tolerance k `version` navíc, 400 na vadný payload,
+   401 bez auth, batching nad 250. **Tohle je test, jehož absence umožnila
+   194 tichých selhání.**
+3. ✅ **`.github/workflows/deploy-drift-check.yml`** — denně 04:00 UTC porovná
+   datum posledního commitu v `cloudflare-worker/src/` s posledním
+   `wrangler deployments list`; při driftu selže + založí issue s labelem
+   `deploy-drift` (vzor: `reconcile-pricelist-drift.yml`).
+   ⚠️ **VYŽADUJE RUČNÍ KROK: secret `CLOUDFLARE_API_TOKEN` v repu NEEXISTUJE.**
+   Stávající `CF_WORKER_TOKEN` je aplikační bearer pro volání Workeru, ne
+   Cloudflare API token — wrangler s ním nic nezjistí. Vytvořit: CF dashboard →
+   My Profile → API Tokens → šablona „Edit Cloudflare Workers" (nebo custom
+   read-only Account → Workers Scripts → Read) → GitHub Settings → Secrets.
+4. ✅ **Matoucí HTTP statusy feed endpointů** — `POST /v1/feed/generate` vracel
+   200 `{status:'skipped'}` (volající to vyhodnotil jako úspěch) → teď 503 hned
+   za `checkAuth`. `GET /v1/feed/report` vracel na `skipped` stav 400 (= chyba
+   klienta, ale klient nic špatně neudělal) → teď 503, ostatní ne-success stavy
+   dál 400.
+
+Testy po opravách: **worker 129/129, root 373/373**, build čistý, nasazeno.
+
+**Zůstává (vyžaduje zásah mimo kód / rozhodnutí):**
+1. **Zapnout R2 na Cloudflare účtu** a odkomentovat binding → feed ožije.
+2. **Doplnit secret `CLOUDFLARE_API_TOKEN`** (viz bod 3 výše), jinak
+   `deploy-drift-check.yml` neběží. Zvážit i založení labelu `deploy-drift`.
+   Pozor: wrangler je pinnutý na `^3.0.0` — ověřit při prvním ručním běhu, že
+   `deployments list --json` v té major verzi existuje.
+3. **Migrační skript** staré verzované customer klíče → stabilní, pak smazat
+   fallback v `GET /v1/discount/:hash`. Fallback dnes funguje jen díky zmrazenému
+   `active_customer_version` (nikdo ho už nepřepisuje) — křehké. Vyžaduje
+   dry-run proti produkčnímu KV, ne jen kód.
+4. **Rozhodnout osud `goldfish-*.js`** (na FTP, mimo git, nedohledatelné).
+5. **`SECRET_TOKEN` je hardcoded** v `index.ts:26` (ne z `env`) — našel to
+   contract test, musí ho duplikovat. Když se token změní, test to nezachytí.
+   Stejná třída problému jako INC-012.
+6. **Server nevaliduje tvar položek** v `/v1/import/chunk` — `{hash: null}` nebo
+   chybějící `discount` projde a zapíše `"undefined"` do KV. Jediná kontrola je
+   `Array.isArray(body.customers)`. Doporučeno: sdílený
+   `interface ImportChunkRequest/Response`, který importují obě strany.
 
 **Zůstává (starší, beze změny):** backfill ~1850 produkt×tier záznamů,
 `RemoteForceSync` dopojení do `SyncOrchestrator`, `sync-products.ts:118` stream

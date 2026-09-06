@@ -137,6 +137,15 @@ export default {
             const statusData = await env.VIP_KV.get('feed_generation_status');
             if (!statusData) return jsonResponse({ error: 'No report available.' }, 404);
             const parsed = JSON.parse(statusData);
+            // R2 dočasně nedostupné (viz Env.FEED_BUCKET komentář ve feed-generator.ts) --
+            // runFeedGeneration() zapíše status 'skipped'. To není chyba volajícího
+            // (400 by lhalo), ale nedostupná služba -- 503, stejně jako /feed.xml.
+            if (parsed.status === 'skipped') {
+                return jsonResponse({
+                    error: 'Feed dočasně nedostupný: R2 storage není nakonfigurováno.',
+                    current: parsed
+                }, 503);
+            }
             if (parsed.status !== 'success') {
                 return jsonResponse({ error: 'Not succeeded yet.', current: parsed }, 400);
             }
@@ -149,6 +158,14 @@ export default {
         // Scheduled cron also uses the same path.
         if (path === '/v1/feed/generate' && request.method === 'POST') {
             if (!checkAuth(request)) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+            // R2 dočasně nedostupné (viz Env.FEED_BUCKET komentář ve feed-generator.ts) --
+            // bez tohohle guardu se runFeedGeneration() jen tiše přeskočí a endpoint
+            // vrátí HTTP 200 s {status:'skipped'}, což curl/CI/monitoring vyhodnotí
+            // jako úspěch, přestože se nic nevygenerovalo. 503 hned, stejně jako /feed.xml.
+            if (!env.FEED_BUCKET) {
+                return jsonResponse({ error: 'Feed dočasně nedostupný: R2 storage není nakonfigurováno.' }, 503);
+            }
 
             const statusData = await env.VIP_KV.get('feed_generation_status');
             if (statusData) {

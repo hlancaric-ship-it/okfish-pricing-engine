@@ -1,5 +1,6 @@
-// One-off: forcibly overwrites ONE customer's discount in the Worker's
-// active KV version, bypassing the normal turnover-based sync entirely.
+// One-off: forcibly overwrites ONE customer's discount in the Worker's KV
+// (stabilní klíč customer:${hash}, viz e3aa5dd), bypassing the normal
+// turnover-based sync entirely.
 //
 // WHY: used when an e-shopář manually assigns a customer a higher pricelist
 // tier directly in Shoptet admin (e.g. a manual "Doplnenie bodov" turnover
@@ -54,30 +55,24 @@ async function main() {
     console.log(`Nová sleva (natvrdo): ${discount}%`);
     console.log(live ? '!!! OSTRÝ ZÁPIS (LIVE=true) !!!' : '--- DRY RUN (nic se nezapíše, spusť s LIVE=true pro ostrý zápis) ---');
 
-    const activeRes = await fetch(`${baseUrl}/v1/import/active`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!activeRes.ok) throw new Error(`Nepodařilo se zjistit aktivní verzi: ${activeRes.status}`);
-    const activeData: any = await activeRes.json();
-    const version = activeData.version;
-    if (!version) throw new Error('Worker nevrátil žádnou aktivní verzi.');
-    console.log(`Aktivní verze KV: ${version}`);
-
+    // Od e3aa5dd se zákazníci píšou pod STABILNÍ klíč customer:${hash} bez verze,
+    // takže /v1/import/active i begin/finish zmizely. Zjišťovat aktivní verzi
+    // není co -- zapisuje se rovnou přes diff-aware /v1/import/chunk.
     if (!live) {
-        console.log(`[DRY RUN] Zapsal by se hash=${hash} discount=${discount} do verze ${version}. Nic nezapsáno.`);
+        console.log(`[DRY RUN] Zapsal by se klíč customer:${hash} = ${discount}. Nic nezapsáno.`);
         return;
     }
 
     const chunkRes = await fetch(`${baseUrl}/v1/import/chunk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ version, customers: [{ hash, discount }] }),
+        body: JSON.stringify({ customers: [{ hash, discount }] }),
     });
     if (!chunkRes.ok) {
         const body = await chunkRes.text().catch(() => '');
         throw new Error(`Zápis selhal: ${chunkRes.status} ${body}`);
     }
-    console.log('✅ Zapsáno do aktivní verze KV.');
+    console.log(`✅ Zapsáno do KV (stabilní klíč customer:${hash}).`);
 
     // Verify by reading it back through the public discount endpoint.
     const verifyRes = await fetch(`${baseUrl}/v1/discount/${hash}`, { cache: 'no-store' as any });

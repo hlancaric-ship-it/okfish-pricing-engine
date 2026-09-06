@@ -1,0 +1,245 @@
+name: Deploy Drift Check (repo vs. nasazený Worker)
+
+# PROČ TENHLE WORKFLOW EXISTUJE
+# ==============================
+# Incident 2026-09-06: Cloudflare Worker nebyl nasazen 3 týdny (poslední deploy
+# 2026-08-15), zatímco kód se v repu commitoval dál -- 14 commitů v
+# cloudflare-worker/src/. Vznikl mismatch mezi klientem (GitHub Actions CLI
+# skripty, běží vždy z HEADu repa) a serverem (Worker, zamrzlý na staré verzi),
+# který způsobil 194 selhaných sync běhů v řadě.
+#
+# Root cause byl PROCESNÍ, ne kódový: deploy je ruční
+# (`cd cloudflare-worker && npm run deploy`) a NEEXISTOVALA žádná kontrola,
+# že nasazený artefakt odpovídá repu. Repo mělo výbornou detekci driftu na
+# DATECH (Stage 5 reconciliation -- reconcile-pricelist-drift.yml,
+# reconcile-coupon-drift.yml), ale nulovou na KÓDU.
+#
+# Tenhle workflow tu díru zavírá: denně porovná timestamp posledního deploye
+# Workeru s timestampem posledního commitu, který se dotkl cloudflare-worker/src/.
+# Když je commit NOVĚJŠÍ než deploy => drift => selhání + GitHub Issue.
+#
+# POZOR -- POTŘEBUJE SECRET, KTERÝ REPO ZATÍM NEMÁ:
+# `CLOUDFLARE_API_TOKEN`. Existující secrety CF_WORKER_URL / CF_WORKER_TOKEN
+# jsou APLIKAČNÍ bearer token pro volání endpointů samotného Workeru --
+# NEJSOU to Cloudflare API tokeny a `wrangler` s nimi nic nezjistí.
+# Jak ho doplnit: Cloudflare dashboard -> My Profile -> API Tokens ->
+# Create Token -> šablona "Edit Cloudflare Workers" (stačí i read-only custom
+# token s oprávněním Account > Workers Scripts > Read) -> zkopírovat hodnotu ->
+# GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository
+# secret, jméno přesně `CLOUDFLARE_API_TOKEN`.
+# Účet je jednoznačný z wrangler.toml (name = "shoptet-vip-worker"); pokud by
+# token viděl víc účtů, doplnit ještě secret `CLOUDFLARE_ACCOUNT_ID`.
+# Dokud secret nedoplníš, workflow ZÁMĚRNĚ selže s čitelnou hláškou -- tiché
+# přeskočení by znamenalo přesně ten typ falešného klidu, co INC-010 způsobil.
+
+on:
+  schedule:
+    # 04:00 UTC -- mimo špičku a AŽ PO obou reconciliation workflow
+    # (reconcile-pricelist-drift 03:00, reconcile-coupon-drift 03:30), aby se
+    # alerty nemíchaly a případný drift kódu se dal číst jako samostatný signál.
+    # Sync běží každých 15 min, tenhle běh na něj ale vůbec nesahá -- je
+    # 100% read-only (čte jen Cloudflare API a git historii).
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Ruční spuštění po každém deployi pro okamžité ověření
+
+concurrency:
+  group: deploy-drift-check
+  cancel-in-progress: false
+
+jobs:
+  check-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repozitáře (plná historie kvůli git log nad src/)
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 je NUTNÉ -- výchozí shallow checkout (depth 1) by
+          # `git log -- cloudflare-worker/src/` omezil na jediný commit a
+          # detekce driftu by tiše vracela nesmysly.
+          fetch-depth: 0
+
+      - name: Příprava Node.js prostředí
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalace závislostí (cloudflare-worker -- kvůli pinnuté verzi wrangleru)
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Kontrola přítomnosti Cloudflare API tokenu
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Chybí secret CLOUDFLARE_API_TOKEN -- bez něj se nedá zjistit, kdy byl Worker naposledy nasazen."
+            echo "Doplň ho: Cloudflare dashboard -> My Profile -> API Tokens -> Create Token"
+            echo "-> šablona 'Edit Cloudflare Workers' (nebo custom read-only: Account > Workers Scripts > Read),"
+            echo "pak GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "se jménem přesně CLOUDFLARE_API_TOKEN."
+            echo "POZOR: CF_WORKER_TOKEN je aplikační bearer token Workeru, NE Cloudflare API token -- nelze použít."
+            exit 1
+          fi
+          echo "Cloudflare API token je k dispozici."
+
+      - name: Zjištění data posledního commitu v cloudflare-worker/src/
+        id: last_commit
+        run: |
+          set -euo pipefail
+          COMMIT_ISO=$(git log -1 --format=%cI -- cloudflare-worker/src/)
+          COMMIT_SHA=$(git log -1 --format=%h -- cloudflare-worker/src/)
+          COMMIT_SUBJECT=$(git log -1 --format=%s -- cloudflare-worker/src/)
+          if [ -z "$COMMIT_ISO" ]; then
+            echo "::error::Nepodařilo se zjistit poslední commit dotýkající se cloudflare-worker/src/."
+            exit 1
+          fi
+          echo "commit_iso=$COMMIT_ISO" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          echo "commit_subject=$COMMIT_SUBJECT" >> "$GITHUB_OUTPUT"
+          echo "commit_epoch=$(date -u -d "$COMMIT_ISO" +%s)" >> "$GITHUB_OUTPUT"
+          echo "Poslední commit v cloudflare-worker/src/: $COMMIT_SHA ($COMMIT_ISO) -- $COMMIT_SUBJECT"
+
+      - name: Zjištění data posledního deploye Workeru (Cloudflare API přes wrangler)
+        id: last_deploy
+        working-directory: cloudflare-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Volitelný -- doplň jen pokud token vidí víc Cloudflare účtů
+          # a wrangler si stěžuje na nejednoznačnost.
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          # `wrangler deployments list` vypisuje deploye Workeru z wrangler.toml
+          # (name = "shoptet-vip-worker"). Formát textového výstupu se mezi
+          # verzemi wrangleru mění, proto bereme JSON -- ten je stabilní.
+          # Pokud by pinnutá major verze wrangleru (^3) `--json` neuměla,
+          # krok selže a v logu bude vidět proč (nevymýšlíme si fallback,
+          # co by drift tiše zamaskoval).
+          npx wrangler deployments list --json > deployments.json 2> wrangler-stderr.log || {
+            echo "::error::Příkaz 'wrangler deployments list' selhal. Nejčastější příčiny: chybějící/neplatný CLOUDFLARE_API_TOKEN, nedostatečná oprávnění tokenu (potřeba Workers Scripts: Read), nebo nejednoznačný účet (doplň secret CLOUDFLARE_ACCOUNT_ID)."
+            cat wrangler-stderr.log || true
+            exit 1
+          }
+
+          # Nejnovější deploy = maximum přes všechny položky; nespoléháme na
+          # pořadí v odpovědi API. Klíč s časem se v různých verzích jmenuje
+          # created_on / modified_on, bereme první, co existuje.
+          DEPLOY_ISO=$(node -e '
+            const fs = require("fs");
+            let data;
+            try { data = JSON.parse(fs.readFileSync("deployments.json", "utf8")); }
+            catch (e) { console.error("Nevalidní JSON z wrangleru: " + e.message); process.exit(1); }
+            const items = Array.isArray(data) ? data : (data.deployments ?? data.result ?? []);
+            if (!Array.isArray(items) || items.length === 0) {
+              console.error("Cloudflare nevrátil žádný deploy Workeru.");
+              process.exit(1);
+            }
+            const times = items
+              .map(d => d.created_on ?? d.modified_on ?? d.createdOn ?? d.date)
+              .filter(Boolean)
+              .map(t => new Date(t))
+              .filter(d => !Number.isNaN(d.getTime()));
+            if (times.length === 0) {
+              console.error("V odpovědi Cloudflare chybí použitelný timestamp deploye.");
+              process.exit(1);
+            }
+            const latest = new Date(Math.max(...times.map(d => d.getTime())));
+            process.stdout.write(latest.toISOString());
+          ')
+
+          echo "deploy_iso=$DEPLOY_ISO" >> "$GITHUB_OUTPUT"
+          echo "deploy_epoch=$(date -u -d "$DEPLOY_ISO" +%s)" >> "$GITHUB_OUTPUT"
+          echo "Poslední deploy Workeru: $DEPLOY_ISO"
+
+      - name: Porovnání -- je repo novější než nasazený Worker?
+        id: compare
+        run: |
+          set -euo pipefail
+          COMMIT_EPOCH="${{ steps.last_commit.outputs.commit_epoch }}"
+          DEPLOY_EPOCH="${{ steps.last_deploy.outputs.deploy_epoch }}"
+          COMMIT_ISO="${{ steps.last_commit.outputs.commit_iso }}"
+          DEPLOY_ISO="${{ steps.last_deploy.outputs.deploy_iso }}"
+          COMMIT_SHA="${{ steps.last_commit.outputs.commit_sha }}"
+
+          LAG_DAYS=$(( (COMMIT_EPOCH - DEPLOY_EPOCH) / 86400 ))
+          {
+            echo "### Deploy drift check"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Poslední commit v \`cloudflare-worker/src/\` | \`$COMMIT_SHA\` @ $COMMIT_ISO |"
+            echo "| Poslední deploy Workeru | $DEPLOY_ISO |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$COMMIT_EPOCH" -gt "$DEPLOY_EPOCH" ]; then
+            # Nepoužíváme toleranci/grace period. Commit v src/, který není
+            # nasazený, JE drift -- přesně tohle způsobilo 194 selhaných běhů.
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "lag_days=$LAG_DAYS" >> "$GITHUB_OUTPUT"
+            echo "| **Výsledek** | 🔴 DRIFT -- repo je o ~${LAG_DAYS} dní napřed proti nasazenému Workeru |" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::DEPLOY DRIFT: commit $COMMIT_SHA ($COMMIT_ISO) v cloudflare-worker/src/ je NOVĚJŠÍ než poslední deploy Workeru ($DEPLOY_ISO), rozdíl ~${LAG_DAYS} dní. Nasaď: cd cloudflare-worker && npm run deploy"
+            exit 1
+          fi
+
+          echo "drift=false" >> "$GITHUB_OUTPUT"
+          echo "| **Výsledek** | 🟢 OK -- nasazený Worker je aktuální vůči repu |" >> "$GITHUB_STEP_SUMMARY"
+          echo "OK: nasazený Worker je aktuální vůči cloudflare-worker/src/."
+
+      # Stejný vzor jako reconcile-pricelist-drift.yml -- jedno dlouhoběžící
+      # issue na typ problému, další nálezy jdou jako komentáře, aby se
+      # nezasypal issue tracker denními duplikáty.
+      - name: Notifikace při driftu / selhání kontroly (GitHub Issue)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "🔴 Deploy Drift: nasazený Worker neodpovídá repu (deploy-drift-check.yml)";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const commitIso = `${{ steps.last_commit.outputs.commit_iso }}` || 'nezjištěno';
+            const commitSha = `${{ steps.last_commit.outputs.commit_sha }}` || 'nezjištěno';
+            const deployIso = `${{ steps.last_deploy.outputs.deploy_iso }}` || 'nezjištěno (kontrola selhala dřív)';
+            const body = [
+              `Kontrola ${new Date().toISOString()} zjistila, že nasazený Cloudflare Worker neodpovídá stavu repozitáře (nebo se ji nepodařilo dokončit).`,
+              ``,
+              `- Poslední commit v \`cloudflare-worker/src/\`: \`${commitSha}\` @ ${commitIso}`,
+              `- Poslední deploy Workeru: ${deployIso}`,
+              ``,
+              `**Náprava:** \`cd cloudflare-worker && npm run deploy\``,
+              ``,
+              `Kontext: tenhle typ driftu způsobil 194 selhaných sync běhů v řadě (Worker zamrzlý na verzi z 2026-08-15, klientské skripty běžely z HEADu).`,
+              ``,
+              `Detail běhu: ${runUrl}`
+            ].join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'deploy-drift'
+            });
+            const existing = issues.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['deploy-drift'],
+                assignees: ['hlancaric-ship-it']
+              });
+            }

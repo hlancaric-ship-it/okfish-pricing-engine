@@ -5,7 +5,17 @@ import { buildPricelistXml as buildPricelistXmlShared, PricelistInputs } from '.
 
 export interface Env {
     VIP_KV: KVNamespace;
-    FEED_BUCKET: R2Bucket;
+    /**
+     * DOČASNĚ VOLITELNÉ (2026-09-06): R2 bylo na Cloudflare účtu vypnuto, což
+     * rozbilo jak `GET /feed.xml` (HTTP 500 na živé produkci), tak KAŽDÝ
+     * `wrangler deploy` (`code: 10136`) — a tím blokovalo nasazení opravy
+     * úplně nesouvisejícího customer-cache bugu, kvůli kterému 100 % sync
+     * běhů selhávalo. Binding je proto dočasně odstraněn z `wrangler.toml`,
+     * aby deploy prošel; feed zůstává mimo provoz, dokud se R2 na účtu
+     * nezapne zpět. Návrat: vrátit `r2_buckets` do `wrangler.toml` (a
+     * `env.staging`), nic v kódu měnit netřeba — guardy níž samy ožijí.
+     */
+    FEED_BUCKET?: R2Bucket;
     MASTER_FEED_URL: string;
     SHOPTET_WEBHOOK_SIGNING_KEY?: string;
     GITHUB_DISPATCH_TOKEN?: string;
@@ -323,6 +333,8 @@ const KEEP_RECENT_COUNT = 10;
 const FEED_PREFIX = 'vip-feeds/';
 
 export async function cleanupOldFeeds(env: Env, activeFilename: string): Promise<{ deleted: string[]; kept: number }> {
+    // R2 dočasně nedostupné (viz Env.FEED_BUCKET komentář) -- no-op místo pádu.
+    if (!env.FEED_BUCKET) return { deleted: [], kept: 0 };
     const listed = await env.FEED_BUCKET.list({ prefix: FEED_PREFIX });
     // Object keys embed a sortable timestamp (products_YYYYMMDD_HHMMSS.xml), so a
     // plain string sort is equivalent to a chronological sort -- no need to trust
@@ -342,6 +354,20 @@ export async function cleanupOldFeeds(env: Env, activeFilename: string): Promise
 
 export async function runFeedGeneration(env: Env, filename: string, version: string): Promise<void> {
     const startTime = Date.now();
+
+    // R2 dočasně nedostupné (viz Env.FEED_BUCKET komentář) -- generování se
+    // přeskočí a zapíše se čitelný stav místo pádu uvnitř cronu. Cron sám
+    // (index.ts `scheduled`) chybu jen loguje, takže bez tohohle guardu by
+    // selhání bylo tiché.
+    if (!env.FEED_BUCKET) {
+        await env.VIP_KV.put('feed_generation_status', JSON.stringify({
+            status: 'skipped',
+            reason: 'R2 (FEED_BUCKET) není nakonfigurováno -- feed generování dočasně vypnuto.',
+            startedAt: new Date(startTime).toISOString(),
+        }));
+        console.warn('[feed-gen] Přeskočeno: FEED_BUCKET binding chybí (R2 vypnuto na účtu).');
+        return;
+    }
 
     await env.VIP_KV.put('feed_generation_status', JSON.stringify({
         status: 'running',

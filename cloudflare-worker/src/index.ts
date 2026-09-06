@@ -437,6 +437,12 @@ export default {
             const activeFeedData = await env.VIP_KV.get('active_feed');
             if (!activeFeedData) return new Response('No active feed.', { status: 404 });
             const activeFeed = JSON.parse(activeFeedData);
+            // R2 dočasně nedostupné (viz Env.FEED_BUCKET komentář ve feed-generator.ts) --
+            // 503 je čitelnější než HTTP 500 z pádu na undefined bindingu, což je přesně
+            // to, co produkce vracela před touhle změnou.
+            if (!env.FEED_BUCKET) {
+                return new Response('Feed dočasně nedostupný: R2 storage není nakonfigurováno.', { status: 503 });
+            }
             const object = await env.FEED_BUCKET.get(activeFeed.filename);
             if (!object) return new Response('Feed file not found in R2.', { status: 404 });
             return new Response(object.body, {

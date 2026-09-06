@@ -7,6 +7,110 @@ why, and what's still open.
 
 ---
 
+## 2026-09-06 — ROOT CAUSE nalezen: VŠECHNY sync běhy selhávají 100% od 5.9. (Worker nenasazen 3 týdny)
+
+**Zadání:** "selhávají běhy" — `gh run list` ukázal 0 úspěšných z posledních 194 běhů
+`Shoptet Pricing Engine Sync`, sahající minimálně do 2026-09-05T14:26Z.
+
+**Root cause potvrzen** (log `POST /v1/import/chunk` → `HTTP Error: 400`,
+`GET=54 PATCH=0` — chyba na úplně prvním requestu, ne uprostřed zpracování):
+
+- `npx wrangler deployments list` ukázal **poslední nasazení Workeru 2026-08-15**.
+- Commit `e3aa5dd` (2026-09-05, "stable customer-import KV keys") změnil klienta
+  (`customer-cache.ts`) tak, že posílá `{ customers: [...] }` **bez** `version` pole.
+- Stará (nasazená) verze `index.ts` handleru `/v1/import/chunk` **vyžaduje**
+  `body.version` (`if (!body?.version || ...) return 400`) — ověřeno přímým
+  `git show` staré verze před `e3aa5dd`.
+- Tedy: klient a server jsou po sobě 3 týdny nekompatibilní, protože Worker
+  nebyl po code changi znovu nasazen. Žádný CI deploy workflow existuje
+  (`.github/workflows/` nemá `deploy-worker.yml`) — nasazení je vždy ruční
+  `wrangler deploy`, snadno se zapomene po sérii commitů.
+
+**Provedeno (needitováno nasazeno, jen diagnostika + dohnání repa):**
+1. Lokální klon byl 17 commitů pozadu — `git pull origin main` proběhl čistě
+   (fast-forward, žádný konflikt), teď na `6ea101d`.
+2. `npm test` (root): **364/364 passed**. `npm test` (worker): **120/120 passed**.
+3. Diff mezi nasazenou verzí (commit u 15.8.) a `origin/main`: **26 souborů,
+   1741+/674- řádků** v `cloudflare-worker/src/` — zahrnuje mj. INC-012 fix
+   (`db08913`), INC-015 fix (`e903c77`, FULL SYNC `basePrice=0` bug), bezpečnostní
+   hardening (`37619fb`), R2 bucket cleanup (`d09bc4a`), Retry-After parsing fix
+   (`4f39666`), přepis `index.ts` routingu (246 řádků).
+4. `ai.py` (untracked, Groq API CLI pomocník) ponechán netknutý — nesouvisí.
+
+**NASAZENO (Lucky schválil, 2026-09-06 03:47) — VYŘEŠENO.** Verze
+`9f522b06-ec3f-4515-9805-4fa991dedd24`. **První běh po deployi (03:52:45) skončil
+`success` — první úspěšný sync po 194 selháních v řadě.**
+
+**Komplikace při deployi: R2 vypnuto na Cloudflare účtu.** První `wrangler deploy`
+selhal (`R2 binding error ... Please enable R2 through the Cloudflare Dashboard`,
+`code: 10136`), `wrangler r2 bucket list` to potvrdil nezávisle (`code: 10042`).
+R2 binding je v `wrangler.toml` od 23.7. a při posledním úspěšném deployi (15.8.)
+fungoval — mezitím bylo R2 na účtu vypnuto. **To zároveň rozbilo živý `GET
+/feed.xml` (vracel HTTP 500)** — nešlo o dva problémy, ale dva projevy téhož.
+
+**Řešení (Lucky rozhodl: dočasně odstranit R2 binding, feed obětovat):**
+- `cloudflare-worker/wrangler.toml` — oba `r2_buckets` bloky (produkce + staging)
+  zakomentované, s poznámkou jak je vrátit.
+- `feed-generator.ts` — `Env.FEED_BUCKET` je nově optional; `cleanupOldFeeds()`
+  a `runFeedGeneration()` mají early-return guard (posledně jmenovaná zapíše
+  `status: 'skipped'` do KV, ať selhání není tiché).
+- `index.ts` — `GET /feed.xml` vrací 503 s čitelnou hláškou místo pádu na
+  `undefined` bindingu.
+- Testy po změně: worker 120/120, root 364/364, dry-run deploy čistý.
+
+**Feed je tedy VYPNUTÝ, ne rozbitý** — návrat je jen o zapnutí R2 na účtu
+a odkomentování dvou bloků, nic v kódu měnit netřeba.
+
+**Následný audit 3 subagenty (2026-09-06) našel:**
+
+*R2 guardy* — čisté, žádné místo nespadne. Kosmetika: `POST /v1/feed/generate`
+vrací 200 `{status:'skipped'}` (volající to snadno vyhodnotí jako úspěch,
+lepší by bylo 503); `GET /v1/feed/report` vrací na skipped stav matoucí 400.
+
+*Customer-cache cesta* — hlavní sync cesta (`RemoteCustomerCache` ↔ handler)
+je konzistentní. ALE **4 latentní bugy: `/v1/import/active`, `/v1/import/begin`,
+`/v1/import/finish` (customer varianty) v `index.ts` VŮBEC NEEXISTUJÍ** (jsou tam
+jen `products/` varianty). Nefunkční jsou proto: `cli/force-customer-discount-live.ts`
+(404 na `/v1/import/active`, spadne před zápisem), `restore-kv.mjs`,
+**`desktop-app/lib/workerSync.js` — Pavlova appka neumí zákaznický sync vůbec**,
+`src/cli/upload.ts`. Fallback na staré verzované klíče v `GET /v1/discount/:hash`
+funguje jen díky zmrazenému `active_customer_version` (nikdo ho už nepřepisuje) —
+křehké, chce jednorázový migrační skript na stabilní klíče + smazat fallback.
+**Payload kontrakt `/v1/import/chunk` nemá ŽÁDNÝ test** — proto 194 běhů selhalo
+bez jediného červeného testu. Doporučeno: `tests/import-chunk-contract.test.ts`
+po vzoru `static-assets-route.test.ts`.
+
+*Procesní díra* — **deploy CI neexistuje** (`grep wrangler .github/workflows/` → 0).
+Navíc: static assets (`vip_*.js`) se pečou do `static-assets.ts` při `predeploy`,
+takže **3 týdny nenasazeného Workeru = 3 týdny starý frontend JS servírovaný
+klientům** (stejný incident, druhá tvář). `goldfish-badge-header.js` /
+`goldfish-discount-badge.js` jsou na FTP **mimo git** — nedohledatelné.
+`desktop-app` má `package.json` v1.2.1, ale poslední git tag `v1.1.0`.
+Tvrzení v `CORE_LOGIC_AND_VALIDATION.md` §3.6 "coupon-fields.yml archivován
+s ničím na jeho místě" **už neplatí** — `reconcile-coupon-drift.yml` (19.8.) je
+plnohodnotná náhrada, dokumentace je o krok pozadu.
+
+**Vzorec (nejdůležitější závěr):** repo má výbornou detekci driftu **na datech**
+(Stage 5 reconciliation), ale **nulovou na kódu** — nikde není kontrola
+"nasazený artefakt == repo", ani pro Worker, ani pro desktop app, ani pro
+goldfish soubory. Nejlevnější náprava: CI krok porovnávající
+`wrangler deployments list` s `git rev-parse HEAD`.
+
+**Zůstává (nové, z tohoto auditu):**
+1. **Zapnout R2 na Cloudflare účtu** a vrátit binding → feed ožije.
+2. Opravit 4 call sites volající neexistující `/v1/import/{active,begin,finish}` —
+   nebo ty endpointy do Workeru doplnit (rozhodnutí, co z toho je zamýšlené).
+3. Napsat `import-chunk-contract.test.ts` (díra, co umožnila tenhle výpadek).
+4. Deploy CI / drift check "nasazený artefakt == repo".
+5. Migrační skript staré verzované customer klíče → stabilní, pak smazat fallback.
+6. Rozhodnout osud `goldfish-*.js` (do repa, nebo vědomě nechat mimo).
+
+**Zůstává (starší, beze změny):** backfill ~1850 produkt×tier záznamů,
+`RemoteForceSync` dopojení do `SyncOrchestrator`, `sync-products.ts:118` stream
+retry (issue #7), GitHub issue #8 otevřená od 19.8. — viz zápisy níže.
+
+---
+
 ## 2026-09-05 (pokračování) — Root cause ~1850 produkt×tier reconciliation alertů nalezen a opraven (INC-015)
 
 Hypotéza ze zápisu níže (okno 15.–21.8., `getPricelistItemByCode` bug) byla **vyvrácena

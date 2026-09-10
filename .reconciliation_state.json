@@ -694,6 +694,11 @@
     "expected": "5.9100",
     "actual": "null (prázdné)"
   },
+  "93917::ZR4": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
+    "actual": "null (prázdné)"
+  },
   "98027::ZR4": {
     "firstSeen": "2026-09-05",
     "expected": "878.9900",
@@ -1852,6 +1857,11 @@
   "93887::ZR6": {
     "firstSeen": "2026-09-09",
     "expected": "5.9100",
+    "actual": "null (prázdné)"
+  },
+  "93917::ZR6": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
     "actual": "null (prázdné)"
   },
   "98027::ZR6": {
@@ -3104,6 +3114,11 @@
     "expected": "1.3600",
     "actual": "null (prázdné)"
   },
+  "93917::ZR8": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
+    "actual": "null (prázdné)"
+  },
   "98027::ZR8": {
     "firstSeen": "2026-09-05",
     "expected": "878.9900",
@@ -4352,6 +4367,11 @@
   "93915::ZR10": {
     "firstSeen": "2026-09-05",
     "expected": "1.3600",
+    "actual": "null (prázdné)"
+  },
+  "93917::ZR10": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
     "actual": "null (prázdné)"
   },
   "98027::ZR10": {
@@ -5604,6 +5624,11 @@
     "expected": "1.3600",
     "actual": "null (prázdné)"
   },
+  "93917::ZR12": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
+    "actual": "null (prázdné)"
+  },
   "98027::ZR12": {
     "firstSeen": "2026-09-05",
     "expected": "878.9900",
@@ -6852,6 +6877,11 @@
   "93915::ZR14": {
     "firstSeen": "2026-09-05",
     "expected": "1.3600",
+    "actual": "null (prázdné)"
+  },
+  "93917::ZR14": {
+    "firstSeen": "2026-09-10",
+    "expected": "21.2100",
     "actual": "null (prázdné)"
   },
   "98027::ZR14": {

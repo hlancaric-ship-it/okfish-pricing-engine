@@ -16,8 +16,13 @@ on:
     types: [shoptet-webhook]
 
 # Ochrana proti souběžnému běhu (pokud už synchronizace běží, nová počká nebo se nespustí paralelně)
+# Group přejmenována 2026-09-15 (v2): dva runy ze 13.9. zůstaly navždy v zombie
+# "queued" stavu (GitHub-side bug -- API je odmítá zrušit i force-cancelnout,
+# 409 "not queued yet" i "completed" současně) a blokovaly starou skupinu
+# donekonečna -- nové běhy od 15.9. ~08:11 kvůli tomu padaly na startup_failure.
+# Nová skupina obchází mrtvou frontu; staré zombie runy zůstávají viset neškodně.
 concurrency:
-  group: shoptet-sync-job
+  group: shoptet-sync-job-v2
   cancel-in-progress: false
 
 jobs:

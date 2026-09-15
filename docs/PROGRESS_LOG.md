@@ -7,6 +7,32 @@ why, and what's still open.
 
 ---
 
+## 2026-09-15 — Fix: sync.yml selhával `startup_failure` — zombie queued běhy blokovaly concurrency group
+
+**Zadání:** "proč všechno selhává" — od ~08:11 padaly všechny nové běhy
+`Shoptet Pricing Engine Sync` (cron i webhook) na `startup_failure`
+(`path: "BuildFailed"`).
+
+**Root cause:** dva běhy ze 13.9. (`34749357158`, `34748468151`) zůstaly
+navždy v zombie `queued` stavu — GitHub REST API je odmítalo zrušit
+(`cancel` → 409 "completed") i force-cancelnout (`force-cancel` → 409
+"not queued yet", protichůdné chyby na tentýž run) i smazat (`DELETE` →
+403). Workflow má `concurrency: { group: shoptet-sync-job,
+cancel-in-progress: false }`, takže tyhle dva mrtvé runy navždy
+blokovaly frontu — nové běhy se hromadily za nimi a GitHub je nakonec
+začal rovnou odmítat spouštět.
+
+**Fix:** přejmenování `concurrency.group` na `shoptet-sync-job-v2` v
+`.github/workflows/sync.yml` (commit `e220eae`) — obchází mrtvou frontu,
+staré zombie běhy zůstávají viset neškodně (žádný runner, nic
+nespotřebovávají). Ověřeno: 4 běhy po pushi proběhly `success`.
+
+**Otevřené:** pokud se to zopakuje, GitHub Actions zombie-queued bug
+zjevně nemá spolehlivou API opravu — přejmenování concurrency group je
+jediná ověřená cesta ven, ne řešení samotného bugu.
+
+---
+
 ## 2026-09-06 — ROOT CAUSE nalezen: VŠECHNY sync běhy selhávají 100% od 5.9. (Worker nenasazen 3 týdny)
 
 **Zadání:** "selhávají běhy" — `gh run list` ukázal 0 úspěšných z posledních 194 běhů

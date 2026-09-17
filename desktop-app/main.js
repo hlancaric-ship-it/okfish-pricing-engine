@@ -176,6 +176,7 @@ ipcMain.handle('load-policies', async () => {
 ipcMain.handle('save-policies', async (event, { section, data, commitMessage }) => {
     try {
         log(`=== Ukládám pravidla: ${section} ===`);
+        await policyManager.pullLatest(log);
         if (section === 'brandLimits') policyManager.saveBrandLimits(data);
         else if (section === 'brandSaleDiscounts') policyManager.saveBrandSaleDiscounts(data);
         else if (section === 'categoryLimits') policyManager.saveCategoryLimits(data);

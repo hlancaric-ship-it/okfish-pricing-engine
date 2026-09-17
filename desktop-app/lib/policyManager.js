@@ -159,6 +159,16 @@ async function ensureRepoCloned(log) {
     log('Git konfigurován pro práci s pravidly.');
 }
 
+// Must run BEFORE the save*() functions write anything to disk. If the pull
+// happens after the write (as it used to, inside commitAndPush), the working
+// tree is already dirty by the time `git pull --ff-only` runs, so any save
+// made while origin/main has moved on fails with "local changes would be
+// overwritten by merge" -- this is what produced that exact error for Pavol.
+async function pullLatest(log) {
+    log('Kontroluji, zda je repozitář aktuální (git pull)...');
+    await git(['pull', '--ff-only']);
+}
+
 // Commits and pushes ONLY the one policy file the current save actually wrote
 // (via `section` -> SECTION_TO_FILE_KEY), never the other policy files. This
 // used to `git add`/commit every FILES entry regardless of section, which meant
@@ -173,9 +183,6 @@ async function commitAndPush(section, message, log) {
     const fileKey = SECTION_TO_FILE_KEY[section];
     if (!fileKey) throw new Error(`Neznámá sekce pravidel: ${section}`);
     const relFile = path.relative(REPO_ROOT, FILES[fileKey]);
-
-    log('Kontroluji, zda je repozitář aktuální (git pull)...');
-    await git(['pull', '--ff-only']);
 
     log(`Ukládám změnu do gitu: ${relFile}`);
     await git(['add', relFile]);
@@ -228,6 +235,7 @@ module.exports = {
     saveClearance,
     saveCouponPolicy,
     exportRuleCsv,
+    pullLatest,
     commitAndPush,
     ensureRepoCloned
 };

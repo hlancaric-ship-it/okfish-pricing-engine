@@ -7,6 +7,44 @@ why, and what's still open.
 
 ---
 
+## 2026-09-18 — Deploy drift opraven + backfill 2465 produkt×tier cen (INC-015 followup)
+
+**Zadání:** "podívej se jestli vše šlape jako po másle" — zjištěno 3 otevřené
+drift issues (#11 deploy, #9 coupon, #8 price), reconciliation workflows
+selhávaly poslední 3 dny za sebou.
+
+**#11 Deploy drift — vyřešeno.** Worker byl nasazen ze 6.9. 17:48, repo mělo
+novější commit `4618d5a` (6.9. 21:40, kv feed-hash guard). 0 rozdílu commitů
+ve `cloudflare-worker/src/` mezi nasazenou a repo verzí -- bezpečné nasadit.
+`npm run deploy` (ručně, klasifikátor blokuje automatický deploy do produkce).
+Ověřeno `wrangler deployments list` (18.9. 17:04), issue #11 uzavřen.
+
+**#8 Price integrity — backfill proveden.** Root cause byl znám už z 21.8.
+(INC-015, `db08913`→`b521cb9`), ale nikdy neproběhl retroaktivní backfill pro
+produkty uvízlé v mezeře 15.–21.8. `.reconciliation_state.json` měl (po
+`git pull` -- lokální klon byl pozadu) 2465 záznamů, konzistentně
+PODHODNOCENÝCH napříč všemi tiery (ZR4-ZR25), např. kód 99636 ZR25: 3022.50 Kč
+místo správných 4030.00 Kč.
+
+Spuštěn existující `cloudflare-worker/src/cli/backfill-reconciliation-drift.ts`
+(byl už napsaný, nikdy nespuštěný) -- **dry-run nejdřív** (firemní pravidlo),
+ukázal plán 2465 zápisů, žádný přeskočený kvůli chybějící basePrice. Po
+schválení Luckym spuštěno `--live`: **2465/2465 zapsáno, 0 selhání**, plný
+audit log (`requestId`, `oldValue`/`newValue`, HTTP 200 na každý zápis) v
+konzoli. Plán uložen do `backfill-plan.json` (gitignored, lokální).
+
+**#9 Coupon integrity — NEDOŘEŠENO, zbývá příští session.** Stejný vzorec
+(bug opraven, backfill nikdy neproběhl) je pravděpodobný i tady, ale log ještě
+nebyl stažený a analyzovaný (jiný artifact název než u price, viz poznámka z
+7.9. v tomhle souboru).
+
+**Ověřit příští běh:** `reconcile-pricelist-drift.yml` by měl příští spuštění
+(cca 07:xx UTC) nahlásit "0 alertů" a self-check by měl issue #8 zavřít
+automaticky -- pokud ne, něco v backfillu/reconciliaci nesedí a je potřeba
+prošetřit znovu.
+
+---
+
 ## 2026-09-15 — Fix: sync.yml selhával `startup_failure` — zombie queued běhy blokovaly concurrency group
 
 **Zadání:** "proč všechno selhává" — od ~08:11 padaly všechny nové běhy
